@@ -16,7 +16,6 @@ namespace Generation_Algorithms
 
 		const int height = 600;
 		const int width = 1000;
-		int[,] heightMap = new int[width + 1, height + 1];
 		static Random rnd = new Random();
 
 		public int[] hashTable = new int[256*2]; //Random set of all integer values between 0-255
@@ -43,7 +42,7 @@ namespace Generation_Algorithms
 
 		}
 
-		public void GenerateNoise2D(double frequency, float borderOffsetX, float borderOffsetY, float borderOffsetPower, bool fractal) //frequency is the amount of islands. BorderOffset is the offset from the boundaries of the map as a decimal
+		public void GenerateNoise2D(double frequency, float borderOffsetX, float borderOffsetY, float borderOffsetPower, bool fractal, ref int[,] table) //frequency is the amount of islands. BorderOffset is the offset from the boundaries of the map as a decimal
 		{
 			//default max height is 255.
 			//offset should decrease this "maximum value" by the distance from the offset
@@ -67,7 +66,7 @@ namespace Generation_Algorithms
 					}
 
 					int elevation = (int)(noise * (ReturnBoundaryMaxHeight(x,y,borderOffsetX,borderOffsetY, borderOffsetPower))); //convert 0-1 to 0-255 (the depth value for later)
-					heightMap[x, y] = elevation;
+					table[x, y] = elevation;
 				}
 			}
 
@@ -189,22 +188,22 @@ namespace Generation_Algorithms
 			}
 		}
 
-		public int GetPercentile(float modifier) //returns the value at a specific percentile (0 - 100)
+		public int GetPercentile(float modifier, ref int[,] map) //returns the value at a specific percentile (0 - 100)
         {
-			List<int> seaList = new List<int>(); //this is used to get the median of the set, as a reference for where the sea level should be
+			List<int> percList = new List<int>(); //this is used to get the median of the set, as a reference for where the sea level should be
 
 			for (int x = 0; x < width; x++)
 			{
 				for (int y = 0; y < height; y++)
 				{
-					seaList.Add(heightMap[x, y]);
+					percList.Add(map[x, y]);
 				}
 			}
 
-			seaList.Sort();
+			percList.Sort();
 
 			//Get sealevel modifier value quartile
-			int seaLevel = seaList[(int)Math.Floor((float)seaList.Count * modifier)];
+			int seaLevel = percList[(int)Math.Floor((float)percList.Count * modifier)];
 			return seaLevel;
 		}
 
@@ -224,14 +223,15 @@ namespace Generation_Algorithms
 
 		private void Btn_Perlin_Click(object sender, EventArgs e)
 		{
+			int[,] heightMap = new int[width + 1, height + 1];
 			PerlinRandomise(); //swap values in the buffer
-			GenerateNoise2D(3.5, 0.05f, 0.1f, 0.5f,true); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
+			GenerateNoise2D(3.5, 0.05f, 0.1f, 0.5f,true,ref heightMap); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
 
-			DisplayValues(0.6f, "Land/Sea"); //display in picturebox. Value provided is the sea level modifier (quartile?)
+			DisplayValues(0.6f, "Land/Sea", ref heightMap); //display in picturebox. Value provided is the sea level modifier (quartile?)
 
 		}
 
-		public void DisplayValues(float modifier, string type)
+		public void DisplayValues(float modifier, string type, ref int[,] map)
 		{
 			PicImage.Width = width;
 			PicImage.Height = height;
@@ -243,8 +243,8 @@ namespace Generation_Algorithms
 			switch (type)
 			{
 				case "Land/Sea":
-					typeStorage.Add(GetPercentile(0.6f)); //land vs sea
-					typeStorage.Add(GetPercentile(0.95f)); //mountain region
+					typeStorage.Add(GetPercentile(0.6f, ref map)); //land vs sea
+					typeStorage.Add(GetPercentile(0.95f, ref map)); //mountain region
 					break;
 				case "None":
 					break;
@@ -258,11 +258,11 @@ namespace Generation_Algorithms
 				{
 					if (type == "Land/Sea")
 					{
-						LandType(ref bmp, x, y, typeStorage[0], typeStorage[1]); //Sets land/sea and mountains
+						LandType(ref bmp, x, y, typeStorage[0], typeStorage[1], ref map); //Sets land/sea and mountains
 					}
 					else if (type == "None")
                     {
-						bmp.SetPixel(x, y, Color.FromArgb(heightMap[x, y], heightMap[x, y], heightMap[x, y])); //Non-terrain
+						bmp.SetPixel(x, y, Color.FromArgb(map[x, y], map[x, y], map[x, y])); //Non-terrain
                     }
 				}
 			}
@@ -270,36 +270,38 @@ namespace Generation_Algorithms
 			PicImage.Image = bmp;
 		}
 
-		public void LandType(ref Bitmap bmp, int x, int y, int seaLevel, int mountainLevel) //handles land/sea generation
+		public void LandType(ref Bitmap bmp, int x, int y, int seaLevel, int mountainLevel, ref int[,] map) //handles land/sea generation
 		{
-			if(heightMap[x,y] >= mountainLevel)
+			if(map[x,y] >= mountainLevel)
             {
-				bmp.SetPixel(x, y, Color.FromArgb(heightMap[x, y], heightMap[x, y], heightMap[x, y])); //Mountains become gray
+				bmp.SetPixel(x, y, Color.FromArgb(map[x, y], map[x, y], map[x, y])); //Mountains become gray
 			}
-			else if (heightMap[x, y] >= seaLevel)
+			else if (map[x, y] >= seaLevel)
 			{
-				bmp.SetPixel(x, y, Color.FromArgb(0, heightMap[x, y], 0)); //Land becomes green
+				bmp.SetPixel(x, y, Color.FromArgb(0, map[x, y], 0)); //Land becomes green
 			}
 			else
 			{
-				bmp.SetPixel(x, y, Color.FromArgb(0, 0, heightMap[x, y])); //Sea becomes blue
+				bmp.SetPixel(x, y, Color.FromArgb(0, 0, map[x, y])); //Sea becomes blue
 			}
 		}
 
         private void Btn_SPerlin_Click(object sender, EventArgs e)
         {
+			int[,] heightMap = new int[width + 1, height + 1];
 			PerlinRandomise(); //swap values in the buffer
-			GenerateNoise2D(3.5, 0f, 0f, 1f,true); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
+			GenerateNoise2D(3.5, 0f, 0f, 1f,true, ref heightMap); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
 
-			DisplayValues(0.6f, "None"); //display in picturebox. Value provided is the sea level modifier (quartile?)
+			DisplayValues(0.6f, "None",ref heightMap); //display in picturebox. Value provided is the sea level modifier (quartile?)
 		}
 
         private void Btn_PerlinNF_Click(object sender, EventArgs e)
         {
+			int[,] heightMap = new int[width + 1, height + 1];
 			PerlinRandomise(); //swap values in the buffer
-			GenerateNoise2D(3.5, 0f, 0f, 1f, false); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
+			GenerateNoise2D(3.5, 0f, 0f, 1f, false, ref heightMap); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
 
-			DisplayValues(0.6f, "None"); //display in picturebox. Value provided is the sea level modifier (quartile?)
+			DisplayValues(0.6f, "None", ref heightMap); //display in picturebox. Value provided is the sea level modifier (quartile?)
 		}
-    }
+	}
 }
