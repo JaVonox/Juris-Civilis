@@ -182,25 +182,6 @@ public class WorldGenerator
 		}
 	}
 
-	public int GetPercentile(float modifier, ref int[,] map) //returns the value at a specific percentile (0 - 100)
-	{
-		List<int> percList = new List<int>(); //this is used to get the median of the set, as a reference for where the sea level should be
-
-		for (int x = 0; x < width; x++)
-		{
-			for (int y = 0; y < height; y++)
-			{
-				percList.Add(map[x, y]);
-			}
-		}
-
-		percList.Sort();
-
-		//Get sealevel modifier value quartile
-		int seaLevel = percList[(int)Math.Floor((float)percList.Count * modifier)];
-		return seaLevel;
-	}
-
     public int[,] Generate(double frequency, float borderOffsetX, float borderOffsetY, float borderOffsetPower, bool fractal)
     {
         int[,] heightMap = new int[width + 1, height + 1];

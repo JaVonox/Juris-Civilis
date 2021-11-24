@@ -11,7 +11,7 @@ public class CameraScript : MonoBehaviour
     const float zoomAcceleration = 0.2f;
     const float zoomSpeedCap = 1;
 
-    const int maxZoomOrtho = 60;
+    const int maxZoomOrtho = 20;
     const int minZoomOrtho = 5;
 
     void Start()
@@ -22,23 +22,37 @@ public class CameraScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        CameraMove();
+        CameraZoom();
+    }
+    float GetRelativeSpeed() //returns a camera move speed based on the relative zoom. assumes that max zoom is where the initial speed applies
+    {
+        float speedMod = (Camera.main.orthographicSize) / maxZoomOrtho; //0-1 for the camera speed
+        return cameraSpeed * speedMod;
+    }
+
+    void CameraMove()
+    {
         if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D))
         {
-            transform.Translate(new Vector3(cameraSpeed * Time.deltaTime, 0, 0));
+            transform.Translate(new Vector3(GetRelativeSpeed() * Time.deltaTime, 0, 0));
         }
         if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A))
         {
-            transform.Translate(new Vector3(-cameraSpeed * Time.deltaTime, 0, 0));
+            transform.Translate(new Vector3(-GetRelativeSpeed() * Time.deltaTime, 0, 0));
         }
         if (Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S))
         {
-            transform.Translate(new Vector3(0, -cameraSpeed * Time.deltaTime, 0));
+            transform.Translate(new Vector3(0, -GetRelativeSpeed() * Time.deltaTime, 0));
         }
         if (Input.GetKey(KeyCode.UpArrow) || Input.GetKey(KeyCode.W))
         {
-            transform.Translate(new Vector3(0, cameraSpeed * Time.deltaTime, 0));
+            transform.Translate(new Vector3(0, GetRelativeSpeed() * Time.deltaTime, 0));
         }
+    }
 
+    void CameraZoom()
+    {
         if ((Input.mouseScrollDelta.y > 0 || Input.GetKeyUp(KeyCode.PageUp)) && Camera.main.orthographicSize > minZoomOrtho) //checks for mouse wheel up or page up selected (for zooming in). also checks against the zoom cap of 20
         {
             zoomSpeed = System.Math.Max(-zoomSpeedCap, zoomSpeed > 0 ? -zoomAcceleration : (zoomSpeed > 0 ? zoomSpeed : zoomSpeed - zoomAcceleration)); //adds zoomAcceleration to zoomSpeed provided, while also resetting the zoomSpeed if it is currently zoomed in the opposite direction
