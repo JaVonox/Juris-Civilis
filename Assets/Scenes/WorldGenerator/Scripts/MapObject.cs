@@ -7,13 +7,13 @@ public class MapObject
 {
     private int maxWidth;
     private int maxHeight;
-    private const int propertiesCount = 4;
+    private const int propertiesCount = 2;
 
     //properties
     public int[,] elevationMap;
     public int[,] temperatureMap;
-    public int[,] rainfallMap;
-    public int[,] floraMap;
+    //public int[,] rainfallMap;
+    //public int[,] floraMap;
 
     //percentiles
     private int[,] deciles = new int[propertiesCount, 10];
@@ -22,7 +22,7 @@ public class MapObject
         maxWidth = x;
         maxHeight = y;
         elevationMap = new int[x, y];
-        temperatureMap = new int[x, y];
+        //temperatureMap = new int[x, y];
     }
     public int GetSeaLevel()
     {
@@ -54,7 +54,7 @@ public class MapObject
     public float GetRed(int x, int y)
     {
         float red = 0;
-        if (temperatureMap[x, y] >= GetTemperate() && elevationMap[x, y] >= GetSeaLevel())
+        if (elevationMap[x, y] >= GetSeaLevel() && temperatureMap[x,y] >= GetTemperate())
         {
             red = (float)temperatureMap[x, y] / 255;
         }
@@ -100,8 +100,8 @@ public class MapObject
             {
                 valueList.Add(elevationMap[x, y]);
                 valueList.Add(temperatureMap[x, y]);
-                valueList.Add(rainfallMap[x, y]);
-                valueList.Add(floraMap[x, y]);
+                //valueList.Add(rainfallMap[x, y]);
+                //valueList.Add(floraMap[x, y]);
             }
         }
 

@@ -10,7 +10,7 @@ public class MainScreenHandler : MonoBehaviour
     int mapWidth = 6000;
     int mapHeight = 4000;
     MapObject currentMap;
-
+    System.Random rnd = new System.Random();
 
     public WorldGenerator _PerlinObject;
     void Start()
@@ -33,8 +33,9 @@ public class MainScreenHandler : MonoBehaviour
     {
         currentMap.elevationMap = _PerlinObject.Generate(3.5, 0.05f, 0.1f, 0.5f, true); //fractal for elevation
         currentMap.temperatureMap = _PerlinObject.Generate(2, 0, 0.3f, 0.6f, false); //no fractal for temperature
-        currentMap.rainfallMap = _PerlinObject.Generate(3, 0, 0.1f, 0.1f, false); //no fractal for rainfall
-        currentMap.floraMap = _PerlinObject.Generate(6, 0, 0, 0, false); //no fractal for flora
+        //_PerlinObject.Generate1DAddition(5, mapHeight / 10, mapHeight / 2, rnd.Next(mapHeight / 16, mapHeight / 14), rnd.Next(mapHeight / 10, mapHeight / 9), 50, ref currentMap.temperatureMap); //add equator
+        //currentMap.rainfallMap = _PerlinObject.Generate(3, 0, 0.1f, 0.1f, false); //no fractal for rainfall
+        //currentMap.floraMap = _PerlinObject.Generate(6, 0, 0, 0, false); //no fractal for flora
         currentMap.SetDecile();
 
         DisplayMap();

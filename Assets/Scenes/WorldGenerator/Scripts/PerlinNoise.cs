@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI; //objects
 public class WorldGenerator
 {
 	int height;
@@ -184,10 +186,64 @@ public class WorldGenerator
 
     public int[,] Generate(double frequency, float borderOffsetX, float borderOffsetY, float borderOffsetPower, bool fractal)
     {
-        int[,] heightMap = new int[width + 1, height + 1];
+        int[,] map = new int[width + 1, height + 1];
         PerlinRandomise(); //swap values in the buffer
-        GenerateNoise2D(frequency, borderOffsetX, borderOffsetY, borderOffsetPower, true, ref heightMap); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
-		return heightMap;
+        GenerateNoise2D(frequency, borderOffsetX, borderOffsetY, borderOffsetPower, true, ref map); //Generate 2D noise (x,y,depth). Value provided is the frequency of noise, then the offset from the borders of the map
+		return map;
+    }
+
+	public int[,] Generate1DAddition(int pointsNum, int maxHeight, int yMid, int spreadDistanceUpper, int spreadDistanceLower, int heatMax, ref int[,] map) 
+    {
+        Dictionary<int, int> peaks = new Dictionary<int, int>();
+		List<int> peakVals = new List<int>(); //ordered list of all points in peaks. Automatically set in order.
+
+		peaks[0] = yMid + rnd.Next(-maxHeight, maxHeight); //set 0 value
+		peakVals.Add(0);
+
+		for (int a=1; a<= pointsNum; a++) //set a variable number of points as points to be interpolated
+        {
+			int newX = rnd.Next((a-1)*(width/pointsNum)+1,a*(width/pointsNum)); //get a random point in every slice of the width
+			peaks[newX] = yMid + rnd.Next(-maxHeight, maxHeight); //append a number of points of variance
+			peakVals.Add(newX);
+        }
+
+		peaks[width - 1] = yMid + rnd.Next(-maxHeight, maxHeight); //set value at end of set
+		peakVals.Add(width - 1);
+
+		foreach (int thisX in peaks.Keys) //go through each point 
+		{
+			if (peakVals.IndexOf(thisX) == peakVals.Count - 1) //check this isnt the final point
+			{
+				break;
+			}
+
+			int myIndex = peakVals.IndexOf(thisX); //gets the index of the current peak
+			int nextX = peakVals[myIndex + 1]; //gets the next point in the dictionarys X value
+
+			for (int x = thisX; x < nextX; x++)
+            {
+				int nextY = (int)Math.Round((float)peaks[thisX] + (float)(x - thisX) * ((float)(peaks[nextX] - peaks[thisX]) / (float)(nextX - thisX)));
+
+				map[x, nextY] += heatMax;
+
+				for (int y=nextY+1;y<nextY+spreadDistanceUpper; y++)
+                {
+					float relativeY = Math.Abs(1-((float)(y-nextY) / (float)spreadDistanceUpper));
+
+					map[x, y] += (int)Math.Floor(relativeY * heatMax);
+				}
+
+				for (int y = nextY - 1; y >nextY - spreadDistanceUpper;y--)
+				{
+					float relativeY = 1 - Math.Abs((float)(y - nextY) / (float)spreadDistanceLower);
+					map[x, y] += (int)Math.Floor(relativeY * heatMax);
+				}
+			}
+
+        }
+
+        return map;
+
     }
 
 }
