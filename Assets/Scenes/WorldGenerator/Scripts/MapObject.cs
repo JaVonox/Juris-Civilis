@@ -22,28 +22,18 @@ public class MapObject
         maxWidth = x;
         maxHeight = y;
         elevationMap = new int[x, y];
-        //temperatureMap = new int[x, y];
+        temperatureMap = new int[x, y];
     }
     public int GetSeaLevel()
     {
         return deciles[0, 5]; //sea level is at 60% of the elevation set
     }
-    public int GetMountainLevel()
-    {
-        return deciles[0, 8]; //sea level is at 90% of the elevation set
-    }
+
     public int GetTemperate()
     {
-        return deciles[1, 4]; //temperature from 50%
+        return deciles[1, 6]; //temperature from 70%
     }
-    public int GetRain()
-    {
-        return deciles[2, 6]; //rain from 70%
-    }
-    public int GetFlora()
-    {
-        return deciles[3, 4]; //flora from 50%
-    }
+
     public Color GetColor(int x, int y)
     {
         Color tileColour;
@@ -67,11 +57,6 @@ public class MapObject
         if (elevationMap[x, y] >= GetSeaLevel())
         {
             green += (float)elevationMap[x, y] / 255;
-
-            //if (floraMap[x, y] >= GetFlora())
-            //{
-            //    green += (float)floraMap[x, y] / 255;
-            //}
         }
 
         return green;

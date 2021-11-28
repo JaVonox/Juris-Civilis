@@ -233,9 +233,9 @@ public class WorldGenerator
 					map[x, y] += (int)Math.Floor(relativeY * heatMax);
 				}
 
-				for (int y = nextY - 1; y >nextY - spreadDistanceUpper;y--)
+				for (int y = nextY - 1; y >nextY-spreadDistanceLower; y--)
 				{
-					float relativeY = 1 - Math.Abs((float)(y - nextY) / (float)spreadDistanceLower);
+					float relativeY = 1 - Math.Abs((float)(y-nextY) / (float)spreadDistanceLower);
 					map[x, y] += (int)Math.Floor(relativeY * heatMax);
 				}
 			}
