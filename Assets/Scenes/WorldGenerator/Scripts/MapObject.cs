@@ -31,7 +31,7 @@ public class MapObject
 
     public int GetTemperate()
     {
-        return deciles[1, 6]; //temperature from 70%
+        return deciles[1, 7]; //temperature from 80%
     }
 
     public Color GetColor(int x, int y)
@@ -56,7 +56,7 @@ public class MapObject
         float green = 0;
         if (elevationMap[x, y] >= GetSeaLevel())
         {
-            green += (float)elevationMap[x, y] / 255;
+            green += 150f / 255f;
         }
 
         return green;
