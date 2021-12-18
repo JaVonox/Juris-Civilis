@@ -1,29 +1,94 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using BiomeData; //Biome stuff
 using UnityEngine;
 using UnityEngine.UI; //objects
+
 public class MapObject
 {
     private int maxWidth;
     private int maxHeight;
-    private const int propertiesCount = 2;
+    private const int propertiesCount = 4;
 
     //properties
-    public int[,] elevationMap;
-    public int[,] temperatureMap;
-    //public int[,] rainfallMap;
-    //public int[,] floraMap;
+    public TileData[,] tiles;
 
-    //percentiles
-    private int[,] deciles = new int[propertiesCount, 10];
+    //percentiles per property
+    private int[,] deciles = new int[propertiesCount, 10]; //Elevation, Temperature, Rainfall, Flora
+
     public MapObject(int x, int y)
     {
         maxWidth = x;
         maxHeight = y;
-        elevationMap = new int[x, y];
-        temperatureMap = new int[x, y];
+        tiles = new TileData[maxWidth, maxHeight];
+
+        for (int xIter = 0; xIter < maxWidth; xIter++) //Initialise all values of list
+        {
+            for (int yIter = 0; yIter < maxHeight; yIter++)
+            {
+                tiles[xIter, yIter] = new TileData();
+            }
+        }
+
     }
+
+    public void SetProperty(int[,] set,int property)
+    {
+        //TODO there must be a better way to do this. Maybe using enums?
+        if(property == 0)
+        {
+            for(int x=0;x<maxWidth;x++)
+            {
+                for(int y=0;y<maxHeight;y++)
+                {
+                    tiles[x, y]._height = set[x,y];
+                }
+            }
+        }
+        else if (property == 1)
+        {
+            for (int x = 0; x < maxWidth; x++)
+            {
+                for (int y = 0; y < maxHeight; y++)
+                {
+                    tiles[x, y]._temperature = set[x,y];
+                }
+            }
+        }
+        else if (property == 2)
+        {
+            for (int x = 0; x < maxWidth; x++)
+            {
+                for (int y = 0; y < maxHeight; y++)
+                {
+                    tiles[x, y]._rainfall = set[x,y];
+                }
+            }
+        }
+        else if (property == 3)
+        {
+            for (int x = 0; x < maxWidth; x++)
+            {
+                for (int y = 0; y < maxHeight; y++)
+                {
+                    tiles[x, y]._flora = set[x,y];
+                }
+            }
+        }
+    }
+
+    public void SetBiomes() //Set biomes for the existing tile data
+    {
+        for (int x = 0; x < maxWidth; x++)
+        {
+            for (int y = 0; y < maxHeight; y++)
+            {
+                tiles[x, y].InitializeBiome(ref deciles);
+            }
+        }
+    }
+
     public int GetSeaLevel()
     {
         return deciles[0, 5]; //sea level is at 60% of the elevation set
@@ -37,42 +102,8 @@ public class MapObject
     public Color GetColor(int x, int y)
     {
         Color tileColour;
-        tileColour = new Color(GetRed(x, y), GetGreen(x, y), GetBlue(x, y));
-
-        return tileColour; //sea level is at 60% of the elevation set
-    }
-    public float GetRed(int x, int y)
-    {
-        float red = 0;
-        if (elevationMap[x, y] >= GetSeaLevel() && temperatureMap[x,y] >= GetTemperate())
-        {
-            red = (float)temperatureMap[x, y] / 255;
-        }
-        return red;
-    }
-
-    public float GetGreen(int x, int y)
-    {
-        float green = 0;
-        if (elevationMap[x, y] >= GetSeaLevel())
-        {
-            green += 150f / 255f;
-        }
-
-        return green;
-    }
-    public float GetBlue(int x, int y)
-    {
-        float blue = 0;
-        if (elevationMap[x, y] < GetSeaLevel())
-        {
-            blue = 255;
-        }
-        //else if (rainfallMap[x, y] >= GetRain())
-        //{
-        //    blue = (float)rainfallMap[x, y] / 50;
-        //}
-        return blue;
+        tileColour = tiles[x, y]._biomeType.GetColour();
+        return tileColour; 
     }
 
     public void SetDecile() //stores the 10 deciles for each property 
@@ -81,12 +112,12 @@ public class MapObject
 
         for (int x = 0; x < maxWidth; x++)
         {
-            for (int y = 0; y < maxHeight; y++)
+            for (int y = 0; y < maxHeight; y++) //Adds decile properties
             {
-                valueList.Add(elevationMap[x, y]);
-                valueList.Add(temperatureMap[x, y]);
-                //valueList.Add(rainfallMap[x, y]);
-                //valueList.Add(floraMap[x, y]);
+                valueList.Add(tiles[x, y]._height);
+                valueList.Add(tiles[x, y]._temperature);
+                valueList.Add(tiles[x, y]._rainfall);
+                valueList.Add(tiles[x, y]._flora);
             }
         }
 

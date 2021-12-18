@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; //objects
 using System.Threading;
+
 public class MainScreenHandler : MonoBehaviour
 {
     public Button perlinButton;
@@ -13,11 +14,14 @@ public class MainScreenHandler : MonoBehaviour
     int mapHeight = 4000;
     MapObject currentMap;
     System.Random rnd = new System.Random();
+
     public enum State
     {
         Inactive,
         Terrain,
         Temperature,
+        Rainfall,
+        Flora,
         Displaying,
     }
 
@@ -33,7 +37,6 @@ public class MainScreenHandler : MonoBehaviour
     {
         currentMap = new MapObject(mapWidth, mapHeight);
 
-        currentMap.elevationMap = new int[mapWidth, mapHeight]; //set up the map
         _PerlinObject = new WorldGenerator(mapWidth, mapHeight); //set up worldGenerator
         perlinButton.GetComponent<Button>().onClick.AddListener(GenerateImageOnClick); //attach the script to the button
         UpdateLabel();
@@ -61,24 +64,34 @@ public class MainScreenHandler : MonoBehaviour
     {
         genStateText.text = "State: " + (State)currentState;
     }
+
     void ImageProcedure()
     {
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        currentMap.elevationMap = _PerlinObject.Generate(3.5, 0.05f, 0.1f, 0.5f, true); //fractal for elevation
+        currentMap.SetProperty(_PerlinObject.Generate(3.5, 0.05f, 0.1f, 0.5f, true), 0); //Elevation fractal
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        currentMap.temperatureMap = _PerlinObject.Generate(2, 0, 0.3f, 0.6f, false); //no fractal for temperature
-        _PerlinObject.Generate1DAddition(5, mapHeight / 10, mapHeight / 2, mapHeight / 8, mapHeight / 3, 50, ref currentMap.temperatureMap); //add equator
+        int[,] tmpTemp = new int[mapWidth, mapHeight];
+        tmpTemp = _PerlinObject.Generate(2, 0, 0.3f, 0.6f, false); //no fractal for temperature
+        _PerlinObject.Generate1DAddition(5, mapHeight / 10, mapHeight / 2, mapHeight / 8, mapHeight / 3, 50, ref tmpTemp); //add equator
+        currentMap.SetProperty(tmpTemp, 1);
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        //currentMap.rainfallMap = _PerlinObject.Generate(3, 0, 0.1f, 0.1f, false); //no fractal for rainfall
-        //currentMap.floraMap = _PerlinObject.Generate(6, 0, 0, 0, false); //no fractal for flora
+        currentMap.SetProperty(_PerlinObject.Generate(3, 0, 0.1f, 0.1f, false), 2); //no fractal for rain. Maybe change this
+        currentState++;
+        queuedFunctions.Add(UpdateLabel);
+
+        currentMap.SetProperty(_PerlinObject.Generate(6, 0, 0, 0, false),3); //no fractal for flora
+        currentState++;
+        queuedFunctions.Add(UpdateLabel);
 
         currentMap.SetDecile();
+
+        currentMap.SetBiomes();
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
