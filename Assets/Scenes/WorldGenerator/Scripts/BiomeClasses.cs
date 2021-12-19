@@ -34,20 +34,26 @@ namespace BiomeData
         static System.Random rnd = new System.Random();
         public static List<Biome> activeBiomes = new List<Biome>(){
         new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f)),
-        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.35f,0.82f,0.06f)),
-        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.09f,0.55f,0.02f)),
-        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.27f,0.54f,0.47f)),
-        new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.58f,0.95f,0.41f)),
-        new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.73f,0.91f,0.28f)),
-        new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(0.36f,0.6f,0.77f)),
-        new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.87f,0.86f,0.15f)),
-        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.43f,0.53f,0.49f)),
-        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.13f,0.22f,0.17f)),
-        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.16f,0.28f,0.13f)),
+        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0)),
+        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f)),
+        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0)),
+        new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.02f,0.54f,0)),
+        new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.78f,0.55f,0.15f)),
+        new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(1,0.78f,0.78f)),
+        new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.77f,0.61f,0.23f)),
+        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f)),
+        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f)),
+        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f)),
         };
 
         public static Biome SortTile(TileData target, ref int[,] deciles)
         {
+
+            if(target._heightProp == Property.Low) //Oceans
+            {
+                return activeBiomes[0];
+            }
+
             float[] indexScores = new float[activeBiomes.Count]; //make temporary array the size of the activeBiomes list
 
             foreach (Biome tBiome in activeBiomes) //find the score of each biome against the target data
@@ -58,7 +64,7 @@ namespace BiomeData
             float maxVal = -1;
             int maxIndex = -1;
 
-            for (int i = 0; i < activeBiomes.Count; i++) //iterate through all active biomes except ocean
+            for (int i = 1; i < activeBiomes.Count; i++) //iterate through all active biomes except ocean
             {
                 if (indexScores[i] > maxVal || maxIndex == -1)
                 {
@@ -97,18 +103,17 @@ namespace BiomeData
         private void DefineProperties(ref int[,] deciles) //Select the property value for each property
         {
             if (_height < deciles[0, 5]) { _heightProp = Property.Low; }
-            else if(_height >= deciles[0,5] && _height < deciles[0,8]) { _heightProp = Property.Medium; }
+            else if(_height >= deciles[0,5] && _height < deciles[0,8] + (int)(((float)deciles[0,9] - (float)deciles[0,8]) /4)) { _heightProp = Property.Medium; }
             else { _heightProp = Property.High; }
 
             if (_temperature < deciles[1, 2]) { _tempProp = Property.Low; }
-            else if (_temperature >= deciles[1, 2] && _temperature < deciles[1, 7]) { _tempProp = Property.Medium; }
+            else if (_temperature >= deciles[1, 2] && _temperature < deciles[1, 6]) { _tempProp = Property.Medium; }
             else { _tempProp = Property.High; }
 
-            //rainfall and flora are only high/low
-            if (_rainfall < deciles[2, 1]) { _rainfallProp = Property.Low; }
+            if (_rainfall < deciles[2, 3]) { _rainfallProp = Property.Low; }
             else { _rainfallProp = Property.High; }
 
-            if (_flora < deciles[3, 3]) { _floraProp = Property.Low; }
+            if (_flora < deciles[3, 4]) { _floraProp = Property.Low; }
             else { _floraProp = Property.High; }
 
         }
@@ -146,7 +151,7 @@ namespace BiomeData
 
             if(targetTile._heightProp == _desireElevation)
             {
-                score += 1;
+                score += 10;
             }
             else if(_desireElevation == Property.NA)
             {

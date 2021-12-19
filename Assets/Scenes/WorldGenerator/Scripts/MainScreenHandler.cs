@@ -22,6 +22,7 @@ public class MainScreenHandler : MonoBehaviour
         Temperature,
         Rainfall,
         Flora,
+        Biomes,
         Displaying,
     }
 
@@ -90,8 +91,9 @@ public class MainScreenHandler : MonoBehaviour
         queuedFunctions.Add(UpdateLabel);
 
         currentMap.SetDecile();
-
         currentMap.SetBiomes();
+        currentState++;
+        queuedFunctions.Add(UpdateLabel);
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
