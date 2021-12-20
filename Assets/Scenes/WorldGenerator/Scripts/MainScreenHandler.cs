@@ -23,6 +23,7 @@ public class MainScreenHandler : MonoBehaviour
         Rainfall,
         Flora,
         Biomes,
+        //Dividing,
         Displaying,
     }
 
@@ -75,10 +76,14 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        int[,] tmpTemp = new int[mapWidth, mapHeight];
-        tmpTemp = _PerlinObject.Generate(2, 0, 0.3f, 0.6f, false); //no fractal for temperature
-        _PerlinObject.Generate1DAddition(5, mapHeight / 10, mapHeight / 2, mapHeight / 8, mapHeight / 3, 50, ref tmpTemp); //add equator
-        currentMap.SetProperty(tmpTemp, 1);
+        //Used to kill tmpTemp after usage
+        {
+            int[,] tmpTemp = new int[mapWidth, mapHeight];
+            tmpTemp = _PerlinObject.Generate(2, 0, 0.3f, 0.6f, false); //no fractal for temperature
+            _PerlinObject.Generate1DAddition(5, mapHeight / 10, mapHeight / 2, mapHeight / 8, mapHeight / 3, 50, ref tmpTemp); //add equator
+            currentMap.SetProperty(tmpTemp, 1);
+        }
+
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
@@ -90,16 +95,22 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        currentMap.SetDecile();
+        currentMap.SetDecile(); //Biome drawing functions#
+        Debug.Log("DECILE DONE");
         currentMap.SetBiomes();
+        Debug.Log("BIOMES DONE");
         currentState++;
         queuedFunctions.Add(UpdateLabel);
+
+        //currentMap.SplitIntoChunks(); //Splitting into map chunks
+        //currentState++;
+        //queuedFunctions.Add(UpdateLabel);
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
 
-        generatorThreadRunning = false;
         queuedFunctions.Add(DisplayMap); //adds function display map to queued items
+        generatorThreadRunning = false;
         generatorThread.Join(); //Join the thread
     }
 

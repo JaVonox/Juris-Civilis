@@ -78,6 +78,27 @@ namespace BiomeData
 
     }
 
+    public class Chunk //Stores a set of tiles
+    {
+        int xTop, yTop; //stores the coordinates of the top left
+        int height, width; //The height and width of the chunk
+        TileData[,] chunkTiles;
+
+        public Chunk(int x,int y,int w,int h)
+        {
+            xTop = x;
+            yTop = y;
+            height = h;
+            width = w;
+            chunkTiles = new TileData[width, height]; //defines new tiles set
+        }
+
+        public void AddTile(int relX,int relY, ref TileData tile)
+        {
+            chunkTiles[relX, relY] = tile; //adds tile reference to set of tiles
+        }
+    }
+
     public class TileData //Stored in X,Y array. Stores the properties for each pixel.
     {
         //Set by external
@@ -86,13 +107,13 @@ namespace BiomeData
         public int _rainfall;
         public int _flora;
 
+        //Relative properties - not exact values but usable by the biome setter to define biomes
         public Property _heightProp;
         public Property _tempProp;
         public Property _rainfallProp;
         public Property _floraProp;
 
-        //Set by internal
-        //TODO maybe switch to private?
+        //Defined by properties
         public Biome _biomeType;
 
         public TileData() //Empty constructor - for new TileData() calls
@@ -129,6 +150,8 @@ namespace BiomeData
     public class Biome
     {
         public string _name;
+        
+        //Stores what the expected properties are for a biome of this type
         Property _desireElevation;
         Property _desireTemperature;
         Property _desireRainfall;
