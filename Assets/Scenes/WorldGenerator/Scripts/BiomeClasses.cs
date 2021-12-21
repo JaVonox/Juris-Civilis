@@ -93,19 +93,14 @@ namespace BiomeData
             chunkTiles = new TileData[width, height]; //defines new tiles set
         }
 
-        public void AddTile(int relX,int relY, ref TileData tile)
+        public void AddTile(int relX,int relY, TileData tile)
         {
-            chunkTiles[relX, relY] = tile; //adds tile reference to set of tiles
+            chunkTiles[relX, relY] = tile; //adds tile to set of tiles
         }
     }
 
     public class TileData //Stored in X,Y array. Stores the properties for each pixel.
     {
-        //Set by external
-        public int _height;
-        public int _temperature;
-        public int _rainfall;
-        public int _flora;
 
         //Relative properties - not exact values but usable by the biome setter to define biomes
         public Property _heightProp;
@@ -121,27 +116,35 @@ namespace BiomeData
 
         }
 
-        private void DefineProperties(ref int[,] deciles) //Select the property value for each property
+        public void DefineProperties(ref int[,] deciles, int property, int value) //Select the property value for each property
         {
-            if (_height < deciles[0, 5]) { _heightProp = Property.Low; }
-            else if(_height >= deciles[0,5] && _height < deciles[0,8] + (int)(((float)deciles[0,9] - (float)deciles[0,8]) /4)) { _heightProp = Property.Medium; }
-            else { _heightProp = Property.High; }
-
-            if (_temperature < deciles[1, 2]) { _tempProp = Property.Low; }
-            else if (_temperature >= deciles[1, 2] && _temperature < deciles[1, 6]) { _tempProp = Property.Medium; }
-            else { _tempProp = Property.High; }
-
-            if (_rainfall < deciles[2, 3]) { _rainfallProp = Property.Low; }
-            else { _rainfallProp = Property.High; }
-
-            if (_flora < deciles[3, 4]) { _floraProp = Property.Low; }
-            else { _floraProp = Property.High; }
+            if (property == 0)
+            {
+                if (value < deciles[0, 5]) { _heightProp = Property.Low; }
+                else if (value >= deciles[0, 5] && value < deciles[0, 8] + (int)(((float)deciles[0, 9] - (float)deciles[0, 8]) / 4)) { _heightProp = Property.Medium; }
+                else { _heightProp = Property.High; }
+            }
+            else if (property == 1)
+            {
+                if (value < deciles[1, 2]) { _tempProp = Property.Low; }
+                else if (value >= deciles[1, 2] && value < deciles[1, 6]) { _tempProp = Property.Medium; }
+                else { _tempProp = Property.High; }
+            }
+            else if (property == 2)
+            {
+                if (value < deciles[2, 3]) { _rainfallProp = Property.Low; }
+                else { _rainfallProp = Property.High; }
+            }
+            else if (property == 3)
+            {
+                if (value < deciles[3, 4]) { _floraProp = Property.Low; }
+                else { _floraProp = Property.High; }
+            }
 
         }
 
         public void InitializeBiome(ref int[,] deciles) //Set the biome for each tile, using the decile set as comparison
         {
-            this.DefineProperties(ref deciles);
             _biomeType = BiomesObject.SortTile(this, ref deciles); //attempts a self sort
         }
 

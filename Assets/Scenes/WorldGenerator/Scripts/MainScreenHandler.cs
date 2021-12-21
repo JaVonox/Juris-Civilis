@@ -82,6 +82,7 @@ public class MainScreenHandler : MonoBehaviour
             tmpTemp = _PerlinObject.Generate(2, 0, 0.3f, 0.6f, false); //no fractal for temperature
             _PerlinObject.Generate1DAddition(5, mapHeight / 10, mapHeight / 2, mapHeight / 8, mapHeight / 3, 50, ref tmpTemp); //add equator
             currentMap.SetProperty(tmpTemp, 1);
+            tmpTemp = null; //designate as cleanable
         }
 
         currentState++;
@@ -95,12 +96,13 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        currentMap.SetDecile(); //Biome drawing functions#
-        Debug.Log("DECILE DONE");
         currentMap.SetBiomes();
-        Debug.Log("BIOMES DONE");
         currentState++;
         queuedFunctions.Add(UpdateLabel);
+
+        //Use garbage collector manually to clear up data due to the heavy memory usage impacts of this program
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
 
         //currentMap.SplitIntoChunks(); //Splitting into map chunks
         //currentState++;
@@ -130,6 +132,7 @@ public class MainScreenHandler : MonoBehaviour
         }
 
         imageTexture.Apply();
+        sprite = null;
     }
 
 }
