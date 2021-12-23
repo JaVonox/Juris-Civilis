@@ -16,6 +16,9 @@ public class MapObject
     //percentiles per property
     private int[,] deciles = new int[4, 10]; //Elevation, Temperature, Rainfall, Flora
 
+    //List of chunks
+    public List<Chunk> worldChunks = new List<Chunk>();
+
     public MapObject(int x, int y)
     {
         maxWidth = x;
@@ -34,32 +37,41 @@ public class MapObject
 
     public void SplitIntoChunks() //Splits the map into chunks (Squares/rects)
     {
-        const int numOfChunks = 1024; //Number of chunks to be generated. Always must be square number
-        Chunk[] worldChunks = new Chunk[numOfChunks];
-
         //should always be integer divisible by num of chunks.
-        int chunkWidth = maxWidth / (int)Math.Sqrt(numOfChunks);
-        int chunkHeight = maxHeight / (int)Math.Sqrt(numOfChunks);
+        int chunkWidth = maxWidth / 100;
+        int chunkHeight = maxHeight / 100;
 
-        int iteration = -1; //start at -1 because first loop will always add 1
+        int iteration = 0; //chunk number
 
-        //Iterate through all tiles and store the tile in the appropriate tileSlot
-        for(int x=0;x<maxWidth;x++)
+        for(int x=0;x<maxWidth;x+=chunkWidth) //Iterate through each chunk
         {
-            for(int y=0;y<maxHeight;y++)
+            for(int y=0;y<maxHeight;y+=chunkHeight)
             {
-                if (y % chunkHeight == 0 && x % chunkWidth == 0) //If this exists on a new chunk border (Inwhich x and y are both on the chunk boundary, hence being top left)
+                worldChunks.Insert(iteration, new Chunk(x, y, chunkWidth, chunkHeight)); //add new chunk to the set
+
+                for(int sX=0;sX<chunkWidth;sX++) //Iterate through all child tiles within the set
                 {
-                    iteration++;
-                    Debug.Log("iter: " + iteration);
-                    Debug.Log("CREATING for (" + x + "," + y + ")");
-                    worldChunks[iteration] = new Chunk(x, y, chunkWidth, chunkHeight);
+                    for(int sY=0;sY<chunkHeight;sY++)
+                    {
+                        worldChunks[iteration].AddTile(sX, sY, ref tiles[x+sX, y+sY]); //append all tiles in the set at their relative locations
+                    }
                 }
-                worldChunks[iteration].AddTile(x % chunkWidth, y % chunkHeight, tiles[x, y]); //appends the tile at x y into the chunks set
+
+                iteration++;
+
             }
         }
 
-        Debug.Log("Number of chunks:" + iteration);
+        Debug.Log("Exited tile addition");
+
+    }
+
+    public void IterateChunks(ref Color[] PixelsSet, int maxWidth, int maxHeight) //Iterate through all chunks and append to the pixels set array
+    {
+        foreach (Chunk worldChunk in worldChunks)
+        {
+            worldChunk.ReturnTiles(ref PixelsSet, maxWidth, maxHeight);
+        }
     }
 
     public void SetProperty(int[,] set,int property)
@@ -73,8 +85,6 @@ public class MapObject
                 tiles[x, y].DefineProperties(ref deciles, property, set[x, y]);
             }
         }
-
-        set = null;
 
     }
 

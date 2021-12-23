@@ -23,13 +23,11 @@ public class MainScreenHandler : MonoBehaviour
         Rainfall,
         Flora,
         Biomes,
-        //Dividing,
+        Dividing,
         Displaying,
     }
 
     int currentState = 0;
-
-    public WorldGenerator _PerlinObject;
 
     private Thread generatorThread;
     private volatile bool generatorThreadRunning = false;
@@ -39,7 +37,6 @@ public class MainScreenHandler : MonoBehaviour
     {
         currentMap = new MapObject(mapWidth, mapHeight);
 
-        _PerlinObject = new WorldGenerator(mapWidth, mapHeight); //set up worldGenerator
         perlinButton.GetComponent<Button>().onClick.AddListener(GenerateImageOnClick); //attach the script to the button
         UpdateLabel();
     }
@@ -72,6 +69,8 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
+        WorldGenerator _PerlinObject = new WorldGenerator(mapWidth, mapHeight); //set up worldGenerator
+
         currentMap.SetProperty(_PerlinObject.Generate(3.5, 0.05f, 0.1f, 0.5f, true), 0); //Elevation fractal
         currentState++;
         queuedFunctions.Add(UpdateLabel);
@@ -96,43 +95,40 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
+        _PerlinObject = null; //Kill perlin for memory space
+
         currentMap.SetBiomes();
         currentState++;
+        queuedFunctions.Add(UpdateLabel);
+
+        currentMap.SplitIntoChunks(); //Splitting into map chunks
+        currentState++;
+        queuedFunctions.Add(UpdateLabel);
+
+        queuedFunctions.Add(DisplayChunkMap); //adds function display map to queued items
+
+        currentState = 0;
         queuedFunctions.Add(UpdateLabel);
 
         //Use garbage collector manually to clear up data due to the heavy memory usage impacts of this program
         GC.Collect();
         GC.WaitForPendingFinalizers();
 
-        //currentMap.SplitIntoChunks(); //Splitting into map chunks
-        //currentState++;
-        //queuedFunctions.Add(UpdateLabel);
-
-        currentState = 0;
-        queuedFunctions.Add(UpdateLabel);
-
-        queuedFunctions.Add(DisplayMap); //adds function display map to queued items
         generatorThreadRunning = false;
         generatorThread.Join(); //Join the thread
     }
 
-    void DisplayMap()
+    void DisplayChunkMap()
     {
         Texture2D imageTexture = new Texture2D(mapWidth, mapHeight);
-        Sprite sprite = Sprite.Create(imageTexture, new Rect(0, 0, mapWidth,mapHeight), Vector2.zero);
+        Sprite sprite = Sprite.Create(imageTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
         imageRef.GetComponent<SpriteRenderer>().sprite = sprite;
 
-        for (int x = 0; x < imageTexture.width; x++)
-        {
-            for (int y = 0; y < imageTexture.height; y++)
-            {
-                Color color = currentMap.GetColor(x, y);
-                imageTexture.SetPixel(x, y, color);
-            }
-        }
+        Color[] PixelsSet = new Color[mapWidth * mapHeight]; //1D set of pixels
+        currentMap.IterateChunks(ref PixelsSet, mapWidth, mapHeight); //Set all pixel values
+        imageTexture.SetPixels(PixelsSet, 0); //sets all pixels from the chunk values
 
         imageTexture.Apply();
-        sprite = null;
     }
 
 }

@@ -4,20 +4,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; //objects
 
-//enum biome
-//{
-//    Temperate_Forest,
-//    Tropical_Forest,
-//    Taiga,
-//    Grasslands,
-//    Savannah,
-//    Tundra,
-//    Desert,
-//    Mountain_Range,
-//    Forested_Plateau,
-//    Shrubland_Plateau,
-//}
-
 namespace BiomeData
 {
 
@@ -80,8 +66,8 @@ namespace BiomeData
 
     public class Chunk //Stores a set of tiles
     {
-        int xTop, yTop; //stores the coordinates of the top left
-        int height, width; //The height and width of the chunk
+        public int xTop, yTop; //stores the coordinates of the top left
+        public int height, width; //The height and width of the chunk
         TileData[,] chunkTiles;
 
         public Chunk(int x,int y,int w,int h)
@@ -91,11 +77,28 @@ namespace BiomeData
             height = h;
             width = w;
             chunkTiles = new TileData[width, height]; //defines new tiles set
+
         }
 
-        public void AddTile(int relX,int relY, TileData tile)
+        public void AddTile(int relX,int relY, ref TileData tile)
         {
-            chunkTiles[relX, relY] = tile; //adds tile to set of tiles
+            chunkTiles[relX, relY] = tile; //adds referenced tile to set of tiles in chunk
+        }
+
+        public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight) //Appends its chunk data into the pixels dataset
+        {
+
+            for (int x=0;x<width;x++)
+            {
+                for(int y=0;y<height;y++)
+                {
+                    int realX = xTop + x;
+                    int realY = yTop + y;
+
+                    dataSet[(realY * maxWidth) + realX] = chunkTiles[x, y].ReturnBiomeColour();
+                }
+            }
+
         }
     }
 
@@ -146,6 +149,11 @@ namespace BiomeData
         public void InitializeBiome(ref int[,] deciles) //Set the biome for each tile, using the decile set as comparison
         {
             _biomeType = BiomesObject.SortTile(this, ref deciles); //attempts a self sort
+        }
+
+        public Color ReturnBiomeColour()
+        {
+            return _biomeType.GetColour();
         }
 
     }
