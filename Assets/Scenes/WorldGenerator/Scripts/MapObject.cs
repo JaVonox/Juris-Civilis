@@ -35,34 +35,65 @@ public class MapObject
 
     }
 
-    public void SplitIntoChunks() //Splits the map into chunks (Squares/rects)
+    public void SplitIntoChunks(ref System.Random rnd) //Splits the map into chunks (Triangles)
     {
         //should always be integer divisible by num of chunks.
         int chunkWidth = maxWidth / 100;
         int chunkHeight = maxHeight / 100;
+        long moduloVal = rnd.Next(1, 20000); //this defines the start for the modulo randomiser
+        //The random values for this procedure use a linear congruential function as the system random uses system clock data
+        //As this procedure needs constant new random values, this is not preferrable
+        //By using a random before the start of the procedure however, we can generate a random seed for the modulo operation to work from
 
+        float grad = (float)chunkHeight / (float)chunkWidth; //rough dy/dx value for drawing chunk boundaries
         int iteration = 0; //chunk number
 
         for(int x=0;x<maxWidth;x+=chunkWidth) //Iterate through each chunk
         {
-            for(int y=0;y<maxHeight;y+=chunkHeight)
+            for (int y=0;y<maxHeight;y+=chunkHeight)
             {
-                worldChunks.Insert(iteration, new Chunk(x, y, chunkWidth, chunkHeight)); //add new chunk to the set
+                moduloVal = (1103515245 * moduloVal + 12345) % 2147483648; //uses glib c parameters
+
+                bool topLeftUsed = moduloVal < (2147483648 / 2) ? true : false; //if the value is less than half, use the top left vertex as a split. If not, use top right.
+
+                //Add two chunks to the set, one for each side of the split triangle
+                worldChunks.Insert(iteration, new Chunk()); 
+                worldChunks.Insert(iteration + 1, new Chunk()); 
 
                 for(int sX=0;sX<chunkWidth;sX++) //Iterate through all child tiles within the set
                 {
                     for(int sY=0;sY<chunkHeight;sY++)
                     {
-                        worldChunks[iteration].AddTile(sX, sY, ref tiles[x+sX, y+sY]); //append all tiles in the set at their relative locations
+                        if(topLeftUsed)
+                        {
+                            if((float)sY < (-grad*(float)sX) + (float)chunkHeight)
+                            {
+                                worldChunks[iteration].AddTile(x + sX, y + sY, ref tiles[x + sX, y + sY]); //append tile that is below the boundary for this relative position
+                            }
+                            else
+                            {
+                                worldChunks[iteration + 1].AddTile(x + sX, y + sY, ref tiles[x + sX, y + sY]); //append tile above of the boundary to set
+                            }
+                        }
+                        else
+                        {
+                            if ((float)sY < (grad * (float)sX))
+                            {
+                                worldChunks[iteration].AddTile(x + sX, y + sY, ref tiles[x + sX, y + sY]); //append tile that is below the boundary for this relative position
+                            }
+                            else
+                            {
+                                worldChunks[iteration + 1].AddTile(x + sX, y + sY, ref tiles[x + sX, y + sY]); //append tile above of the boundary to set
+                            }
+                        }
+
                     }
                 }
 
-                iteration++;
+                iteration+=2;
 
             }
         }
-
-        Debug.Log("Exited tile addition");
 
     }
 

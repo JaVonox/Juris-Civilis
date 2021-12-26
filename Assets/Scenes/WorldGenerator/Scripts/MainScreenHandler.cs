@@ -101,7 +101,7 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        currentMap.SplitIntoChunks(); //Splitting into map chunks
+        currentMap.SplitIntoChunks(ref rnd); //Splitting into map chunks
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 

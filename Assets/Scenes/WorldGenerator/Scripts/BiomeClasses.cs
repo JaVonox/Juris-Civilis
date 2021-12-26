@@ -66,37 +66,24 @@ namespace BiomeData
 
     public class Chunk //Stores a set of tiles
     {
-        public int xTop, yTop; //stores the coordinates of the top left
-        public int height, width; //The height and width of the chunk
-        TileData[,] chunkTiles;
+        List<(int x,int y, TileData tile)> chunkTiles = new List<(int x, int y, TileData tile)>(); //List of tile tuples to represent the triangle chunk
+        
+        //A chunk consists of a number of half a rectangle worth of tiles, forming a right angled triangle bound from either the top left or top right
 
-        public Chunk(int x,int y,int w,int h)
+        public Chunk()
         {
-            xTop = x;
-            yTop = y;
-            height = h;
-            width = w;
-            chunkTiles = new TileData[width, height]; //defines new tiles set
-
         }
 
-        public void AddTile(int relX,int relY, ref TileData tile)
+        public void AddTile(int x,int y, ref TileData tile)
         {
-            chunkTiles[relX, relY] = tile; //adds referenced tile to set of tiles in chunk
+            chunkTiles.Add((x, y, tile)); //Append the tile into the set of tiles within the chunk
         }
 
         public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight) //Appends its chunk data into the pixels dataset
         {
-
-            for (int x=0;x<width;x++)
+            for(int i=0;i<chunkTiles.Count;i++) //for loop through the tuple list (using a foreach makes things too complicated)
             {
-                for(int y=0;y<height;y++)
-                {
-                    int realX = xTop + x;
-                    int realY = yTop + y;
-
-                    dataSet[(realY * maxWidth) + realX] = chunkTiles[x, y].ReturnBiomeColour();
-                }
+                dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = chunkTiles[i].tile.ReturnBiomeColour();
             }
 
         }
