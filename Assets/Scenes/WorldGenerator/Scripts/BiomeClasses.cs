@@ -66,7 +66,9 @@ namespace BiomeData
 
     public class Chunk //Stores a set of tiles
     {
+        List<(int x, int y)> vertices = new List<(int x, int y)>();
         List<(int x,int y, TileData tile)> chunkTiles = new List<(int x, int y, TileData tile)>(); //List of tile tuples to represent the triangle chunk
+        Biome chunkBiome;
         
         //A chunk consists of a number of half a rectangle worth of tiles, forming a right angled triangle bound from either the top left or top right
 
@@ -79,11 +81,73 @@ namespace BiomeData
             chunkTiles.Add((x, y, tile)); //Append the tile into the set of tiles within the chunk
         }
 
+        public void RegisterChunk()
+        {
+            //Find all vertices
+            int maxX = -1;
+            int minX = -1;
+            int maxY = -1;
+            int minY = -1;
+
+            //biome checker dictionary
+            Dictionary<Biome, int> biomeCounts = new Dictionary<Biome, int>();
+
+            for (int i = 0; i < chunkTiles.Count; i++) //Loop through all tiles to find values
+            {
+                if(chunkTiles[i].x > maxX || maxX == -1) { maxX = chunkTiles[i].x; }
+                if (chunkTiles[i].x < minX || minX == -1) { minX = chunkTiles[i].x; }
+                if (chunkTiles[i].y > maxY || maxY == -1) { maxY = chunkTiles[i].y; }
+                if (chunkTiles[i].y < minY || minY == -1) { minY = chunkTiles[i].y; }
+
+                if(biomeCounts.ContainsKey(chunkTiles[i].tile._biomeType))
+                {
+                    if(chunkTiles[i].tile._biomeType._name != "Ocean") //ocean will always stay at 0, ensuring it will only be selected if there is only ocean in a tile
+                    {
+                        biomeCounts[chunkTiles[i].tile._biomeType] += 1;
+                    }
+                }
+                else
+                {
+                    biomeCounts.Add(chunkTiles[i].tile._biomeType, 0);
+                }    
+            }
+
+            for (int i = 0; i < chunkTiles.Count; i++) 
+            {
+                //All chunks have three vertices which display exactly two of the characteristics listed
+                //if 2 hits are made, then a vertice has been found
+                int hits = 0;
+                if(chunkTiles[i].x == maxX) { hits++; }
+                if(chunkTiles[i].x == minX) { hits++; }
+                if (chunkTiles[i].y == maxY) { hits++; }
+                if (chunkTiles[i].y == minY) { hits++; }
+
+                if(hits == 2)
+                {
+                    vertices.Add((chunkTiles[i].x, chunkTiles[i].y));
+                }
+            }
+
+            int maxCount = -1;
+
+            //sets the biome based on the maximum recorded biome type
+
+            foreach(Biome x in biomeCounts.Keys)
+            {
+                if(biomeCounts[x] > maxCount || maxCount == -1)
+                {
+                    chunkBiome = x;
+                    maxCount = biomeCounts[x];
+                }
+            }
+
+        }
+
         public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight) //Appends its chunk data into the pixels dataset
         {
             for(int i=0;i<chunkTiles.Count;i++) //for loop through the tuple list (using a foreach makes things too complicated)
             {
-                dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = chunkTiles[i].tile.ReturnBiomeColour();
+                dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] =  chunkTiles[i].tile.ReturnBiomeColour();
             }
 
         }

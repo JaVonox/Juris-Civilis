@@ -37,6 +37,7 @@ public class MapObject
 
     public void SplitIntoChunks(ref System.Random rnd) //Splits the map into chunks (Triangles)
     {
+
         //should always be integer divisible by num of chunks.
         int chunkWidth = maxWidth / 100;
         int chunkHeight = maxHeight / 100;
@@ -90,7 +91,10 @@ public class MapObject
                     }
                 }
 
-                iteration+=2;
+                worldChunks[iteration].RegisterChunk();
+                worldChunks[iteration+1].RegisterChunk();
+
+                iteration +=2;
 
             }
         }
