@@ -19,17 +19,17 @@ namespace BiomeData
     {
         static System.Random rnd = new System.Random();
         public static List<Biome> activeBiomes = new List<Biome>(){
-        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f)),
-        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0)),
-        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f)),
-        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0)),
-        new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.02f,0.54f,0)),
-        new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.78f,0.55f,0.15f)),
-        new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(1,0.78f,0.78f)),
-        new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.77f,0.61f,0.23f)),
-        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f)),
-        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f)),
-        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f)),
+        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),50),
+        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0),3),
+        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f),6),
+        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0),6),
+        new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.02f,0.54f,0),6),
+        new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.78f,0.55f,0.15f),4),
+        new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(1,0.78f,0.78f),7),
+        new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.77f,0.61f,0.23f),5),
+        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),3),
+        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f),3),
+        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),3),
         };
 
         public static Biome SortTile(TileData target, ref int[,] deciles)
@@ -64,24 +64,49 @@ namespace BiomeData
 
     }
 
+    public class Province //Contains multiple connected chunks
+    {
+        public List<Chunk> _componentChunks = new List<Chunk>();
+        public Biome _startBiome;
+
+        public Province(Chunk firstChunk) 
+        {
+            _componentChunks.Add(firstChunk);
+            _startBiome = firstChunk.chunkBiome;
+        }
+
+        public List<(int x, int y)> GetVertices()
+        {
+            List<(int x, int y)> vertices = new List<(int x, int y)>();
+
+            foreach(Chunk a in _componentChunks)
+            {
+                for(int i=0;i<a.vertices.Count;i++)
+                {
+                    vertices.Add(a.vertices[i]);
+                }
+            }
+
+            return vertices;
+        }
+    }
+
     public class Chunk //Stores a set of tiles
     {
-        List<(int x, int y)> vertices = new List<(int x, int y)>();
-        List<(int x,int y, TileData tile)> chunkTiles = new List<(int x, int y, TileData tile)>(); //List of tile tuples to represent the triangle chunk
-        Biome chunkBiome;
-        
+        public List<(int x, int y)> vertices = new List<(int x, int y)>();
+        public List<(int x,int y, TileData tile)> chunkTiles = new List<(int x, int y, TileData tile)>(); //List of tile tuples to represent the triangle chunk
+        public Biome chunkBiome;
+
         //A chunk consists of a number of half a rectangle worth of tiles, forming a right angled triangle bound from either the top left or top right
 
-        public Chunk()
-        {
-        }
+        public Chunk() { }
 
         public void AddTile(int x,int y, ref TileData tile)
         {
             chunkTiles.Add((x, y, tile)); //Append the tile into the set of tiles within the chunk
         }
 
-        public void RegisterChunk()
+        public void RegisterChunk(int chunkW, int chunkH)
         {
             //Find all vertices
             int maxX = -1;
@@ -124,7 +149,11 @@ namespace BiomeData
 
                 if(hits == 2)
                 {
-                    vertices.Add((chunkTiles[i].x, chunkTiles[i].y));
+                    //gets closest vertex and appends to set
+                    int vX = chunkTiles[i].x % chunkW == 0 ? chunkTiles[i].x : (int)Math.Round((float)chunkTiles[i].x / (float)chunkW, 0) * chunkW;
+                    int vY = chunkTiles[i].y % chunkH == 0 ? chunkTiles[i].y : (int)Math.Round((float)chunkTiles[i].y / (float)chunkH, 0) * chunkH;
+
+                    vertices.Add((vX, vY));
                 }
             }
 
@@ -219,8 +248,9 @@ namespace BiomeData
         Property _desireRainfall;
         Property _desireFlora;
         Color _colour;
+        public int _provinceSpread; //decides how many chunks a province of this type will spread
 
-        public Biome(string name, Property elT, Property tempT, Property rnT, Property flrT, Color colour)
+        public Biome(string name, Property elT, Property tempT, Property rnT, Property flrT, Color colour, int provSpread)
         {
             _name = name;
             _desireElevation = elT;
@@ -228,6 +258,7 @@ namespace BiomeData
             _desireRainfall = rnT;
             _desireFlora = flrT;
             _colour = colour;
+            _provinceSpread = provSpread;
         }
 
         public float Score(TileData targetTile, ref int[,] deciles) //returns the deviance of a tile from this biome. the set of these scores is then polled to find the biome with the most appropriate typing
