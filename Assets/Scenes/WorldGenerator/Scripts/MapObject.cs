@@ -16,8 +16,7 @@ public class MapObject
     //percentiles per property
     private int[,] deciles = new int[4, 10]; //Elevation, Temperature, Rainfall, Flora
 
-    //List of chunks
-    public List<Chunk> worldChunks = new List<Chunk>();
+    //List of provinces and container chunks
     public List<Province> worldProvinces = new List<Province>();
 
     public MapObject(int x, int y)
@@ -35,70 +34,102 @@ public class MapObject
         }
     }
 
-    public Chunk AppendRandomAdjacentChunk(Province target, ref System.Random rnd) //finds all chunks in the set which contain two or more connecting 
+    public Chunk AppendRandomAdjacentChunk(Province target, ref System.Random rnd, ref Dictionary<int,Chunk> worldChunks, ref List<(int x, int y, int id)> worldVerts) //finds all chunks in the set which contain two or more connecting 
     {
         List<(int x, int y)> provinceVertices = new List<(int x, int y)>(); //stores the current vertices of the province
         provinceVertices = target.GetVertices();
-        int min = 2;
-        List<Chunk> adjacents = worldChunks.FindAll(cObject => AdjacentPredicate(cObject,ref provinceVertices, ref target, ref min)); //Finds all adjacent chunks indexes
 
-        if(adjacents.Count == 0)
+        List<int> adjacentIDs = FindAllAdjacentChunks(ref target, ref worldVerts); //Finds all adjacent chunks indexes
+
+        if(adjacentIDs == null)
         {
             return null;
         }
 
-        int randomIndex = rnd.Next(0, adjacents.Count);
+        if (adjacentIDs.Count == 0)
+        {
+            return null;
+        }
 
-        Chunk tmpCH = adjacents[randomIndex];
-        worldChunks.Remove(adjacents[randomIndex]);
+        int randomIndex = rnd.Next(0, adjacentIDs.Count);
+
+        Chunk tmpCH = worldChunks[adjacentIDs[randomIndex]];
+        worldChunks.Remove(adjacentIDs[randomIndex]); //remove the id from the set, as it is now a member of the province
+        RemoveVertAtIndex(ref worldVerts, adjacentIDs[randomIndex]);
 
         return tmpCH;
     }
 
-    private bool AdjacentPredicate(Chunk cObject, ref List<(int x, int y)> provinceVertices, ref Province target, ref int min)
+    public void RemoveVertAtIndex(ref List<(int x, int y, int id)> worldVerts, int cullID)
     {
-
-        int hits = 0; //number of true values. must be 2 or higher to return
-        bool anyTwo = false; //Checks that any two vertices are connected via a chunk
-
-        //province vertices exist in sets of three per chunk, therefore we can use the subset of x -> x+3 to represent each chunk
-        for (int i = 0; i < provinceVertices.Count; i+=3) //check if any chunk in a province has two connections
+        foreach ((int x, int y, int id) vert in worldVerts.ToArray()) //compare all vertices in the worldVerts set against the target. 
         {
-            int tmpHits = 0;
-            List<(int x, int y)> subSet = new List<(int x, int y)>(); //set of the three verts of one chunk
-            subSet.Add(provinceVertices[i]);
-            subSet.Add(provinceVertices[i + 1]);
-            subSet.Add(provinceVertices[i + 2]);
-
-            if (subSet.Contains(cObject.vertices[0])) { tmpHits++; }
-            if (subSet.Contains(cObject.vertices[1])) { tmpHits++; }
-            if (subSet.Contains(cObject.vertices[2])) { tmpHits++; }
-
-            if(tmpHits >= 2)
+            if(vert.id == cullID)
             {
-                hits += tmpHits;
-                anyTwo = true;
+                worldVerts[worldVerts.IndexOf(vert)] = (vert.x,vert.y,-1);
             }
-            subSet = null; //remove subset from memory 
         }
+    }
 
-        if (target._startBiome._name == "Ocean" && cObject.chunkBiome._name != "Ocean") //Ocean biomes can only connect to other ocean biomes
+    public List<int> FindAllAdjacentChunks(ref Province target, ref List<(int x, int y, int id)> worldVerts) //returns chunk index of all possible adjacents
+    {
+        //TODO add ocean culling
+
+        List<(int x, int y)> provinceVertices = new List<(int x, int y)>(); //stores the current vertices of the target province
+        provinceVertices = target.GetVertices();
+
+        Dictionary<int, int> vertConnections = new Dictionary<int, int>(); //stores the id of a chunk and its number of hits
+
+        foreach((int x, int y, int id) vert in worldVerts) //compare all vertices in the worldVerts set against the target. 
         {
-            return false;
+
+            if(vert.id != -1 && provinceVertices.Contains((vert.x,vert.y))) //If there is a matching vertex
+            {
+                if(!vertConnections.ContainsKey(vert.id))
+                {
+                    vertConnections.Add(vert.id, 0);
+                }
+
+                vertConnections[vert.id] = vertConnections[vert.id] + 1; //add one to the count of how many matching vertices exist
+            }
         }
 
-        if(hits > min) //Set a new minimum number of connections. This gives priority to connections with more adjacent chunks.
+        //This creates a list of all appropriate connections
+
+        int max = -1; //Find the highest connections in the set
+        foreach(int hits in vertConnections.Values)
         {
-            min = hits;
+            if(hits > max || max == -1)
+            {
+                max = hits;
+            }    
         }
 
-        return (hits >= min && anyTwo);
+        if(max < 2) //If there are no chunks with 2 connections
+        {
+            Debug.Log("No targets");
+            return null;
+        }
+
+        List<int> validChunkIds = new List<int>();
+
+        foreach(KeyValuePair<int,int> verts in vertConnections)
+        {
+            if(verts.Value == max)
+            {
+                validChunkIds.Add(verts.Key); //add id to set of valid chunks
+            }
+        }
+
+        return validChunkIds; //returns all the chunks that can be used
 
     }
 
-
     public void SplitIntoChunks(ref System.Random rnd) //Splits the map into chunks (Triangles)
     {
+        //Set of all chunks
+        Dictionary<int,Chunk> worldChunks = new Dictionary<int,Chunk>();
+
         //should always be integer divisible by num of chunks.
         int chunkWidth = maxWidth / 100;
         int chunkHeight = maxHeight / 100;
@@ -119,8 +150,9 @@ public class MapObject
                 bool topLeftUsed = moduloVal < (2147483648 / 2) ? true : false; //if the value is less than half, use the top left vertex as a split. If not, use top right.
 
                 //Add two chunks to the set, one for each side of the split triangle
-                worldChunks.Insert(iteration, new Chunk()); 
-                worldChunks.Insert(iteration + 1, new Chunk()); 
+
+                worldChunks.Add(iteration, new Chunk());
+                worldChunks.Add(iteration + 1, new Chunk());
 
                 for(int sX=0;sX<chunkWidth;sX++) //Iterate through all child tiles within the set
                 {
@@ -160,25 +192,41 @@ public class MapObject
             }
         }
 
-        ProvinceSplit(ref rnd); //Splits the worldchunks into provinces
-
+        ProvinceSplit(ref rnd, ref worldChunks); //Splits the worldchunks into provinces
     }
 
-    public void ProvinceSplit(ref System.Random rnd) //randomly selects chunks and makes provinces from them and connecting chunks
+    public void ProvinceSplit(ref System.Random rnd, ref Dictionary<int,Chunk> worldChunks) //randomly selects chunks and makes provinces from them and connecting chunks
     {
-
-        for (int i = 0; i < 10;i++)
+        int i = 0;
+        List<(int x,int y,int id)> verticesSet = new List<(int x,int y,int id)>(); //Stores all vertices from the set
+        
+        foreach(KeyValuePair<int,Chunk> vChunk in worldChunks) //append all vertices to the set of vertices
         {
-            int targetChunk = rnd.Next(0, worldChunks.Count);
+            verticesSet.Insert(0, (vChunk.Value.vertices[0].x, vChunk.Value.vertices[0].y, vChunk.Key));
+            verticesSet.Insert(0, (vChunk.Value.vertices[1].x, vChunk.Value.vertices[1].y, vChunk.Key));
+            verticesSet.Insert(0, (vChunk.Value.vertices[2].x, vChunk.Value.vertices[2].y, vChunk.Key));
+        }
+
+        while(worldChunks.Count > 0) //Iterate through world chunks until all provinces have been made
+        {
+            int targetChunk;
+
+            //Temporary variable
+            {
+                List<int> randomChunk = new List<int>(worldChunks.Keys);
+                targetChunk = randomChunk[rnd.Next(0, worldChunks.Count)];
+            }
+
             //Add chunk to province and then remove from chunks set to stop duplicate memory
             worldProvinces.Insert(0, new Province(worldChunks[targetChunk]));
-            worldChunks.Remove(worldChunks[targetChunk]);
-            int iterations = worldProvinces[0]._componentChunks[0].chunkBiome._provinceSpread;
+            RemoveVertAtIndex(ref verticesSet, targetChunk);
+            worldChunks.Remove(targetChunk);
+
+            int iterations = BiomesObject.activeBiomes[worldProvinces[0]._componentChunks[0].chunkBiome]._provinceSpread;
 
             for (int a = 0; a < iterations; a++)
             {
-                Chunk tmpChunk = AppendRandomAdjacentChunk(worldProvinces[0], ref rnd);
-
+                Chunk tmpChunk = AppendRandomAdjacentChunk(worldProvinces[0], ref rnd, ref worldChunks, ref verticesSet);
                 if (tmpChunk == null)
                 {
                     break;
@@ -186,16 +234,19 @@ public class MapObject
 
                 worldProvinces[0]._componentChunks.Insert(0, tmpChunk);
             }
+
+            i++;
+            Debug.Log("Finished Prov: " + i);
         }
 
 
     }
 
-    public void IterateChunks(ref Color[] PixelsSet, int maxWidth, int maxHeight) //Iterate through all chunks and append to the pixels set array
+    public void IterateProvinces(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rn) //Iterate through all provinces and append to the pixels set array
     {
-        foreach (Chunk worldChunk in worldChunks)
+        foreach (Province prov in worldProvinces)
         {
-            worldChunk.ReturnTiles(ref PixelsSet, maxWidth, maxHeight);
+            prov.IterateChunks(ref PixelsSet, maxWidth, maxHeight, ref rn); //return the data for each component chunk to be printed out
         }
     }
 
@@ -227,7 +278,7 @@ public class MapObject
     public Color GetColor(int x, int y)
     {
         Color tileColour;
-        tileColour = tiles[x, y]._biomeType.GetColour();
+        tileColour = BiomesObject.activeBiomes[tiles[x, y]._biomeType].GetColour();
         return tileColour; 
     }
 

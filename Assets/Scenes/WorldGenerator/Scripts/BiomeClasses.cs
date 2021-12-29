@@ -17,27 +17,26 @@ namespace BiomeData
 
     public static class BiomesObject
     {
-        static System.Random rnd = new System.Random();
         public static List<Biome> activeBiomes = new List<Biome>(){
-        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),50),
-        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0),3),
-        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f),6),
-        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0),6),
-        new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.02f,0.54f,0),6),
-        new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.78f,0.55f,0.15f),4),
-        new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(1,0.78f,0.78f),7),
-        new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.77f,0.61f,0.23f),5),
-        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),3),
-        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f),3),
-        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),3),
+        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),100),
+        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0),24),
+        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f),48),
+        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0),24),
+        new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.02f,0.54f,0),24),
+        new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.78f,0.55f,0.15f),16),
+        new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(1,0.78f,0.78f),48),
+        new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.77f,0.61f,0.23f),36),
+        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),16),
+        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f),16),
+        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),16),
         };
 
-        public static Biome SortTile(TileData target, ref int[,] deciles)
+        public static int SortTile(TileData target, ref int[,] deciles)
         {
 
             if(target._heightProp == Property.Low) //Oceans
             {
-                return activeBiomes[0];
+                return 0;
             }
 
             float[] indexScores = new float[activeBiomes.Count]; //make temporary array the size of the activeBiomes list
@@ -59,7 +58,7 @@ namespace BiomeData
                 }
             }
 
-            return activeBiomes[maxIndex]; //returns the appropriate biome for this tile
+            return maxIndex; //returns the appropriate biome for this tile
         }
 
     }
@@ -67,12 +66,24 @@ namespace BiomeData
     public class Province //Contains multiple connected chunks
     {
         public List<Chunk> _componentChunks = new List<Chunk>();
-        public Biome _startBiome;
+        public int _startBiome; 
 
         public Province(Chunk firstChunk) 
         {
             _componentChunks.Add(firstChunk);
             _startBiome = firstChunk.chunkBiome;
+        }
+
+        public void IterateChunks(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rnd) //Iterate through all chunks and append to the pixels set array
+        {
+            int r = rnd.Next(0, 256);
+            int g = rnd.Next(0, 256);
+            int b = rnd.Next(0, 256);
+            Color tmpCol = new Color(r, g, b);
+            foreach (Chunk worldChunk in _componentChunks)
+            {
+                worldChunk.ReturnTiles(ref PixelsSet, maxWidth, maxHeight, tmpCol);
+            }
         }
 
         public List<(int x, int y)> GetVertices()
@@ -89,13 +100,21 @@ namespace BiomeData
 
             return vertices;
         }
+
+        public void AppendFromList(ref List<Chunk> chunksToAppend)
+        {
+            foreach(Chunk x in chunksToAppend)
+            {
+                _componentChunks.Insert(0, x);
+            }
+        }
     }
 
     public class Chunk //Stores a set of tiles
     {
         public List<(int x, int y)> vertices = new List<(int x, int y)>();
         public List<(int x,int y, TileData tile)> chunkTiles = new List<(int x, int y, TileData tile)>(); //List of tile tuples to represent the triangle chunk
-        public Biome chunkBiome;
+        public int chunkBiome;
 
         //A chunk consists of a number of half a rectangle worth of tiles, forming a right angled triangle bound from either the top left or top right
 
@@ -115,7 +134,7 @@ namespace BiomeData
             int minY = -1;
 
             //biome checker dictionary
-            Dictionary<Biome, int> biomeCounts = new Dictionary<Biome, int>();
+            Dictionary<int, int> biomeCounts = new Dictionary<int, int>();
 
             for (int i = 0; i < chunkTiles.Count; i++) //Loop through all tiles to find values
             {
@@ -126,7 +145,7 @@ namespace BiomeData
 
                 if(biomeCounts.ContainsKey(chunkTiles[i].tile._biomeType))
                 {
-                    if(chunkTiles[i].tile._biomeType._name != "Ocean") //ocean will always stay at 0, ensuring it will only be selected if there is only ocean in a tile
+                    if(chunkTiles[i].tile._biomeType != 0) //ocean will always stay at 0, ensuring it will only be selected if there is only ocean in a tile
                     {
                         biomeCounts[chunkTiles[i].tile._biomeType] += 1;
                     }
@@ -161,22 +180,29 @@ namespace BiomeData
 
             //sets the biome based on the maximum recorded biome type
 
-            foreach(Biome x in biomeCounts.Keys)
+            foreach(int biomeID in biomeCounts.Keys)
             {
-                if(biomeCounts[x] > maxCount || maxCount == -1)
+                if(biomeCounts[biomeID] > maxCount || maxCount == -1)
                 {
-                    chunkBiome = x;
-                    maxCount = biomeCounts[x];
+                    chunkBiome = biomeID;
+                    maxCount = biomeCounts[biomeID];
                 }
             }
 
         }
 
-        public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight) //Appends its chunk data into the pixels dataset
+        public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight, Color tmpCol) //Appends its chunk data into the pixels dataset
         {
             for(int i=0;i<chunkTiles.Count;i++) //for loop through the tuple list (using a foreach makes things too complicated)
             {
-                dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] =  chunkTiles[i].tile.ReturnBiomeColour();
+                //if (i % 2 == 0)
+                //{
+                //    dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = tmpCol; //TODO remove tmpCol references
+                //}
+                //else
+                //{
+                    dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = chunkTiles[i].tile.ReturnBiomeColour();
+                //}
             }
 
         }
@@ -192,7 +218,7 @@ namespace BiomeData
         public Property _floraProp;
 
         //Defined by properties
-        public Biome _biomeType;
+        public int _biomeType;
 
         public TileData() //Empty constructor - for new TileData() calls
         {
@@ -233,7 +259,7 @@ namespace BiomeData
 
         public Color ReturnBiomeColour()
         {
-            return _biomeType.GetColour();
+            return BiomesObject.activeBiomes[_biomeType].GetColour();
         }
 
     }

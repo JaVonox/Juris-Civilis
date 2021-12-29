@@ -125,7 +125,7 @@ public class MainScreenHandler : MonoBehaviour
         imageRef.GetComponent<SpriteRenderer>().sprite = sprite;
 
         Color[] PixelsSet = new Color[mapWidth * mapHeight]; //1D set of pixels
-        currentMap.IterateChunks(ref PixelsSet, mapWidth, mapHeight); //Set all pixel values
+        currentMap.IterateProvinces(ref PixelsSet, mapWidth, mapHeight, ref rnd); //Set all pixel values
         imageTexture.SetPixels(PixelsSet, 0); //sets all pixels from the chunk values
 
         imageTexture.Apply();
