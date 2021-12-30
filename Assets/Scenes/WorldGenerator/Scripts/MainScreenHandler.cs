@@ -42,11 +42,14 @@ public class MainScreenHandler : MonoBehaviour
     }
 
     void Update()
-    {   
-        foreach (Action item in queuedFunctions.ToArray()) //using an array instead of a list here allows the function to use values rather than references - meaning modifications can be done to the list without breaking this loop 
+    {
+        if (queuedFunctions.Count > 0)
         {
-            item();
-            queuedFunctions.Remove(item);
+            foreach (Action item in queuedFunctions.ToArray()) //using an array instead of a list here allows the function to use values rather than references - meaning modifications can be done to the list without breaking this loop 
+            {
+                item();
+                queuedFunctions.Remove(item);
+            }
         }
     }
 

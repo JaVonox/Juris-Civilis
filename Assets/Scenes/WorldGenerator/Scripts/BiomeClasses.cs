@@ -65,48 +65,39 @@ namespace BiomeData
 
     public class Province //Contains multiple connected chunks
     {
-        public List<Chunk> _componentChunks = new List<Chunk>();
+        public Dictionary<int,Chunk> _componentChunks = new Dictionary<int,Chunk>(); //Chunk ID and component
         public int _startBiome; 
 
-        public Province(Chunk firstChunk) 
+        public Province(int id, Chunk firstChunk) 
         {
-            _componentChunks.Add(firstChunk);
+            _componentChunks.Add(id, firstChunk);
             _startBiome = firstChunk.chunkBiome;
         }
 
         public void IterateChunks(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rnd) //Iterate through all chunks and append to the pixels set array
         {
-            int r = rnd.Next(0, 256);
-            int g = rnd.Next(0, 256);
-            int b = rnd.Next(0, 256);
-            Color tmpCol = new Color(r, g, b);
-            foreach (Chunk worldChunk in _componentChunks)
+            foreach (Chunk worldChunk in _componentChunks.Values)
             {
-                worldChunk.ReturnTiles(ref PixelsSet, maxWidth, maxHeight, tmpCol);
+                worldChunk.ReturnTiles(ref PixelsSet, maxWidth, maxHeight);
             }
         }
 
-        public List<(int x, int y)> GetVertices()
+        public List<int> ReturnAdjacents() //returns all the adjacent tiles in the set. (Including duplicates)
         {
-            List<(int x, int y)> vertices = new List<(int x, int y)>();
+            List<int> adjacentIds = new List<int>();
 
-            foreach(Chunk a in _componentChunks)
+            foreach (KeyValuePair<int, Chunk> item in _componentChunks)
             {
-                for(int i=0;i<a.vertices.Count;i++)
-                {
-                    vertices.Add(a.vertices[i]);
-                }
+                adjacentIds.AddRange(item.Value.adjacentChunks); //adds all adjacent chunks to set
             }
 
-            return vertices;
-        }
-
-        public void AppendFromList(ref List<Chunk> chunksToAppend)
-        {
-            foreach(Chunk x in chunksToAppend)
+            if(adjacentIds.Count < 1)
             {
-                _componentChunks.Insert(0, x);
+                return null;
             }
+
+            //TODO may need checking for oceans/incompatable biomes/max values
+            return adjacentIds;
         }
     }
 
@@ -115,6 +106,7 @@ namespace BiomeData
         public List<(int x, int y)> vertices = new List<(int x, int y)>();
         public List<(int x,int y, TileData tile)> chunkTiles = new List<(int x, int y, TileData tile)>(); //List of tile tuples to represent the triangle chunk
         public int chunkBiome;
+        public List<int> adjacentChunks = new List<int>(); //set of all chunks with adjacencies
 
         //A chunk consists of a number of half a rectangle worth of tiles, forming a right angled triangle bound from either the top left or top right
 
@@ -123,6 +115,16 @@ namespace BiomeData
         public void AddTile(int x,int y, ref TileData tile)
         {
             chunkTiles.Add((x, y, tile)); //Append the tile into the set of tiles within the chunk
+        }
+
+        public bool IsAdjacent(int id)
+        {
+            return adjacentChunks.Contains(id); //check if the specified ID is in the set or not
+        }
+
+        public void SetAdjacencies(List<int> adjacenciesToMap) //sets the IDs of all adjacent chunks
+        {
+            adjacentChunks = adjacenciesToMap;
         }
 
         public void RegisterChunk(int chunkW, int chunkH)
@@ -191,18 +193,11 @@ namespace BiomeData
 
         }
 
-        public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight, Color tmpCol) //Appends its chunk data into the pixels dataset
+        public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight) //Appends its chunk data into the pixels dataset
         {
             for(int i=0;i<chunkTiles.Count;i++) //for loop through the tuple list (using a foreach makes things too complicated)
             {
-                //if (i % 2 == 0)
-                //{
-                //    dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = tmpCol; //TODO remove tmpCol references
-                //}
-                //else
-                //{
-                    dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = chunkTiles[i].tile.ReturnBiomeColour();
-                //}
+                dataSet[(chunkTiles[i].y * maxWidth) + chunkTiles[i].x] = chunkTiles[i].tile.ReturnBiomeColour();
             }
 
         }
