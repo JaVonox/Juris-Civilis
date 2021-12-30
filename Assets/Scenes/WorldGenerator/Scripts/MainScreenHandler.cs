@@ -3,19 +3,30 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; //objects
+using BiomeData;
 using System.Threading;
 
 public class MainScreenHandler : MonoBehaviour
 {
+    //UI
     public Button perlinButton;
-    public GameObject imageRef;
+    public Button provinceButton;
     public Text genStateText;
+
+    //Mapping elements
     int mapWidth = 6000;
     int mapHeight = 4000;
+    public GameObject backMap;
+    public GameObject loadedObjectsLayer;
+    Texture2D backTexture;
+    Sprite mapSprite;
+
+    //Script elements
+    public GameObject provincePrefab;
     MapObject currentMap;
     System.Random rnd = new System.Random();
 
-    public enum State
+    public enum State //Generation States
     {
         Inactive,
         Terrain,
@@ -38,6 +49,9 @@ public class MainScreenHandler : MonoBehaviour
         currentMap = new MapObject(mapWidth, mapHeight);
 
         perlinButton.GetComponent<Button>().onClick.AddListener(GenerateImageOnClick); //attach the script to the button
+        provinceButton.GetComponent<Button>().onClick.AddListener(ShowProvinces); //attach the script to the button
+
+        InitialiseMaps(); //Sets default map elements
         UpdateLabel();
     }
 
@@ -62,6 +76,36 @@ public class MainScreenHandler : MonoBehaviour
             generatorThreadRunning = true;
         }
     }
+
+    void InitialiseMaps()
+    {
+        backTexture = new Texture2D(mapWidth, mapHeight);
+
+        mapSprite = Sprite.Create(backTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
+        backMap.GetComponent<SpriteRenderer>().sprite = mapSprite;
+
+        Color[] pixSet = new Color[mapWidth * mapHeight]; //1D set of pixels
+        
+        for(int i=0; i< mapWidth * mapHeight;i++)
+        {
+            pixSet[i] = new Color(0.61f, 0.4f, 0.23f); //Default colour
+        }
+
+        backTexture.SetPixels(pixSet, 0); //sets all the pixels
+        backTexture.Apply();
+
+    }
+
+    void ShowProvinces()
+    {
+        foreach (Province tProv in currentMap.worldProvinces)
+        {
+            GameObject newProvinceObject = Instantiate(provincePrefab, new Vector3(10, 10, 0), Quaternion.identity);
+            newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvince(tProv);
+            newProvinceObject.transform.SetParent(loadedObjectsLayer.transform);
+        }
+    }
+
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
     {
         genStateText.text = "State: " + (State)currentState;
@@ -123,15 +167,11 @@ public class MainScreenHandler : MonoBehaviour
 
     void DisplayChunkMap()
     {
-        Texture2D imageTexture = new Texture2D(mapWidth, mapHeight);
-        Sprite sprite = Sprite.Create(imageTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
-        imageRef.GetComponent<SpriteRenderer>().sprite = sprite;
+        Color[] pixSet = new Color[mapWidth * mapHeight]; //1D set of pixels
+        currentMap.IterateProvinces(ref pixSet, mapWidth, mapHeight, ref rnd); //Set all pixel values
+        backTexture.SetPixels(pixSet, 0); //sets all pixels from the chunk values
 
-        Color[] PixelsSet = new Color[mapWidth * mapHeight]; //1D set of pixels
-        currentMap.IterateProvinces(ref PixelsSet, mapWidth, mapHeight, ref rnd); //Set all pixel values
-        imageTexture.SetPixels(PixelsSet, 0); //sets all pixels from the chunk values
-
-        imageTexture.Apply();
+        backTexture.Apply();
     }
 
 }

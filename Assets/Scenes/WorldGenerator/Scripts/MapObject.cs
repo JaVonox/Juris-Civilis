@@ -197,8 +197,6 @@ public class MapObject
         SetAdjacentChunks(ref worldChunks);
         Debug.Log("Post Adjacent");
 
-        int i = 0;
-
         while (worldChunks.Count > 0) //Iterate through world chunks until all provinces have been made
         {
             int targetChunk;
@@ -228,9 +226,6 @@ public class MapObject
                 worldProvinces[0]._componentChunks.Add(tmpChunk.id, tmpChunk.ret);
                 connectedProvs++;
             }
-
-            i++;
-            Debug.Log("Finished Prov: " + i + " with " + connectedProvs + " members");
         }
 
 
