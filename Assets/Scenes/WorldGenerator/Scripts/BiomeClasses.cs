@@ -18,7 +18,7 @@ namespace BiomeData
     public static class BiomesObject
     {
         public static List<Biome> activeBiomes = new List<Biome>(){
-        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),100),
+        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),100), //ocean should always be 0th
         new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0),24),
         new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f),48),
         new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0),24),
@@ -72,6 +72,30 @@ namespace BiomeData
         {
             _componentChunks.Add(id, firstChunk);
             _startBiome = firstChunk.chunkBiome;
+        }
+
+        public Vector3 CalculateRelativeCenterPoint() //returns the relative centerpoint for the province
+        {
+            int lowestX = -1;
+            int highestX = -1;
+            int lowestY = -1;
+            int highestY = -1;
+
+            foreach(Chunk target in _componentChunks.Values)
+            {
+                foreach((int x, int y) vert in target.vertices)
+                {
+                    if(vert.x < lowestX || lowestX == -1) { lowestX = vert.x; }
+                    if (vert.x > highestX || highestX == -1) { highestX = vert.x; }
+                    if (vert.y < lowestY || lowestY == -1) { lowestY = vert.y; }
+                    if (vert.y > highestY || highestY == -1) { highestY = vert.y; }
+                }
+            }
+
+            float centerX = lowestX + (((float)highestX - (float)lowestX) / 2);
+            float centerY = lowestY + (((float)highestY - (float)lowestY) / 2);
+
+            return new Vector3(centerX, centerY, 0);
         }
 
         public void IterateChunks(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rnd) //Iterate through all chunks and append to the pixels set array

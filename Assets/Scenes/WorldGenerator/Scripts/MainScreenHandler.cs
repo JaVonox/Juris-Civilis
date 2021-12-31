@@ -21,6 +21,10 @@ public class MainScreenHandler : MonoBehaviour
     Texture2D backTexture;
     Sprite mapSprite;
 
+    //Gets the unit length of the sprite
+    float spriteWidth;
+    float spriteHeight;
+
     //Script elements
     public GameObject provincePrefab;
     MapObject currentMap;
@@ -94,15 +98,23 @@ public class MainScreenHandler : MonoBehaviour
         backTexture.SetPixels(pixSet, 0); //sets all the pixels
         backTexture.Apply();
 
+        Bounds spriteBounds = mapSprite.bounds; //Get boundaries of the sprite in units
+        spriteWidth = spriteBounds.size.x;
+        spriteHeight = spriteBounds.size.y;
+
+
     }
 
     void ShowProvinces()
     {
-        foreach (Province tProv in currentMap.worldProvinces)
+        foreach (Province tProv in currentMap.worldProvinces) //Loop through and display all provinces
         {
-            GameObject newProvinceObject = Instantiate(provincePrefab, new Vector3(10, 10, 0), Quaternion.identity);
-            newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvince(tProv);
-            newProvinceObject.transform.SetParent(loadedObjectsLayer.transform);
+            GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
+            newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvince(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
+
+            Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
+            newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
+            newProvinceObject.transform.Rotate(180, 180, 0);
         }
     }
 

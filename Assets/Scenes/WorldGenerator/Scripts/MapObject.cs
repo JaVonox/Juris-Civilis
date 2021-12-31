@@ -43,11 +43,21 @@ public class MapObject
             return (0,null);
         }
 
-        foreach (int id in adjacentIDs.ToArray()) //remove all chunks that are not free
+        bool amIOcean = (target._startBiome == 0 ? true : false) ; //checks if self is ocean. ternary is not required but added just incase
+
+        foreach (int id in adjacentIDs.ToArray()) //remove all chunks that are not valid
         {
-            if(!worldChunks.ContainsKey(id)) //World chunks stores only the chunks that are free for taking
+            if (!worldChunks.ContainsKey(id)) //World chunks stores only the chunks that are free for taking
             {
                 adjacentIDs.Remove(id);
+            }
+            else if (worldChunks[id].chunkBiome == 0) //Check if the adjacent is an ocean biome
+            {
+                if (!amIOcean) { adjacentIDs.Remove(id); } //If the target is not an ocean, remove from IDs list
+            }
+            else if (worldChunks[id].chunkBiome != 0 && amIOcean)
+            {
+                adjacentIDs.Remove(id); //If this province is an ocean, it cannot connect to non ocean provinces.
             }
         }
 
@@ -67,8 +77,6 @@ public class MapObject
 
     public void SetAdjacentChunks(ref Dictionary<int, Chunk> worldChunks) //Sets the adjacencies of all chunks in the set. worldChunks stores each ID and chunk
     {
-        //TODO add ocean culling?
-
         List<(int x, int y, int id)> verticesSet = new List<(int x, int y, int id)>(); //Stores all vertices from the set
 
         foreach (KeyValuePair<int, Chunk> vChunk in worldChunks) //append all vertices to the set of vertices
@@ -79,7 +87,7 @@ public class MapObject
         }
 
         int currentIteration = 0; //Stores which chunk in the set is currently being accessed
-        foreach (KeyValuePair<int, Chunk> vChunk in worldChunks) //append all vertices to the set of vertices
+        foreach (KeyValuePair<int, Chunk> vChunk in worldChunks) //iterate through all chunks in the set to find adjacencies
         {
             List<int> vertConnections = new List<int>(); //stores all the chunks that have a matching vertex to this chunk
             List<int> trueAdjacents = new List<int>(); //stores all tiles with more than one matching vertex
