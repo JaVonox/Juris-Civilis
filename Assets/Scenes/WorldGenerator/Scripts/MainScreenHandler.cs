@@ -4,13 +4,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; //objects
 using BiomeData;
-using System.Threading;
+using SaveLoad;
 
+using System.Threading;
 public class MainScreenHandler : MonoBehaviour
 {
     //UI
     public Button perlinButton;
     public Button provinceButton;
+    public Button debugButton; //TODO temp button
     public Text genStateText;
 
     //Mapping elements
@@ -44,8 +46,8 @@ public class MainScreenHandler : MonoBehaviour
 
     int currentState = 0;
 
-    private Thread generatorThread;
-    private volatile bool generatorThreadRunning = false;
+    private Thread threadProcess;
+    private volatile bool threadRunning = false;
     private List<Action> queuedFunctions = new List<Action>(); //Stores functions to be ran - this allows for better use of multithreading.
 
     void Start()
@@ -54,7 +56,7 @@ public class MainScreenHandler : MonoBehaviour
 
         perlinButton.GetComponent<Button>().onClick.AddListener(GenerateImageOnClick); //attach the script to the button
         provinceButton.GetComponent<Button>().onClick.AddListener(ShowProvinces); //attach the script to the button
-
+        debugButton.GetComponent<Button>().onClick.AddListener(DebugFeature);
         InitialiseMaps(); //Sets default map elements
         UpdateLabel();
     }
@@ -73,11 +75,11 @@ public class MainScreenHandler : MonoBehaviour
 
     void GenerateImageOnClick()
     {
-        if(generatorThreadRunning == false)
+        if(threadRunning == false)
         {
-            generatorThread = new Thread(ImageProcedure); //Begin running of the generation thread
-            generatorThread.Start();
-            generatorThreadRunning = true;
+            threadProcess = new Thread(ImageProcedure); //Begin running of the generation thread
+            threadProcess.Start();
+            threadRunning = true;
         }
     }
 
@@ -105,8 +107,32 @@ public class MainScreenHandler : MonoBehaviour
 
     }
 
+    void DebugFeature() //Useless function to allow for debugging
+    {
+        if (threadRunning == false)
+        {
+            threadProcess = new Thread(SaveFile); //Begin running of the generation thread
+            threadProcess.Start();
+            threadRunning = true;
+        }
+    }
+
+    void SaveFile()
+    {
+        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving thread
+        SaveLoad.SavingScript.CreateMap(filePath, ref currentMap.worldProvinces);
+
+        threadRunning = false;
+        threadProcess.Join(); //Join the thread
+    }
+
     void ShowProvinces()
     {
+        foreach (Transform provinceChild in loadedObjectsLayer.transform) //remove all loaded provinces from the dataset
+        {
+            GameObject.Destroy(provinceChild.gameObject);
+        }
+
         foreach (Province tProv in currentMap.worldProvinces) //Loop through and display all provinces
         {
             GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
@@ -173,8 +199,8 @@ public class MainScreenHandler : MonoBehaviour
         GC.Collect();
         GC.WaitForPendingFinalizers();
 
-        generatorThreadRunning = false;
-        generatorThread.Join(); //Join the thread
+        threadRunning = false;
+        threadProcess.Join(); //Join the thread
     }
 
     void DisplayChunkMap()
