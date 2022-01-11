@@ -66,14 +66,59 @@ namespace BiomeData
     public class Province //Contains multiple connected chunks
     {
         public Dictionary<int,Chunk> _componentChunks = new Dictionary<int,Chunk>(); //Chunk ID and component
-        public int _startBiome; 
+        public List<int> adjacentProvIDs = new List<int>();
+
+        //Province properties
+        public int _biome;
+        public Color _provCol;
 
         public Province(int id, Chunk firstChunk) 
         {
             _componentChunks.Add(id, firstChunk);
-            _startBiome = firstChunk.chunkBiome;
+            _biome = firstChunk.chunkBiome;
         }
+        public void SetGenerationProvProperties(ref System.Random rnd) //Properties to set during world gen for a province
+        {
+            //Sets the province biome
+            {
+                if (_biome != 0) 
+                {
+                    Dictionary<int, int> biomeInstance = new Dictionary<int, int>(); //Stores the amount of each biome in a chunk
+                    foreach (Chunk compChunk in _componentChunks.Values)
+                    {
+                        if(biomeInstance.ContainsKey(compChunk.chunkBiome)) { biomeInstance[compChunk.chunkBiome] += 1; }
+                        else { biomeInstance.Add(compChunk.chunkBiome, 0); }
+                    }
 
+                    int maxBio = -1;
+
+                    foreach(int biomeID in biomeInstance.Keys)
+                    {
+                        if(maxBio == -1 || biomeInstance[biomeID] > biomeInstance[maxBio] )
+                        {
+                            maxBio = biomeID;
+                        }
+                    }
+
+                    _biome = maxBio;
+                }
+            }
+
+            if(_biome == 0) { _provCol = new Color(0, 0, 0); }
+            else
+            {
+                float r = (float)rnd.Next(0, 256) / 255;
+                float g = (float)rnd.Next(0, 256) / 255;
+                float b = (float)rnd.Next(0, 256) / 255;
+
+                _provCol = new Color(r, g, b);
+            }
+
+        }
+        public void AppendAdjacentProvs(ref List<int> provAdjs)
+        {
+            adjacentProvIDs = provAdjs;
+        }
         public Vector3 CalculateRelativeCenterPoint() //returns the relative centerpoint for the province
         {
             int lowestX = -1;
@@ -120,7 +165,6 @@ namespace BiomeData
                 return null;
             }
 
-            //TODO may need checking for oceans/incompatable biomes/max values
             return adjacentIds;
         }
     }

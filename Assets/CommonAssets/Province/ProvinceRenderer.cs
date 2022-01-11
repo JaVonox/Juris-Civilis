@@ -73,12 +73,7 @@ public class ProvinceRenderer : MonoBehaviour
 
         //Set a colour for the polygon
         Color[] colours = new Color[verticesSet.Length];
-        Color polyCol = new Color(Random.Range(0, 10) / 10f, Random.Range(0, 10) / 10f, Random.Range(0, 10) / 10f);
-
-        if(targetProv._startBiome == 0) //TODO temp to identify oceans
-        {
-            polyCol = new Color(0, 0, 0);
-        }
+        Color polyCol = targetProv._provCol;
 
         polyCol.a = 0.5f;
 

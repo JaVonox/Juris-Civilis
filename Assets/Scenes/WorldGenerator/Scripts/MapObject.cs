@@ -43,7 +43,7 @@ public class MapObject
             return (0,null);
         }
 
-        bool amIOcean = (target._startBiome == 0 ? true : false) ; //checks if self is ocean. ternary is not required but added just incase
+        bool amIOcean = (target._biome == 0 ? true : false) ; //checks if self is ocean. ternary is not required but added just incase
 
         foreach (int id in adjacentIDs.ToArray()) //remove all chunks that are not valid
         {
@@ -201,9 +201,8 @@ public class MapObject
 
     public void ProvinceSplit(ref System.Random rnd, ref Dictionary<int,Chunk> worldChunks) //randomly selects chunks and makes provinces from them and connecting chunks
     {
-        Debug.Log("Pre Adjacent");
+        Dictionary<int, int> chunkIDsandOwner = new Dictionary<int, int>(); //Store chunkID and Owner
         SetAdjacentChunks(ref worldChunks);
-        Debug.Log("Post Adjacent");
 
         while (worldChunks.Count > 0) //Iterate through world chunks until all provinces have been made
         {
@@ -215,28 +214,59 @@ public class MapObject
                 targetChunk = randomChunk[rnd.Next(0, worldChunks.Count)];
             }
 
+            int nextProvId = worldProvinces.Count;
             //Add chunk to province and then remove from chunks set to stop duplicate memory
-            worldProvinces.Insert(0, new Province(targetChunk,worldChunks[targetChunk]));
+            worldProvinces.Insert(nextProvId, new Province(targetChunk,worldChunks[targetChunk]));
+            chunkIDsandOwner.Add(targetChunk, nextProvId);
+
             worldChunks.Remove(targetChunk);
 
-            int iterations = BiomesObject.activeBiomes[worldProvinces[0]._componentChunks[targetChunk].chunkBiome]._provinceSpread;
+            int iterations = BiomesObject.activeBiomes[worldProvinces[nextProvId]._componentChunks[targetChunk].chunkBiome]._provinceSpread;
 
             int connectedProvs = 1;
             for (int a = 0; a < iterations; a++)
             {
-                (int id, Chunk ret) tmpChunk = AppendRandomAdjacentChunk(worldProvinces[0], ref rnd, ref worldChunks);
+                (int id, Chunk ret) tmpChunk = AppendRandomAdjacentChunk(worldProvinces[nextProvId], ref rnd, ref worldChunks);
 
                 if (tmpChunk.ret == null)
                 {
                     break;
                 }
 
-                worldProvinces[0]._componentChunks.Add(tmpChunk.id, tmpChunk.ret);
+                worldProvinces[nextProvId]._componentChunks.Add(tmpChunk.id, tmpChunk.ret);
+                chunkIDsandOwner.Add(tmpChunk.id, nextProvId);
                 connectedProvs++;
             }
         }
 
+        StoreProvAdjacents(ref chunkIDsandOwner);
 
+        foreach(Province tProv in worldProvinces) //Sets some basic properties for each province
+        {
+            tProv.SetGenerationProvProperties(ref rnd);
+        }
+    }
+    private void StoreProvAdjacents(ref Dictionary<int,int> owners) //For each province, set which provinces are adjacent
+    {
+        foreach(Province tProv in worldProvinces)
+        {
+            List<int> adjacentProvinces = new List<int>();
+            
+            foreach (Chunk tChunk in tProv._componentChunks.Values)
+            {
+                foreach(int chunkID in tChunk.adjacentChunks)
+                {
+                    int ownerProv = owners[chunkID];
+
+                    if(!adjacentProvinces.Contains(ownerProv))
+                    {
+                        adjacentProvinces.Add(ownerProv);
+                    }
+                }
+            }
+
+            tProv.AppendAdjacentProvs(ref adjacentProvinces);
+        }
     }
 
     public void IterateProvinces(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rn) //Iterate through all provinces and append to the pixels set array

@@ -40,42 +40,21 @@ namespace SaveLoad
             return System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World1/"; //Return file name string
         }
 
-        public static void CreateMap(string filePath, ref List<Province> provSet) //draws a map to a file
+        public static void CreateMap(string filePath, ref byte[] imageBytes) //draws a map to a file
         {
-            //Province save syntax = ID : {x,y,biomeID} etc. \n
-
-            FileStream mapFile = File.Create(filePath + "WorldData/Map.sav");
-
-            int provsDone = 0;
-            //Iterate through all provinces
-            foreach(Province prov in provSet) //Iterate through all provinces to draw a map data list
-            {
-                List<byte> mapBytes = new List<byte>();
-                string tileString = "";
-
-                foreach (Chunk ch in prov._componentChunks.Values)
-                {
-
-                    foreach((int x, int y, TileData tile) component in ch.chunkTiles)
-                    {
-                        tileString += "{" + component.x.ToString() + "," + component.y.ToString() + "," + component.tile._biomeType.ToString() + "}";
-                    }
-
-                }
-
-                mapBytes.AddRange(FormatData(new Dictionary<string, string> { { provSet.IndexOf(prov).ToString(), tileString } })); //Appends the tiles data to the set of bytes - with the province ID included
-                provsDone++;
-                byte[] tmpMap = mapBytes.ToArray();
-                mapFile.Write(tmpMap, 0, tmpMap.Length);
-
-                if(provsDone % 100 == 0)
-                {
-                    Debug.Log("Saved : " + provsDone + " Of " + provSet.Count);
-                }
-            }
+            //Get bytes of map and convert to image
+            FileStream mapFile = File.Create(filePath + "WorldData/Map.png");
+            mapFile.Write(imageBytes, 0, imageBytes.Length);
 
             mapFile.Close();
-            Debug.Log("Got all " + provSet.Count);
+        }
+        public static void CreateProvinceMapping(string filePath, ref List<Province> provinces) //draws just the mapping elements of a province
+        {
+            //Write all province properties to file
+            FileStream provFile = File.Create(filePath + "WorldData/ProvMap.dat");
+
+            //TODO
+            provFile.Close();
         }
     }
 }

@@ -43,8 +43,15 @@ public class MainScreenHandler : MonoBehaviour
         Dividing,
         Displaying,
     }
+    public enum MapStates
+    {
+        Invalid = 0,
+        Geography = 1,
+        Province = 2,
+    }
 
     int currentState = 0;
+    MapStates curMapState = (MapStates)0;
 
     private Thread threadProcess;
     private volatile bool threadRunning = false;
@@ -109,38 +116,45 @@ public class MainScreenHandler : MonoBehaviour
 
     void DebugFeature() //Useless function to allow for debugging
     {
-        if (threadRunning == false)
-        {
-            threadProcess = new Thread(SaveFile); //Begin running of the generation thread
-            threadProcess.Start();
-            threadRunning = true;
-        }
+        SaveFile();
     }
 
     void SaveFile()
     {
-        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving thread
-        SaveLoad.SavingScript.CreateMap(filePath, ref currentMap.worldProvinces);
+        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving procedure
 
-        threadRunning = false;
-        threadProcess.Join(); //Join the thread
+        Byte[] imageBytes = backTexture.EncodeToPNG();
+        SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes);
     }
 
-    void ShowProvinces()
+    void KillProvinces()
     {
         foreach (Transform provinceChild in loadedObjectsLayer.transform) //remove all loaded provinces from the dataset
         {
             GameObject.Destroy(provinceChild.gameObject);
         }
-
-        foreach (Province tProv in currentMap.worldProvinces) //Loop through and display all provinces
+    }
+    void ShowProvinces()
+    {
+        if ((int)curMapState != 2) //Toggle
         {
-            GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
-            newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvince(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
+            KillProvinces();
+            foreach (Province tProv in currentMap.worldProvinces) //Loop through and display all provinces
+            {
+                GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
+                newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvince(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
 
-            Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
-            newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
-            newProvinceObject.transform.Rotate(180, 180, 0);
+                Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
+                newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
+                newProvinceObject.transform.Rotate(180, 180, 0);
+            }
+
+            curMapState = (MapStates)2;
+        }
+        else if((int)curMapState == 2)
+        {
+            KillProvinces();
+            curMapState = (MapStates)1;
         }
     }
 
@@ -151,6 +165,9 @@ public class MainScreenHandler : MonoBehaviour
 
     void ImageProcedure()
     {
+        if((int)curMapState != 1 && (int)curMapState != 0) { KillProvinces(); }
+        curMapState = (MapStates)0;
+
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
@@ -194,6 +211,7 @@ public class MainScreenHandler : MonoBehaviour
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
+        curMapState = (MapStates)1;
 
         //Use garbage collector manually to clear up data due to the heavy memory usage impacts of this program
         GC.Collect();
