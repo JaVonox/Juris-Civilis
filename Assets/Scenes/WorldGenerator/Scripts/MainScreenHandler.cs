@@ -10,9 +10,9 @@ using System.Threading;
 public class MainScreenHandler : MonoBehaviour
 {
     //UI
-    public Button perlinButton;
+    private GameObject startScreen;
+    public GameObject Camera;
     public Button provinceButton;
-    public Button debugButton; //TODO temp button
     public Text genStateText;
 
     //Mapping elements
@@ -29,6 +29,8 @@ public class MainScreenHandler : MonoBehaviour
 
     //Script elements
     public GameObject provincePrefab;
+    public GameObject startScreenPrefab;
+
     MapObject currentMap;
     System.Random rnd = new System.Random();
 
@@ -61,9 +63,10 @@ public class MainScreenHandler : MonoBehaviour
     {
         currentMap = new MapObject(mapWidth, mapHeight);
 
-        perlinButton.GetComponent<Button>().onClick.AddListener(GenerateImageOnClick); //attach the script to the button
+        startScreen = Instantiate(startScreenPrefab, Camera.transform, false); //Create new start screen instance
+        startScreen.GetComponent<MenuComponents>().startGen.onClick.AddListener(StartGeneration);
+
         provinceButton.GetComponent<Button>().onClick.AddListener(ShowProvinces); //attach the script to the button
-        debugButton.GetComponent<Button>().onClick.AddListener(DebugFeature);
         InitialiseMaps(); //Sets default map elements
         UpdateLabel();
     }
@@ -80,8 +83,11 @@ public class MainScreenHandler : MonoBehaviour
         }
     }
 
-    void GenerateImageOnClick()
+    void StartGeneration()
     {
+        Camera.GetComponent<CameraScript>().enabled = true; //Allows camera movement
+        Destroy(startScreen);
+
         if(threadRunning == false)
         {
             threadProcess = new Thread(ImageProcedure); //Begin running of the generation thread
@@ -114,12 +120,7 @@ public class MainScreenHandler : MonoBehaviour
 
     }
 
-    void DebugFeature() //Useless function to allow for debugging
-    {
-        SaveFile();
-    }
-
-    void SaveFile()
+    void SaveFile() //To be called after generation has ended
     {
         string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving procedure
 
@@ -230,6 +231,7 @@ public class MainScreenHandler : MonoBehaviour
         backTexture.Apply();
 
         currentMap.SetProvinceSaveables(); //Create saveable properties now the map has been generated, as tiledata is no longer needed
+        SaveFile(); //Save data to new file
     }
 
 }
