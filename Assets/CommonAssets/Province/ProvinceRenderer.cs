@@ -13,12 +13,11 @@ public class ProvinceRenderer : MonoBehaviour
     {
         return ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
     }
-
-    private void SetCentre(ref Province targetProv, int mapWidth, int mapHeight)
+    private void SetCentreObject(ref ProvinceObject targetProv, int mapWidth, int mapHeight)
     {
         _centrePoint = targetProv.CalculateRelativeCenterPoint(); //gets the centerpoint relative to the map
     }
-    
+
     private Vector3 GetCentreRelative(Vector3 point) //gets the vertex values with respect to the centerpoint
     {
         Vector3 retVector;
@@ -36,30 +35,28 @@ public class ProvinceRenderer : MonoBehaviour
         return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, point.z);
     }
 
-    public void RenderProvince(Province targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
+    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight) //Renders based on chunk data.
     {
-        SetCentre(ref targetProv,mapWidth,mapHeight);
+        SetCentreObject(ref targetProv, mapWidth, mapHeight);
 
-        int verticesCount = targetProv._componentChunks.Count * 3;
         _provinceMesh = new Mesh();
 
         List<int> triangles = new List<int>();
-        Vector3[] verticesSet = new Vector3[verticesCount + 1]; //storage for vertices
+        Vector3[] verticesSet = new Vector3[targetProv._vertices.Count]; //storage for vertices
 
         verticesSet[0] = ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
 
-        int i = 1;
-
-        foreach (Chunk component in targetProv._componentChunks.Values)
+        int i = 0;
+        for(int iter = 0; iter < targetProv._vertices.Count; iter+=3)
         {
             for (int v = 0; v < 3; v++)
             {
-                verticesSet[i + v] = ChangeSpace(GetCentreRelative(new Vector3(component.vertices[v].x,component.vertices[v].y,0)), spriteWidth, spriteHeight, mapWidth, mapHeight); //Calculate the -/+ value for the vertex based on the midpoint
+                verticesSet[i + v] = ChangeSpace(GetCentreRelative(targetProv._vertices[i + v]), spriteWidth, spriteHeight, mapWidth, mapHeight); //Calculate the -/+ value for the vertex based on the midpoint
             }
 
             triangles.Add(i);
-            triangles.Add(i+1);
-            triangles.Add(i+2);
+            triangles.Add(i + 1);
+            triangles.Add(i + 2);
 
             i += 3;
         }
@@ -88,4 +85,5 @@ public class ProvinceRenderer : MonoBehaviour
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
         GetComponent<MeshCollider>().sharedMesh = _provinceMesh;
     }
+
 }

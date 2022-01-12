@@ -125,6 +125,7 @@ public class MainScreenHandler : MonoBehaviour
 
         Byte[] imageBytes = backTexture.EncodeToPNG();
         SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes);
+        SaveLoad.SavingScript.CreateProvinceMapping(filePath, ref currentMap.provinceSaveables);
     }
 
     void KillProvinces()
@@ -139,14 +140,14 @@ public class MainScreenHandler : MonoBehaviour
         if ((int)curMapState != 2) //Toggle
         {
             KillProvinces();
-            foreach (Province tProv in currentMap.worldProvinces) //Loop through and display all provinces
+            foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
             {
                 GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
-                newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvince(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
+                newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
 
                 Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
                 newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
-                newProvinceObject.transform.Rotate(180, 180, 0);
+                newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
             }
 
             curMapState = (MapStates)2;
@@ -207,7 +208,7 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        queuedFunctions.Add(DisplayChunkMap); //adds function display map to queued items
+        queuedFunctions.Add(CreateChunkMap); //Blocking operation
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
@@ -221,13 +222,14 @@ public class MainScreenHandler : MonoBehaviour
         threadProcess.Join(); //Join the thread
     }
 
-    void DisplayChunkMap()
+    void CreateChunkMap()
     {
         Color[] pixSet = new Color[mapWidth * mapHeight]; //1D set of pixels
         currentMap.IterateProvinces(ref pixSet, mapWidth, mapHeight, ref rnd); //Set all pixel values
         backTexture.SetPixels(pixSet, 0); //sets all pixels from the chunk values
-
         backTexture.Apply();
+
+        currentMap.SetProvinceSaveables(); //Create saveable properties now the map has been generated, as tiledata is no longer needed
     }
 
 }

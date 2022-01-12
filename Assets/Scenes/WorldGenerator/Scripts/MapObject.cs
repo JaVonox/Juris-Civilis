@@ -19,6 +19,9 @@ public class MapObject
     //List of provinces and container chunks
     public List<Province> worldProvinces = new List<Province>();
 
+    //List of province saveable objects
+    public List<ProvinceObject> provinceSaveables = new List<ProvinceObject>();
+
     public MapObject(int x, int y)
     {
         maxWidth = x;
@@ -73,7 +76,19 @@ public class MapObject
 
         return (adjacentIDs[randomIndex],tmpCH);
     }
+    public void SetProvinceSaveables() //Create saveable province objects
+    {
+        int i = 0;
+        foreach (Province tProv in worldProvinces)
+        {
+            provinceSaveables.Add(new ProvinceObject(i,tProv));
+            i++;
+        }
 
+        //Clears unneeded data
+        worldProvinces = null;
+        tiles = null;
+    }
 
     public void SetAdjacentChunks(ref Dictionary<int, Chunk> worldChunks) //Sets the adjacencies of all chunks in the set. worldChunks stores each ID and chunk
     {
@@ -248,6 +263,7 @@ public class MapObject
     }
     private void StoreProvAdjacents(ref Dictionary<int,int> owners) //For each province, set which provinces are adjacent
     {
+        int id = 0;
         foreach(Province tProv in worldProvinces)
         {
             List<int> adjacentProvinces = new List<int>();
@@ -258,7 +274,7 @@ public class MapObject
                 {
                     int ownerProv = owners[chunkID];
 
-                    if(!adjacentProvinces.Contains(ownerProv))
+                    if(!adjacentProvinces.Contains(ownerProv) && ownerProv != id)
                     {
                         adjacentProvinces.Add(ownerProv);
                     }
@@ -266,6 +282,7 @@ public class MapObject
             }
 
             tProv.AppendAdjacentProvs(ref adjacentProvinces);
+            id++;
         }
     }
 

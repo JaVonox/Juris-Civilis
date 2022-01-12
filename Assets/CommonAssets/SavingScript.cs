@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Xml;
 using BiomeData;
 using UnityEngine;
 
@@ -9,6 +10,12 @@ namespace SaveLoad
 {
     public static class SavingScript
     {
+        public static XmlWriterSettings settings = new XmlWriterSettings();
+        static SavingScript() //Set up basic XML data
+        {
+            settings.Indent = true;
+        }
+
         private static byte[] FormatData(Dictionary<string,string> data)
         {
             string collatedData = "";
@@ -23,21 +30,52 @@ namespace SaveLoad
 
         public static string CreateFile(int worldWidth, int worldHeight) //Creates a new save file structure
         {
-            //TODO add new world file names
 
-            //Adds directories
-            Directory.CreateDirectory(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World1/");
-            Directory.CreateDirectory(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World1/WorldData");
+            string path;
 
-            //Necessary files
-            FileStream configFile = File.Create(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World1/WorldConfig.cfg");
+            {
+                if(!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/")) //Create a save folder if one does not exist
+                {
+                    Directory.CreateDirectory(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/");
+                }
 
-            //Adds data to be appended to the configfile
-            byte[] configData = FormatData(new Dictionary<string, string> { { "Width", worldWidth.ToString() }, { "Height", worldHeight.ToString() } });
-            configFile.Write(configData, 0, configData.Length);
+                
+                int iterate = 0;
 
-            configFile.Close();
-            return System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World1/"; //Return file name string
+                while(true) //Find the next available world save folder
+                {
+                    if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate))
+                    {
+                        path = System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate + "/";
+                        break;
+                    }
+
+                    iterate++;
+                }
+
+            }
+
+            Directory.CreateDirectory(path + "WorldData/");
+
+            //Write to the xml config file
+            XmlWriter xmlWriter = XmlWriter.Create(path + "WorldConfig.xml", settings);
+            xmlWriter.WriteStartDocument();
+
+            xmlWriter.WriteStartElement("World");
+
+            xmlWriter.WriteStartElement("Width");
+            xmlWriter.WriteString(worldWidth.ToString());
+            xmlWriter.WriteEndElement();
+
+            xmlWriter.WriteStartElement("Height");
+            xmlWriter.WriteString(worldHeight.ToString());
+            xmlWriter.WriteEndElement();
+            xmlWriter.WriteEndElement();
+
+            xmlWriter.WriteEndDocument();
+            xmlWriter.Close();
+
+            return path; //Return save file name
         }
 
         public static void CreateMap(string filePath, ref byte[] imageBytes) //draws a map to a file
@@ -48,13 +86,45 @@ namespace SaveLoad
 
             mapFile.Close();
         }
-        public static void CreateProvinceMapping(string filePath, ref List<Province> provinces) //draws just the mapping elements of a province
+        public static void CreateProvinceMapping(string filePath, ref List<ProvinceObject> provinces) //draws just the mapping elements of a province
         {
-            //Write all province properties to file
-            FileStream provFile = File.Create(filePath + "WorldData/ProvMap.dat");
+            //Write all province properties to an xml file
+            XmlWriter xmlWriter = XmlWriter.Create(filePath + "WorldData/Provinces.xml", settings);
+            xmlWriter.WriteStartDocument();
 
-            //TODO
-            provFile.Close();
+            xmlWriter.WriteStartElement("Provinces");
+            foreach (ProvinceObject tProv in provinces)
+            {
+                xmlWriter.WriteStartElement("Province");
+                xmlWriter.WriteAttributeString("ID", tProv._id.ToString());
+
+                xmlWriter.WriteStartElement("Colour");
+                xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteStartElement("Vertices"); //Province vertices
+                foreach (Vector3 vec in tProv._vertices)
+                {
+                    xmlWriter.WriteStartElement("Vertex");
+                    xmlWriter.WriteString(vec.x + "," + vec.y);
+                    xmlWriter.WriteEndElement();
+                }
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteStartElement("Adjacents"); //Adjacent prov IDs
+                foreach (int adj in tProv._adjacentProvIDs)
+                {
+                    xmlWriter.WriteStartElement("ID");
+                    xmlWriter.WriteString(adj.ToString());
+                    xmlWriter.WriteEndElement();
+                }
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteEndElement();
+            }
+            xmlWriter.WriteEndElement();
+            xmlWriter.WriteEndDocument();
+            xmlWriter.Close();
         }
     }
 }

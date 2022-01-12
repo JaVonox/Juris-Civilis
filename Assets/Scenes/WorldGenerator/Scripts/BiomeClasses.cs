@@ -63,6 +63,51 @@ namespace BiomeData
 
     }
 
+    public class ProvinceObject //Stores the data for a province after province data has been appended. This is the saved province data.
+    {
+        public int _id;
+        public int _biome;
+        public Color _provCol;
+        public List<Vector3> _vertices = new List<Vector3>();
+        public List<int> _adjacentProvIDs = new List<int>();
+        public ProvinceObject(int id, Province tProv) //Constructor from province object
+        {
+            _id = id;
+            _biome = tProv._biome;
+            _provCol = tProv._provCol;
+            _adjacentProvIDs = tProv.adjacentProvIDs;
+            
+            foreach(Chunk compChunk in tProv._componentChunks.Values)
+            {
+                for (int v = 0; v < 3; v++)
+                {
+                    _vertices.Add(new Vector3(compChunk.vertices[v].x, compChunk.vertices[v].y, 0));
+                }
+            }
+        }
+        public Vector3 CalculateRelativeCenterPoint() //returns the relative centerpoint for the province
+        {
+            float lowestX = -1;
+            float highestX = -1;
+            float lowestY = -1;
+            float highestY = -1;
+
+            foreach (Vector3 vert in _vertices)
+            {
+                if (vert.x < lowestX || lowestX == -1) { lowestX = vert.x; }
+                if (vert.x > highestX || highestX == -1) { highestX = vert.x; }
+                if (vert.y < lowestY || lowestY == -1) { lowestY = vert.y; }
+                if (vert.y > highestY || highestY == -1) { highestY = vert.y; }
+            }
+
+            float centerX = lowestX + (((float)highestX - (float)lowestX) / 2);
+            float centerY = lowestY + (((float)highestY - (float)lowestY) / 2);
+
+            return new Vector3(centerX, centerY, 0);
+        }
+
+    }
+
     public class Province //Contains multiple connected chunks
     {
         public Dictionary<int,Chunk> _componentChunks = new Dictionary<int,Chunk>(); //Chunk ID and component
