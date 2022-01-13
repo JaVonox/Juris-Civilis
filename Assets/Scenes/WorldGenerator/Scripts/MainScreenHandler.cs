@@ -11,8 +11,8 @@ public class MainScreenHandler : MonoBehaviour
 {
     //UI
     private GameObject startScreen;
+    private GameObject panelScreen;
     public GameObject Camera;
-    public Button provinceButton;
     public Text genStateText;
 
     //Mapping elements
@@ -30,6 +30,7 @@ public class MainScreenHandler : MonoBehaviour
     //Script elements
     public GameObject provincePrefab;
     public GameObject startScreenPrefab;
+    public GameObject panelPrefab;
 
     MapObject currentMap;
     System.Random rnd = new System.Random();
@@ -66,7 +67,6 @@ public class MainScreenHandler : MonoBehaviour
         startScreen = Instantiate(startScreenPrefab, Camera.transform, false); //Create new start screen instance
         startScreen.GetComponent<MenuComponents>().startGen.onClick.AddListener(StartGeneration);
 
-        provinceButton.GetComponent<Button>().onClick.AddListener(ShowProvinces); //attach the script to the button
         InitialiseMaps(); //Sets default map elements
         UpdateLabel();
     }
@@ -94,6 +94,7 @@ public class MainScreenHandler : MonoBehaviour
             threadProcess.Start();
             threadRunning = true;
         }
+
     }
 
     void InitialiseMaps()
@@ -136,7 +137,29 @@ public class MainScreenHandler : MonoBehaviour
             GameObject.Destroy(provinceChild.gameObject);
         }
     }
-    void ShowProvinces()
+    public void UpdateMapMode(string mapMode)
+    {
+        switch(mapMode)
+        {
+            case "Geography":
+                KillProvinces();
+                break;
+            case "National":
+                foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
+                {
+                    GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
+                    newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
+
+                    Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
+                    newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
+                    newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    void RenderProvinces()
     {
         if ((int)curMapState != 2) //Toggle
         {
@@ -209,7 +232,7 @@ public class MainScreenHandler : MonoBehaviour
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
-        queuedFunctions.Add(CreateChunkMap); //Blocking operation
+        queuedFunctions.Add(CreateChunkMap); //Create new map
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
@@ -232,6 +255,8 @@ public class MainScreenHandler : MonoBehaviour
 
         currentMap.SetProvinceSaveables(); //Create saveable properties now the map has been generated, as tiledata is no longer needed
         SaveFile(); //Save data to new file
+        panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
+        panelScreen.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);
     }
 
 }

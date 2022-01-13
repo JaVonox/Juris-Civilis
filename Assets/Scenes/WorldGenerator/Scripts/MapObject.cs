@@ -211,6 +211,7 @@ public class MapObject
             }
         }
 
+        tiles = null; //Kill the tiles data to reduce memory usage
         ProvinceSplit(ref rnd, ref worldChunks); //Splits the worldchunks into provinces
     }
 
@@ -328,7 +329,7 @@ public class MapObject
 
     public void SetDecile(int property, ref int[,] set) //stores the 10 deciles for the defined property
     {
-        //This originally used actual deciles but now uses range-based calculations to minimize memory usage
+        //This originally used actual deciles but now uses average-based calculations to minimize memory usage
         //Stores min/max for each property
 
         int max = -1;
