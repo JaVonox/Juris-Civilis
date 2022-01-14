@@ -12,6 +12,7 @@ public class MainScreenHandler : MonoBehaviour
     //UI
     private GameObject startScreen;
     private GameObject panelScreen;
+    private GameObject provinceDetailsScreen;
     public GameObject Camera;
     public Text genStateText;
 
@@ -31,6 +32,7 @@ public class MainScreenHandler : MonoBehaviour
     public GameObject provincePrefab;
     public GameObject startScreenPrefab;
     public GameObject panelPrefab;
+    public GameObject provinceDetailsPrefab;
 
     MapObject currentMap;
     System.Random rnd = new System.Random();
@@ -46,15 +48,7 @@ public class MainScreenHandler : MonoBehaviour
         Dividing,
         Displaying,
     }
-    public enum MapStates
-    {
-        Invalid = 0,
-        Geography = 1,
-        Province = 2,
-    }
-
     int currentState = 0;
-    MapStates curMapState = (MapStates)0;
 
     private Thread threadProcess;
     private volatile bool threadRunning = false;
@@ -66,6 +60,8 @@ public class MainScreenHandler : MonoBehaviour
 
         startScreen = Instantiate(startScreenPrefab, Camera.transform, false); //Create new start screen instance
         startScreen.GetComponent<MenuComponents>().startGen.onClick.AddListener(StartGeneration);
+
+        provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add panel to show province details. This automatically sets itself to invisible
 
         InitialiseMaps(); //Sets default map elements
         UpdateLabel();
@@ -139,23 +135,15 @@ public class MainScreenHandler : MonoBehaviour
     }
     public void UpdateMapMode(string mapMode)
     {
-        switch(mapMode)
+        KillProvinces();
+        foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
         {
-            case "Geography": //Special mapmodes
-                KillProvinces();
-                break;
-            default: //All other mapmodes
-                KillProvinces();
-                foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
-                {
-                    GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
-                    newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode);
+            GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
+            newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode);
 
-                    Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
-                    newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
-                    newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
-                }
-                break;
+            Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
+            newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
+            newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
         }
     }
 
@@ -166,9 +154,6 @@ public class MainScreenHandler : MonoBehaviour
 
     void ImageProcedure()
     {
-        if((int)curMapState != 1 && (int)curMapState != 0) { KillProvinces(); }
-        curMapState = (MapStates)0;
-
         currentState++;
         queuedFunctions.Add(UpdateLabel);
 
@@ -212,7 +197,6 @@ public class MainScreenHandler : MonoBehaviour
 
         currentState = 0;
         queuedFunctions.Add(UpdateLabel);
-        curMapState = (MapStates)1;
 
         //Use garbage collector manually to clear up data due to the heavy memory usage impacts of this program
         GC.Collect();
@@ -233,6 +217,8 @@ public class MainScreenHandler : MonoBehaviour
         SaveFile(); //Save data to new file
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
         panelScreen.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);
+        UpdateMapMode("Geography");
+        //provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(currentMap.provinceSaveables[200]); //TODO temp
     }
 
 }

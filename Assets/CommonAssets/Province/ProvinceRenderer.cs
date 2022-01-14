@@ -8,6 +8,7 @@ public class ProvinceRenderer : MonoBehaviour
 {
     private Mesh _provinceMesh;
     private Vector3 _centrePoint; //Worldspace centerpoint
+    public ProvinceObject _myProvince; //Stores a reference to province
 
     public Vector3 ReturnCentreUnitSpace(float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
@@ -24,7 +25,7 @@ public class ProvinceRenderer : MonoBehaviour
 
         retVector.x = (_centrePoint.x - point.x);
         retVector.y = (_centrePoint.y - point.y);
-        retVector.z = _centrePoint.z;
+        retVector.z = -2;
 
         return retVector;
     }
@@ -32,13 +33,14 @@ public class ProvinceRenderer : MonoBehaviour
     private Vector3 ChangeSpace(Vector3 point, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
         //Returns the coordinates based on unity space
-        return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, point.z);
+        return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, -2);
     }
 
     public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType) //Renders based on chunk data.
     {
         SetCentreObject(ref targetProv, mapWidth, mapHeight);
 
+        _myProvince = targetProv; //Copies province reference
         _provinceMesh = new Mesh();
 
         List<int> triangles = new List<int>();
@@ -46,6 +48,8 @@ public class ProvinceRenderer : MonoBehaviour
 
         verticesSet[0] = ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
 
+
+        //TOOD triangle mesh faces dont workkkk
         int i = 0;
         for(int iter = 0; iter < targetProv._vertices.Count; iter+=3)
         {
@@ -82,7 +86,7 @@ public class ProvinceRenderer : MonoBehaviour
 
         //assign mesh to filter and collider
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
-        GetComponent<MeshCollider>().sharedMesh = _provinceMesh;
+        GetComponent<MeshCollider>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
     }
     private Color GetColour(ProvinceObject targetProv, string propType) //Returns colours based on parameters
     {
@@ -95,6 +99,8 @@ public class ProvinceRenderer : MonoBehaviour
 
         switch (propType)
         {
+            case "Geography":
+                return new Color(1, 0, 1, 0); //Creates invisible mesh provinces
             case "National":
                 Color tmpCol = targetProv._provCol;
                 tmpCol.a = 0.5f;
@@ -155,8 +161,12 @@ public class ProvinceRenderer : MonoBehaviour
                 break;
         }
 
-        return new Color(0.85f, 0, 0.6f,0); //Error Colour
+        return new Color(0.85f, 0, 0.6f,1); //Error Colour
 
+    }
+    void OnMouseDown() //
+    {
+        Debug.Log("Hi, im province: " + _myProvince._id.ToString());
     }
 
 }
