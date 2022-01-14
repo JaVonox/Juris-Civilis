@@ -62,12 +62,15 @@ namespace BiomeData
         }
 
     }
-
     public class ProvinceObject //Stores the data for a province after province data has been appended. This is the saved province data.
     {
         public int _id;
         public int _biome;
         public Color _provCol;
+        public Property _elProp;
+        public Property _tmpProp;
+        public Property _rainProp;
+        public Property _floraProp;
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
         public ProvinceObject(int id, Province tProv) //Constructor from province object
@@ -76,6 +79,10 @@ namespace BiomeData
             _biome = tProv._biome;
             _provCol = tProv._provCol;
             _adjacentProvIDs = tProv.adjacentProvIDs;
+            _elProp = tProv._elProp;
+            _tmpProp = tProv._tmpProp;
+            _rainProp = tProv._rainProp;
+            _floraProp = tProv._floraProp;
             
             foreach(Chunk compChunk in tProv._componentChunks.Values)
             {
@@ -116,6 +123,10 @@ namespace BiomeData
         //Province properties
         public int _biome;
         public Color _provCol;
+        public Property _elProp;
+        public Property _tmpProp;
+        public Property _rainProp;
+        public Property _floraProp;
 
         public Province(int id, Chunk firstChunk) 
         {
@@ -129,10 +140,29 @@ namespace BiomeData
                 if (_biome != 0) 
                 {
                     Dictionary<int, int> biomeInstance = new Dictionary<int, int>(); //Stores the amount of each biome in a chunk
+
+                    //Avgcheckers dictionaries
+                    Dictionary<Property, int> elvCount = new Dictionary<Property, int>();
+                    Dictionary<Property, int> tmpCount = new Dictionary<Property, int>();
+                    Dictionary<Property, int> rainCount = new Dictionary<Property, int>();
+                    Dictionary<Property, int> floraCount = new Dictionary<Property, int>();
+
                     foreach (Chunk compChunk in _componentChunks.Values)
                     {
                         if(biomeInstance.ContainsKey(compChunk.chunkBiome)) { biomeInstance[compChunk.chunkBiome] += 1; }
                         else { biomeInstance.Add(compChunk.chunkBiome, 0); }
+
+                        if (elvCount.ContainsKey(compChunk.avgEl)) { elvCount[compChunk.avgEl] += 1; }
+                        else { elvCount.Add(compChunk.avgEl, 0); }
+
+                        if (tmpCount.ContainsKey(compChunk.avgTmp)) { tmpCount[compChunk.avgTmp] += 1; }
+                        else { tmpCount.Add(compChunk.avgTmp, 0); }
+
+                        if (rainCount.ContainsKey(compChunk.avgRain)) { rainCount[compChunk.avgRain] += 1; }
+                        else { rainCount.Add(compChunk.avgRain, 0); }
+
+                        if (floraCount.ContainsKey(compChunk.avgFlor)) { floraCount[compChunk.avgFlor] += 1; }
+                        else { floraCount.Add(compChunk.avgFlor, 0); }
                     }
 
                     int maxBio = -1;
@@ -146,6 +176,58 @@ namespace BiomeData
                     }
 
                     _biome = maxBio;
+
+                    int maxElv = -1;
+                    foreach (Property elv in elvCount.Keys)
+                    {
+                        if (elvCount[elv] > maxElv || maxElv == -1)
+                        {
+                            _elProp = elv;
+                            maxElv = elvCount[elv];
+                        }
+                    }
+                    elvCount = null;
+
+                    int maxTmp = -1;
+                    foreach (Property tmp in tmpCount.Keys)
+                    {
+                        if (tmpCount[tmp] > maxTmp || maxTmp == -1)
+                        {
+                            _tmpProp = tmp;
+                            maxTmp = tmpCount[tmp];
+                        }
+                    }
+                    tmpCount = null;
+
+                    int maxRain = -1;
+                    foreach (Property rain in rainCount.Keys)
+                    {
+                        if (rainCount[rain] > maxRain || maxRain == -1)
+                        {
+                            _rainProp = rain;
+                            maxRain = rainCount[rain];
+                        }
+                    }
+                    rainCount = null;
+
+                    int maxFlor = -1;
+                    foreach (Property flor in floraCount.Keys)
+                    {
+                        if (floraCount[flor] > maxFlor || maxFlor == -1)
+                        {
+                            _floraProp = flor;
+                            maxFlor = floraCount[flor];
+                        }
+                    }
+                    floraCount = null;
+
+                }
+                else
+                {
+                    _elProp = Property.NA;
+                    _tmpProp = Property.NA;
+                    _rainProp = Property.NA;
+                    _floraProp = Property.NA;
                 }
             }
 
@@ -221,9 +303,15 @@ namespace BiomeData
         public int chunkBiome;
         public List<int> adjacentChunks = new List<int>(); //set of all chunks with adjacencies
 
+        public Property avgEl;
+        public Property avgTmp;
+        public Property avgRain;
+        public Property avgFlor;
+
         //A chunk consists of a number of half a rectangle worth of tiles, forming a right angled triangle bound from either the top left or top right
 
-        public Chunk() { }
+        public Chunk() {
+        }
 
         public void AddTile(int x,int y, ref TileData tile)
         {
@@ -251,6 +339,12 @@ namespace BiomeData
             //biome checker dictionary
             Dictionary<int, int> biomeCounts = new Dictionary<int, int>();
 
+            //Avgcheckers dictionaries
+            Dictionary<Property, int> elvCount = new Dictionary<Property, int>();
+            Dictionary<Property, int> tmpCount = new Dictionary<Property, int>();
+            Dictionary<Property, int> rainCount = new Dictionary<Property, int>();
+            Dictionary<Property, int> floraCount = new Dictionary<Property, int>();
+
             for (int i = 0; i < chunkTiles.Count; i++) //Loop through all tiles to find values
             {
                 if(chunkTiles[i].x > maxX || maxX == -1) { maxX = chunkTiles[i].x; }
@@ -268,7 +362,47 @@ namespace BiomeData
                 else
                 {
                     biomeCounts.Add(chunkTiles[i].tile._biomeType, 0);
-                }    
+                }
+
+                if (chunkTiles[i].tile._biomeType != 0) //Store modal properties for non ocean 
+                {
+                    //Find counts of each property
+                    if (elvCount.ContainsKey(chunkTiles[i].tile._heightProp))
+                    {
+                        elvCount[chunkTiles[i].tile._heightProp] += 1;
+                    }
+                    else
+                    {
+                        elvCount.Add(chunkTiles[i].tile._heightProp, 0);
+                    }
+
+                    if (tmpCount.ContainsKey(chunkTiles[i].tile._tempProp))
+                    {
+                        tmpCount[chunkTiles[i].tile._tempProp] += 1;
+                    }
+                    else
+                    {
+                        tmpCount.Add(chunkTiles[i].tile._tempProp, 0);
+                    }
+
+                    if (rainCount.ContainsKey(chunkTiles[i].tile._rainfallProp))
+                    {
+                        rainCount[chunkTiles[i].tile._rainfallProp] += 1;
+                    }
+                    else
+                    {
+                        rainCount.Add(chunkTiles[i].tile._rainfallProp, 0);
+                    }
+
+                    if (floraCount.ContainsKey(chunkTiles[i].tile._floraProp))
+                    {
+                        floraCount[chunkTiles[i].tile._floraProp] += 1;
+                    }
+                    else
+                    {
+                        floraCount.Add(chunkTiles[i].tile._floraProp, 0);
+                    }
+                }
             }
 
             for (int i = 0; i < chunkTiles.Count; i++) 
@@ -304,7 +438,54 @@ namespace BiomeData
                 }
             }
 
-        }
+            if (chunkBiome != 0) //Find modal properties
+            {
+                int maxElv = -1;
+                foreach (Property elv in elvCount.Keys)
+                {
+                    if (elvCount[elv] > maxElv || maxElv == -1)
+                    {
+                        avgEl = elv;
+                        maxElv = elvCount[elv];
+                    }
+                }
+                elvCount = null;
+
+                int maxTmp = -1;
+                foreach (Property tmp in tmpCount.Keys)
+                {
+                    if (tmpCount[tmp] > maxTmp || maxTmp == -1)
+                    {
+                        avgTmp = tmp;
+                        maxTmp = tmpCount[tmp];
+                    }
+                }
+                tmpCount = null;
+
+                int maxRain = -1;
+                foreach (Property rain in rainCount.Keys)
+                {
+                    if (rainCount[rain] > maxRain || maxRain == -1)
+                    {
+                        avgRain = rain;
+                        maxRain = rainCount[rain];
+                    }
+                }
+                rainCount = null;
+
+                int maxFlor = -1;
+                foreach (Property flor in floraCount.Keys)
+                {
+                    if (floraCount[flor] > maxFlor || maxFlor == -1)
+                    {
+                        avgFlor = flor;
+                        maxFlor = floraCount[flor];
+                    }
+                }
+                floraCount = null;
+            }
+
+            }
 
         public void ReturnTiles(ref Color[] dataSet, int maxWidth, int maxHeight) //Appends its chunk data into the pixels dataset
         {
@@ -338,7 +519,7 @@ namespace BiomeData
             if (property == 0)
             {
                 if (value < deciles[0, 5]) { _heightProp = Property.Low; }
-                else if (value >= deciles[0, 5] && value < deciles[0, 8] + (int)(((float)deciles[0, 9] - (float)deciles[0, 8]) / 4)) { _heightProp = Property.Medium; }
+                else if (value >= deciles[0, 5] && value < deciles[0, 8]) { _heightProp = Property.Medium; }
                 else { _heightProp = Property.High; }
             }
             else if (property == 1)

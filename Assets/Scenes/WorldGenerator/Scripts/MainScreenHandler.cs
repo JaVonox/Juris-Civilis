@@ -141,45 +141,21 @@ public class MainScreenHandler : MonoBehaviour
     {
         switch(mapMode)
         {
-            case "Geography":
+            case "Geography": //Special mapmodes
                 KillProvinces();
                 break;
-            case "National":
+            default: //All other mapmodes
+                KillProvinces();
                 foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
                 {
                     GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
-                    newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
+                    newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode);
 
                     Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
                     newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
                     newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
                 }
                 break;
-            default:
-                break;
-        }
-    }
-    void RenderProvinces()
-    {
-        if ((int)curMapState != 2) //Toggle
-        {
-            KillProvinces();
-            foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
-            {
-                GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
-                newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight);
-
-                Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
-                newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
-                newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
-            }
-
-            curMapState = (MapStates)2;
-        }
-        else if((int)curMapState == 2)
-        {
-            KillProvinces();
-            curMapState = (MapStates)1;
         }
     }
 

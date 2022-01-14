@@ -35,7 +35,7 @@ public class ProvinceRenderer : MonoBehaviour
         return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, point.z);
     }
 
-    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight) //Renders based on chunk data.
+    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType) //Renders based on chunk data.
     {
         SetCentreObject(ref targetProv, mapWidth, mapHeight);
 
@@ -70,9 +70,8 @@ public class ProvinceRenderer : MonoBehaviour
 
         //Set a colour for the polygon
         Color[] colours = new Color[verticesSet.Length];
-        Color polyCol = targetProv._provCol;
 
-        polyCol.a = 0.5f;
+        Color polyCol = GetColour(targetProv, propType);
 
         for (int c = 0; c < verticesSet.Length; c++)
         {
@@ -84,6 +83,80 @@ public class ProvinceRenderer : MonoBehaviour
         //assign mesh to filter and collider
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
         GetComponent<MeshCollider>().sharedMesh = _provinceMesh;
+    }
+    private Color GetColour(ProvinceObject targetProv, string propType) //Returns colours based on parameters
+    {
+        //Constants
+        //TODO look into better definitions for memory space?
+        Color highVal = new Color(0,1,0.014f,0.6f);
+        Color medVal = new Color(0.81f, 0.56f, 0 ,0.6f);
+        Color lowVal = new Color(1, 0.014f, 0, 0.6f);
+        Color NAVal = new Color(0, 0, 0,0.5f);
+
+        switch (propType)
+        {
+            case "National":
+                Color tmpCol = targetProv._provCol;
+                tmpCol.a = 0.5f;
+                return tmpCol;
+            case "Elevation":
+                switch(targetProv._elProp)
+                {
+                    case Property.High:
+                        return highVal;
+                    case Property.Medium:
+                        return medVal;
+                    case Property.Low:
+                        return lowVal;
+                    case Property.NA:
+                        return NAVal;
+                }
+                break;
+            case "Temperature":
+                switch (targetProv._tmpProp)
+                {
+                    case Property.High:
+                        return highVal;
+                    case Property.Medium:
+                        return medVal;
+                    case Property.Low:
+                        return lowVal;
+                    case Property.NA:
+                        return NAVal;
+                }
+                break;
+            case "Rainfall":
+                switch (targetProv._rainProp)
+                {
+                    case Property.High:
+                        return highVal;
+                    case Property.Medium:
+                        return medVal;
+                    case Property.Low:
+                        return lowVal;
+                    case Property.NA:
+                        return NAVal;
+                }
+                break;
+            case "Flora":
+                switch (targetProv._floraProp)
+                {
+                    case Property.High:
+                        return highVal;
+                    case Property.Medium:
+                        return medVal;
+                    case Property.Low:
+                        return lowVal;
+                    case Property.NA:
+                        return NAVal;
+                }
+                break;
+            default:
+                break;
+        }
+
+        return new Color(0.85f, 0, 0.6f,0); //Error Colour
+
     }
 
 }

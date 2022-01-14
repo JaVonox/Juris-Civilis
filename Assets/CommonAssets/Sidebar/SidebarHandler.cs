@@ -13,6 +13,10 @@ public class SidebarHandler : MonoBehaviour
     {
         Geography = 0,
         National = 1,
+        Elevation = 2,
+        Temperature = 3,
+        Rainfall = 4,
+        Flora = 5,
     }
 
     //Interactables

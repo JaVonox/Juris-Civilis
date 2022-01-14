@@ -102,6 +102,22 @@ namespace SaveLoad
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("Elevation");
+                xmlWriter.WriteString(tProv._elProp.ToString());
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteStartElement("Temperature");
+                xmlWriter.WriteString(tProv._tmpProp.ToString());
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteStartElement("Rainfall");
+                xmlWriter.WriteString(tProv._rainProp.ToString());
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteStartElement("Flora");
+                xmlWriter.WriteString(tProv._floraProp.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Vertices"); //Province vertices
                 foreach (Vector3 vec in tProv._vertices)
                 {
