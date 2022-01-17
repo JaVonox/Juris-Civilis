@@ -20,7 +20,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
     }
     public void DisplayProvince(ProvinceObject newSelection) //Updates the selection based on the provincial data provided
     {
-        provName.text = newSelection._id.ToString();
+        provName.text = newSelection._cityName.ToString();
         biomeName.text = BiomesObject.activeBiomes[newSelection._biome]._name.ToString();
         tempVal.text = "Temperature: " + newSelection._tmpProp;
         rainVal.text = "Rainfall: " + newSelection._rainProp;

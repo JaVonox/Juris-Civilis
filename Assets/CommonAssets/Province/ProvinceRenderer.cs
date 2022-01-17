@@ -166,7 +166,7 @@ public class ProvinceRenderer : MonoBehaviour
     }
     void OnMouseDown() //
     {
-        Debug.Log("Hi, im province: " + _myProvince._id.ToString());
+        Debug.Log("Hi, im province: " + _myProvince._cityName.ToString());
     }
 
 }

@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI; //objects
 using BiomeData;
 using SaveLoad;
+using PropertiesGenerator;
 
 using System.Threading;
 public class MainScreenHandler : MonoBehaviour
@@ -213,7 +214,7 @@ public class MainScreenHandler : MonoBehaviour
         backTexture.SetPixels(pixSet, 0); //sets all pixels from the chunk values
         backTexture.Apply();
 
-        currentMap.SetProvinceSaveables(); //Create saveable properties now the map has been generated, as tiledata is no longer needed
+        currentMap.SetProvinceSaveables(ref rnd); //Create saveable properties now the map has been generated, as tiledata is no longer needed
         SaveFile(); //Save data to new file
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
         panelScreen.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);

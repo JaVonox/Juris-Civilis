@@ -65,6 +65,7 @@ namespace BiomeData
     public class ProvinceObject //Stores the data for a province after province data has been appended. This is the saved province data.
     {
         public int _id;
+        public string _cityName;
         public int _biome;
         public Color _provCol;
         public Property _elProp;
@@ -73,9 +74,10 @@ namespace BiomeData
         public Property _floraProp;
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
-        public ProvinceObject(int id, Province tProv) //Constructor from province object
+        public ProvinceObject(int id, string name, Province tProv) //Constructor from province object
         {
             _id = id;
+            _cityName = name;
             _biome = tProv._biome;
             _provCol = tProv._provCol;
             _adjacentProvIDs = tProv.adjacentProvIDs;

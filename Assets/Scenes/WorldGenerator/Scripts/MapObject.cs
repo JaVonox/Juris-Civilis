@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using BiomeData; //Biome stuff
 using UnityEngine;
 using UnityEngine.UI; //objects
-
+using PropertiesGenerator;
 public class MapObject
 {
     private int maxWidth;
@@ -76,12 +76,21 @@ public class MapObject
 
         return (adjacentIDs[randomIndex],tmpCH);
     }
-    public void SetProvinceSaveables() //Create saveable province objects
+    public void SetProvinceSaveables(ref System.Random rnd) //Create saveable province objects
     {
         int i = 0;
+        List<string> provNamesSet = PropertiesGenerator.GenerateNames.GenerateProvinceName(ref rnd, worldProvinces.Count);
+
         foreach (Province tProv in worldProvinces)
         {
-            provinceSaveables.Add(new ProvinceObject(i,tProv));
+            if(tProv._biome != 0)
+            {
+                provinceSaveables.Add(new ProvinceObject(i, provNamesSet[i], tProv));
+            }
+            else
+            {
+                provinceSaveables.Add(new ProvinceObject(i, "Ocean", tProv)); //Maybe add ocean names in the future?
+            }
             i++;
         }
 

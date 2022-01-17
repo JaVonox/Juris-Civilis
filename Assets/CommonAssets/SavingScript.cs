@@ -97,6 +97,7 @@ namespace SaveLoad
             {
                 xmlWriter.WriteStartElement("Province");
                 xmlWriter.WriteAttributeString("ID", tProv._id.ToString());
+                xmlWriter.WriteAttributeString("City", tProv._cityName);
 
                 xmlWriter.WriteStartElement("Colour");
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
