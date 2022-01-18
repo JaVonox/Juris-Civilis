@@ -35,9 +35,10 @@ public class MainScreenHandler : MonoBehaviour
     public GameObject panelPrefab;
     public GameObject provinceDetailsPrefab;
 
-    MapObject currentMap;
-    System.Random rnd = new System.Random();
-
+    public int selectedProvince;
+    private MapObject currentMap;
+    private System.Random rnd = new System.Random();
+    private Dictionary<int, GameObject> provinceSet = new Dictionary<int, GameObject>();
     public enum State //Generation States
     {
         Inactive,
@@ -117,7 +118,6 @@ public class MainScreenHandler : MonoBehaviour
 
 
     }
-
     void SaveFile() //To be called after generation has ended
     {
         string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving procedure
@@ -126,28 +126,31 @@ public class MainScreenHandler : MonoBehaviour
         SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes);
         SaveLoad.SavingScript.CreateProvinceMapping(filePath, ref currentMap.provinceSaveables);
     }
-
-    void KillProvinces()
-    {
-        foreach (Transform provinceChild in loadedObjectsLayer.transform) //remove all loaded provinces from the dataset
-        {
-            GameObject.Destroy(provinceChild.gameObject);
-        }
-    }
     public void UpdateMapMode(string mapMode)
     {
-        KillProvinces();
         foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
         {
-            GameObject newProvinceObject = Instantiate(provincePrefab, loadedObjectsLayer.transform, false); //Instantiate in local space of parent
-            newProvinceObject.GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode);
+            if (!provinceSet.ContainsKey(tProv._id)) // On the first setting of the mapmode
+            {
+                provinceSet.Add(tProv._id, Instantiate(provincePrefab, loadedObjectsLayer.transform, false));//Instantiate in local space of parent
+                provinceSet[tProv._id].gameObject.name = "Prov_" + tProv._id;
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode);
 
-            Vector3 newCentre = newProvinceObject.GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
-            newProvinceObject.transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
-            newProvinceObject.transform.Rotate(180, 180, 0); //Flip to correct orientation
+                Vector3 newCentre = provinceSet[tProv._id].GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
+                provinceSet[tProv._id].transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
+                provinceSet[tProv._id].transform.Rotate(180, 180, 0); //Flip to correct orientation
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().SetClickAction(SelectProvince); //Append click action to allow selecting of province
+            }
+            else
+            {
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().UpdateMesh(mapMode); //Updates the colours for the mesh for the appropriate mapmode
+            }
         }
     }
-
+    public void SelectProvince(ProvinceObject provToDisplay) //Updates province click
+    {
+        provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay);
+    }
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
     {
         genStateText.text = "State: " + (State)currentState;
@@ -219,7 +222,6 @@ public class MainScreenHandler : MonoBehaviour
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
         panelScreen.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);
         UpdateMapMode("Geography");
-        //provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(currentMap.provinceSaveables[200]); //TODO temp
     }
 
 }

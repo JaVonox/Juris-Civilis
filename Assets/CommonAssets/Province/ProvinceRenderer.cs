@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using BiomeData;
 using UnityEngine;
+using System;
 
 
 public class ProvinceRenderer : MonoBehaviour
@@ -9,16 +10,19 @@ public class ProvinceRenderer : MonoBehaviour
     private Mesh _provinceMesh;
     private Vector3 _centrePoint; //Worldspace centerpoint
     public ProvinceObject _myProvince; //Stores a reference to province
-
+    private Action _clickActions;
     public Vector3 ReturnCentreUnitSpace(float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
         return ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
+    }
+    public void SetClickAction(Action<ProvinceObject> newAct)
+    {
+        _clickActions = (delegate { newAct(_myProvince); });
     }
     private void SetCentreObject(ref ProvinceObject targetProv, int mapWidth, int mapHeight)
     {
         _centrePoint = targetProv.CalculateRelativeCenterPoint(); //gets the centerpoint relative to the map
     }
-
     private Vector3 GetCentreRelative(Vector3 point) //gets the vertex values with respect to the centerpoint
     {
         Vector3 retVector;
@@ -49,7 +53,6 @@ public class ProvinceRenderer : MonoBehaviour
         verticesSet[0] = ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
 
 
-        //TOOD triangle mesh faces dont workkkk
         int i = 0;
         for(int iter = 0; iter < targetProv._vertices.Count; iter+=3)
         {
@@ -58,11 +61,9 @@ public class ProvinceRenderer : MonoBehaviour
                 verticesSet[i + v] = ChangeSpace(GetCentreRelative(targetProv._vertices[i + v]), spriteWidth, spriteHeight, mapWidth, mapHeight); //Calculate the -/+ value for the vertex based on the midpoint
             }
 
-            triangles.Add(i);
-            triangles.Add(i + 1);
-            triangles.Add(i + 2);
-
-            i += 3;
+            //Winding order defines the face of a triangle
+            //For unity, the triangle vertices must be in clockwise order to face the front.
+            AppendInOrder(ref triangles, ref verticesSet, ref i);
         }
 
         //add vertices to mesh
@@ -88,6 +89,55 @@ public class ProvinceRenderer : MonoBehaviour
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
         GetComponent<MeshCollider>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
     }
+    public void UpdateMesh(string propType)
+    {
+        Color[] colours = new Color[_provinceMesh.vertices.Length];
+
+        Color polyCol = GetColour(_myProvince, propType);
+
+        for (int c = 0; c < _provinceMesh.vertices.Length; c++)
+        {
+            colours[c] = polyCol;
+        }
+
+        _provinceMesh.colors = colours;
+    }
+
+    private void AppendInOrder(ref List<int> triangles, ref Vector3[] vertices, ref int i)
+    {
+        //This should only use the last three vertices appended
+        //For this polygon structure, we can sort into counter clockwise order by:
+        //find a midpoint for the triangle and then calculate the angle of each vertex to the midpoint, then sort in the order of angles
+        //To get clockwise, we can just flip this set
+
+        Vector3 midPoint = new Vector3((vertices[i].x + vertices[i + 1].x + vertices[i + 2].x) / 3, (vertices[i].y + vertices[i + 1].y + vertices[i + 2].y) / 3, vertices[i].z);
+        //Gets the midpoint of the triangle
+
+        Dictionary<float, int> idToAngle = new Dictionary<float, int>();
+        List<float> anglesToSort = new List<float>();
+
+        for (int l = i; l < i + 3; l++)
+        {
+            //Finds angle and appends to set
+            float xDiff = vertices[l].x - midPoint.x;
+            float yDiff = vertices[l].y - midPoint.y;
+            float angleToMid = (float)(Math.Atan2(yDiff, xDiff) * 180.0 / Math.PI);
+
+            if(idToAngle.ContainsKey(angleToMid)) { idToAngle.Add(angleToMid - 0.1f, l); }
+            else { idToAngle.Add(angleToMid, l); }
+            anglesToSort.Add(angleToMid);
+        }
+
+        anglesToSort.Sort(); //Sorts angles
+        
+        //append in reverse order to set to the correct face
+        triangles.Add(idToAngle[anglesToSort[2]]);
+        triangles.Add(idToAngle[anglesToSort[1]]);
+        triangles.Add(idToAngle[anglesToSort[0]]);
+
+        i+=3;
+    }
+
     private Color GetColour(ProvinceObject targetProv, string propType) //Returns colours based on parameters
     {
         //Constants
@@ -164,9 +214,9 @@ public class ProvinceRenderer : MonoBehaviour
         return new Color(0.85f, 0, 0.6f,1); //Error Colour
 
     }
-    void OnMouseDown() //
+    void OnMouseDown() //On click, process all the valid actions
     {
-        Debug.Log("Hi, im province: " + _myProvince._cityName.ToString());
+        _clickActions();
     }
 
 }
