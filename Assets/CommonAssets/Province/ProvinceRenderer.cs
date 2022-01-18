@@ -4,7 +4,6 @@ using BiomeData;
 using UnityEngine;
 using System;
 
-
 public class ProvinceRenderer : MonoBehaviour
 {
     private Mesh _provinceMesh;
@@ -84,6 +83,7 @@ public class ProvinceRenderer : MonoBehaviour
         }
 
         _provinceMesh.colors = colours;
+        _provinceMesh.RecalculateNormals();
 
         //assign mesh to filter and collider
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;

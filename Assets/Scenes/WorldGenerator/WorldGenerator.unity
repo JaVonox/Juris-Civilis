@@ -158,7 +158,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -215.17, y: -30.751007}
+  m_AnchoredPosition: {x: -215.17001, y: -30.751007}
   m_SizeDelta: {x: 430.33997, y: 61.501007}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &112317043
@@ -374,6 +374,7 @@ MonoBehaviour:
   startScreenPrefab: {fileID: 6032295767819620056, guid: eb3378a75ba70f1439222e38bf1c1745, type: 3}
   panelPrefab: {fileID: 7870054553805145967, guid: 409e0787af7b30f4f94812bb469c8db7, type: 3}
   provinceDetailsPrefab: {fileID: 6442800135758155378, guid: 9cb696bbf5cdab84ca9e46ddc65c6a23, type: 3}
+  selectedProvince: 0
 --- !u!1 &1226119842
 GameObject:
   m_ObjectHideFlags: 0
