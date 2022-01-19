@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -60,6 +61,73 @@ namespace PropertiesGenerator
             }
 
             return newGeneratedCities;
+        }
+
+        public static List<string> GenerateCultureName(ref System.Random rnd, int numToGenerate)
+        {
+            //This uses a variant of the previous algorithm
+            TextAsset cultureFile = (TextAsset)Resources.Load("Cultures");
+            string[] cultureSet = cultureFile.text.Split('\n');
+
+            for(int i=0;i<cultureSet.Count();i++) //As the final characters are the most important, the cultures names are reversed, then reversed when appended to the set. This prioritises the last characters
+            {
+                char[] tmpArray = cultureSet[i].ToCharArray();
+                Array.Reverse(tmpArray);
+                cultureSet[i] = new string(tmpArray);
+                cultureSet[i].ToLower(); //Set all characters to lower, the first character will become upper at the end
+            }
+            cultureFile = null;
+
+            List<string> newGeneratedCultures = new List<string>();
+
+            for (int i = 0; i < numToGenerate; i++)
+            {
+                int nextID = rnd.Next(0, cultureSet.Length);
+                List<char> newCultureName = new List<char>();
+                int currentLength = 0;
+                int maxLength = cultureSet[nextID].Length < 5 ? rnd.Next(5,8) : cultureSet[nextID].Length;
+
+                List<string> applicableSet = cultureSet.ToList();
+
+                while (currentLength < maxLength)
+                {
+                    int amountToAppend = 1 + ((applicableSet[nextID].Length - currentLength) % 5); //Gets a random value between 1 and the remaining length of a string or 5
+
+                    if (applicableSet[nextID].Length - currentLength < amountToAppend) //If there are too few possible characters left
+                    {
+                        break; //Instantly end the generation procedure
+                    }
+
+                    newCultureName.AddRange(applicableSet[nextID].Substring(currentLength, amountToAppend));
+                    currentLength += amountToAppend;
+                    applicableSet = FindMatchAtIndex(ref cultureSet, currentLength, newCultureName[currentLength - 1]); //Search for matching character
+                    nextID = rnd.Next(0, applicableSet.Count); //Find next ID
+                }
+
+                List<char> newCityName = newCultureName.ToList();
+
+                if (newCityName.Count <= 6) //Redo attempts with too few characters
+                {
+                    i--;
+                }
+                else //Add to set of generated cities names
+                {
+                    char[] tmpArray = newCityName.ToArray();
+                    Array.Reverse(tmpArray);
+                    tmpArray[0] = char.ToUpper(tmpArray[0]);
+                    string newCity = new string(tmpArray);
+                    if (newGeneratedCultures.Contains(newCity.Substring(0,newCity.Length-1)))
+                    {
+                        i--; //If this name is a duplicate, try again.
+                    }
+                    else
+                    {
+                        newGeneratedCultures.Add(newCity.Substring(0, newCity.Length - 1)); //The last character is a newline character and is therefore removed
+                    }
+                }
+            }
+
+            return newGeneratedCultures;
         }
 
         private static List<string> FindMatchAtIndex(ref string[] set, int ind, char match) //Returns a list of all matches for a query

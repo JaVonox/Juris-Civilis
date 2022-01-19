@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; //objects
 using BiomeData;
+using WorldProperties;
 using SaveLoad;
 using PropertiesGenerator;
 using Perlin;
@@ -126,6 +127,7 @@ public class MainScreenHandler : MonoBehaviour
         Byte[] imageBytes = backTexture.EncodeToPNG();
         SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes);
         SaveLoad.SavingScript.CreateProvinceMapping(filePath, ref currentMap.provinceSaveables);
+        SaveLoad.SavingScript.CreateCultures(filePath, ref currentMap.cultures);
     }
     public void UpdateMapMode(string mapMode)
     {
@@ -150,7 +152,7 @@ public class MainScreenHandler : MonoBehaviour
     }
     public void SelectProvince(ProvinceObject provToDisplay) //Updates province click
     {
-        provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay);
+        provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay,ref currentMap.cultures);
     }
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
     {

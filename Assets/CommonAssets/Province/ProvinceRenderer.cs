@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using BiomeData;
+using WorldProperties;
 using UnityEngine;
 using System;
 
@@ -209,7 +210,7 @@ public class ProvinceRenderer : MonoBehaviour
                 break;
             case "Culture":
                 Color cultCol = cultures[targetProv._cultureID]._cultureCol;
-                cultCol.a = 0.5f;
+                cultCol.a = 0.7f;
                 return cultCol;
             default:
                 break;

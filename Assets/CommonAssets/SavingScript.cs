@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using BiomeData;
+using WorldProperties;
 using UnityEngine;
 
 namespace SaveLoad
@@ -98,13 +99,10 @@ namespace SaveLoad
                 xmlWriter.WriteStartElement("Province");
                 xmlWriter.WriteAttributeString("ID", tProv._id.ToString());
                 xmlWriter.WriteAttributeString("City", tProv._cityName);
+                xmlWriter.WriteAttributeString("CultureID", tProv._cultureID.ToString());
 
                 xmlWriter.WriteStartElement("Colour");
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
-                xmlWriter.WriteEndElement();
-
-                xmlWriter.WriteStartElement("Culture");
-                xmlWriter.WriteString(tProv._cultureID.ToString());
                 xmlWriter.WriteEndElement();
 
                 xmlWriter.WriteStartElement("Elevation");
@@ -139,6 +137,30 @@ namespace SaveLoad
                     xmlWriter.WriteString(adj.ToString());
                     xmlWriter.WriteEndElement();
                 }
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteEndElement();
+            }
+            xmlWriter.WriteEndElement();
+            xmlWriter.WriteEndDocument();
+            xmlWriter.Close();
+        }
+
+        public static void CreateCultures(string filePath, ref List<Culture> cultures) //draws just the mapping elements of a province
+        {
+            //Write all province properties to an xml file
+            XmlWriter xmlWriter = XmlWriter.Create(filePath + "WorldData/Cultures.xml", settings);
+            xmlWriter.WriteStartDocument();
+
+            xmlWriter.WriteStartElement("Cultures");
+            foreach (Culture tCult in cultures)
+            {
+                xmlWriter.WriteStartElement("Culture");
+                xmlWriter.WriteAttributeString("ID", tCult._id.ToString());
+                xmlWriter.WriteAttributeString("Name", tCult._name.ToString());
+
+                xmlWriter.WriteStartElement("Colour");
+                xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tCult._cultureCol));
                 xmlWriter.WriteEndElement();
 
                 xmlWriter.WriteEndElement();

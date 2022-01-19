@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using BiomeData; //Biome stuff
+using WorldProperties;
+
 using UnityEngine;
 using UnityEngine.UI; //objects
 using PropertiesGenerator;
@@ -101,7 +103,20 @@ public class MapObject
         tiles = null;
 
         cultures.Add(new Culture("0", ref rnd));
+        cultures[0]._name = "Ocean";
         CreateCultures(ref rnd);
+
+        List<string> cultNamesSet = PropertiesGenerator.GenerateNames.GenerateCultureName(ref rnd, cultures.Count);
+
+        i = 0;
+        foreach (Culture tCul in cultures) //Add culture names for each applicable
+        {
+            if (tCul._name != "Ocean")
+            {
+                tCul._name = cultNamesSet[i];
+                i++;
+            }
+        }
     }
 
     public void SetAdjacentChunks(ref Dictionary<int, Chunk> worldChunks) //Sets the adjacencies of all chunks in the set. worldChunks stores each ID and chunk
