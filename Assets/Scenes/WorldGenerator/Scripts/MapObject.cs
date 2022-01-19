@@ -5,6 +5,7 @@ using BiomeData; //Biome stuff
 using UnityEngine;
 using UnityEngine.UI; //objects
 using PropertiesGenerator;
+using System.Linq;
 public class MapObject
 {
     private int maxWidth;
@@ -19,8 +20,9 @@ public class MapObject
     //List of provinces and container chunks
     public List<Province> worldProvinces = new List<Province>();
 
-    //List of province saveable objects
+    //List of saveable objects
     public List<ProvinceObject> provinceSaveables = new List<ProvinceObject>();
+    public List<Culture> cultures = new List<Culture>();
 
     public MapObject(int x, int y)
     {
@@ -97,6 +99,9 @@ public class MapObject
         //Clears unneeded data
         worldProvinces = null;
         tiles = null;
+
+        cultures.Add(new Culture("0", ref rnd));
+        CreateCultures(ref rnd);
     }
 
     public void SetAdjacentChunks(ref Dictionary<int, Chunk> worldChunks) //Sets the adjacencies of all chunks in the set. worldChunks stores each ID and chunk
@@ -295,7 +300,94 @@ public class MapObject
             id++;
         }
     }
+    private void FindNewCultureLocation(ref System.Random rnd, ref int cultureID, ref List<ProvinceObject> expandableProvinces, ref List<ProvinceObject> potentialTargets)
+    {
+        int newCultureTarget = rnd.Next(0, potentialTargets.Count);
 
+        Culture newCult = new Culture(cultureID.ToString(), ref rnd);
+        cultures.Add(newCult);
+        potentialTargets[newCultureTarget]._cultureID = cultureID;
+        expandableProvinces.Add(potentialTargets[newCultureTarget]);
+        potentialTargets.RemoveAt(newCultureTarget); //Removes from set of potential options
+        cultureID++;
+    }
+    private List<ProvinceObject> CultureLocationsLeft()
+    {
+        List<ProvinceObject> potentialTargets = provinceSaveables.Where(
+        prov => prov._cultureID == 0 && prov._biome != 0).ToList(); //This returns references
+
+        return potentialTargets;
+    }
+    public void CreateCultures(ref System.Random rnd) //Sets cultures across the map
+    {
+        int culturesToGenerate = (provinceSaveables.Where(prov => prov._biome != 0)).Count() / 20;
+        List<int> culturedTiles = new List<int>();
+        List<ProvinceObject> expandableProvinces = new List<ProvinceObject>();
+        int cultureID = 1;
+
+        {
+            List<ProvinceObject> potentialTargets = provinceSaveables.Where(
+                prov => prov._cultureID == 0
+                && prov._adjacentProvIDs.Count > 3
+                && prov._biome != 0).ToList(); //This returns references
+
+            while (culturesToGenerate > 0)
+            {
+                if(potentialTargets.Count == 0) { break; }
+
+                FindNewCultureLocation(ref rnd, ref cultureID, ref expandableProvinces, ref potentialTargets);
+                culturesToGenerate--;
+            }
+
+            potentialTargets = null;
+        }
+
+
+        while(true) //expand all cultures that can be expanded. End when there are no expandable provinces left
+        {
+            int expansionTarget; //The province to expand
+
+            //Randomly get culture, select province within culture group to expand
+            List<string> expandableCultures = (from prov in expandableProvinces where prov._cultureID != 0 select prov._cultureID.ToString()).ToList();
+            if(expandableCultures.Count <= 0) { expansionTarget = -1;}
+            expandableCultures = expandableCultures.Distinct().ToList();
+            string cultureTarget = expandableCultures[rnd.Next(0, expandableCultures.Count)];
+
+            expandableCultures = null;
+            List<ProvinceObject> possibleCultureProvs = (from prov in expandableProvinces where prov._cultureID.ToString() == cultureTarget select prov).ToList();
+            expansionTarget = expandableProvinces.IndexOf(possibleCultureProvs[rnd.Next(0, possibleCultureProvs.Count)]);
+
+            if (expansionTarget != -1)
+            {
+                if (expandableProvinces[expansionTarget]._adjacentProvIDs.Count > 0)
+                {
+                    foreach (int expandableID in expandableProvinces[expansionTarget]._adjacentProvIDs) //Adds to adjacent provinces
+                    {
+                        if (provinceSaveables[expandableID]._cultureID == 0 && provinceSaveables[expandableID]._biome != 0)
+                        {
+                            provinceSaveables[expandableID]._cultureID = expandableProvinces[expansionTarget]._cultureID;
+                            expandableProvinces.Add(provinceSaveables[expandableID]);
+                        }
+                    }
+                }
+
+                expandableProvinces.RemoveAt(expansionTarget); //Remove from list as this target has been completed
+            }
+
+            if(expandableProvinces.Count == 0) //When no more expansion can be completed
+            {
+                List<ProvinceObject> locationsLeft = CultureLocationsLeft();
+
+                if(locationsLeft.Count == 0) { break; } //When all provinces have a location
+                else
+                {
+                    FindNewCultureLocation(ref rnd, ref cultureID, ref expandableProvinces, ref locationsLeft); //Append new location to expandables, ensuring all provinces will recieve a culture
+                }
+            }
+        }
+
+
+    }
     public void IterateProvinces(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rn) //Iterate through all provinces and append to the pixels set array
     {
         foreach (Province prov in worldProvinces)

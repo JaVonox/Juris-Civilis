@@ -103,6 +103,10 @@ namespace SaveLoad
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("Culture");
+                xmlWriter.WriteString(tProv._cultureID.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Elevation");
                 xmlWriter.WriteString(tProv._elProp.ToString());
                 xmlWriter.WriteEndElement();

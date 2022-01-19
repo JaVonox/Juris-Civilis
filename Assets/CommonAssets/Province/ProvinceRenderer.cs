@@ -39,7 +39,7 @@ public class ProvinceRenderer : MonoBehaviour
         return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, -2);
     }
 
-    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType) //Renders based on chunk data.
+    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType, ref MapObject loadedMap) //Renders based on chunk data.
     {
         SetCentreObject(ref targetProv, mapWidth, mapHeight);
 
@@ -75,7 +75,7 @@ public class ProvinceRenderer : MonoBehaviour
         //Set a colour for the polygon
         Color[] colours = new Color[verticesSet.Length];
 
-        Color polyCol = GetColour(targetProv, propType);
+        Color polyCol = GetColour(targetProv, propType, ref loadedMap.cultures);
 
         for (int c = 0; c < verticesSet.Length; c++)
         {
@@ -89,11 +89,11 @@ public class ProvinceRenderer : MonoBehaviour
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
         GetComponent<MeshCollider>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
     }
-    public void UpdateMesh(string propType)
+    public void UpdateMesh(string propType, ref MapObject loadedMap)
     {
         Color[] colours = new Color[_provinceMesh.vertices.Length];
 
-        Color polyCol = GetColour(_myProvince, propType);
+        Color polyCol = GetColour(_myProvince, propType, ref loadedMap.cultures);
 
         for (int c = 0; c < _provinceMesh.vertices.Length; c++)
         {
@@ -138,7 +138,7 @@ public class ProvinceRenderer : MonoBehaviour
         i+=3;
     }
 
-    private Color GetColour(ProvinceObject targetProv, string propType) //Returns colours based on parameters
+    private Color GetColour(ProvinceObject targetProv, string propType, ref List<Culture> cultures) //Returns colours based on parameters
     {
         //Constants
         //TODO look into better definitions for memory space?
@@ -207,6 +207,10 @@ public class ProvinceRenderer : MonoBehaviour
                         return NAVal;
                 }
                 break;
+            case "Culture":
+                Color cultCol = cultures[targetProv._cultureID]._cultureCol;
+                cultCol.a = 0.5f;
+                return cultCol;
             default:
                 break;
         }

@@ -74,6 +74,7 @@ namespace BiomeData
         public Property _floraProp;
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
+        public int _cultureID;
         public ProvinceObject(int id, string name, Province tProv) //Constructor from province object
         {
             _id = id;
@@ -85,6 +86,7 @@ namespace BiomeData
             _tmpProp = tProv._tmpProp;
             _rainProp = tProv._rainProp;
             _floraProp = tProv._floraProp;
+            _cultureID = 0;
             
             foreach(Chunk compChunk in tProv._componentChunks.Values)
             {
@@ -116,7 +118,18 @@ namespace BiomeData
         }
 
     }
+    public class Culture
+    {
+        public string _id;
+        public Color _cultureCol;
+        public Culture(string id, ref System.Random rnd)
+        {
+            _id = id;
 
+            if(_id == "0") { new Color(0, 0, 0); }
+            else { _cultureCol = new Color((float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255); }
+        }
+    }
     public class Province //Contains multiple connected chunks
     {
         public Dictionary<int,Chunk> _componentChunks = new Dictionary<int,Chunk>(); //Chunk ID and component

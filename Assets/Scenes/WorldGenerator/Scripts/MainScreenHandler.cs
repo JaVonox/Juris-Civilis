@@ -6,6 +6,7 @@ using UnityEngine.UI; //objects
 using BiomeData;
 using SaveLoad;
 using PropertiesGenerator;
+using Perlin;
 
 using System.Threading;
 public class MainScreenHandler : MonoBehaviour
@@ -134,7 +135,7 @@ public class MainScreenHandler : MonoBehaviour
             {
                 provinceSet.Add(tProv._id, Instantiate(provincePrefab, loadedObjectsLayer.transform, false));//Instantiate in local space of parent
                 provinceSet[tProv._id].gameObject.name = "Prov_" + tProv._id;
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode);
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode, ref currentMap);
 
                 Vector3 newCentre = provinceSet[tProv._id].GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
                 provinceSet[tProv._id].transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
@@ -143,7 +144,7 @@ public class MainScreenHandler : MonoBehaviour
             }
             else
             {
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().UpdateMesh(mapMode); //Updates the colours for the mesh for the appropriate mapmode
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().UpdateMesh(mapMode, ref currentMap); //Updates the colours for the mesh for the appropriate mapmode
             }
         }
     }
