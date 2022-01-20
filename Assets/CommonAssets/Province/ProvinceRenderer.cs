@@ -41,7 +41,7 @@ public class ProvinceRenderer : MonoBehaviour
         return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, -2);
     }
 
-    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType, ref MapObject loadedMap) //Renders based on chunk data.
+    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType, ref List<Culture> cult) //Renders based on chunk data.
     {
         SetCentreObject(ref targetProv, mapWidth, mapHeight);
 
@@ -77,7 +77,7 @@ public class ProvinceRenderer : MonoBehaviour
         //Set a colour for the polygon
         Color[] colours = new Color[verticesSet.Length];
 
-        currentColor = GetColour(targetProv, propType, ref loadedMap.cultures);
+        currentColor = GetColour(targetProv, propType, ref cult);
 
         for (int c = 0; c < verticesSet.Length; c++)
         {
@@ -91,11 +91,11 @@ public class ProvinceRenderer : MonoBehaviour
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
         GetComponent<MeshCollider>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
     }
-    public void UpdateMesh(string propType, ref MapObject loadedMap)
+    public void UpdateMesh(string propType, ref List<Culture> cult)
     {
         Color[] colours = new Color[_provinceMesh.vertices.Length];
 
-        currentColor = GetColour(_myProvince, propType, ref loadedMap.cultures);
+        currentColor = GetColour(_myProvince, propType, ref cult);
 
         for (int c = 0; c < _provinceMesh.vertices.Length; c++)
         {

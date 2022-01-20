@@ -13,36 +13,24 @@ using System.Threading;
 public class MainScreenHandler : MonoBehaviour
 {
     //UI
+    private Texture2D newTexture;
     private GameObject startScreen;
     private GameObject panelScreen;
     private GameObject provinceDetailsScreen;
-    private GameObject selectorObject;
     public GameObject Camera;
     public Text genStateText;
-
-    //Mapping elements
     int mapWidth = 6000;
     int mapHeight = 4000;
-    public GameObject backMap;
-    public GameObject loadedObjectsLayer;
-    Texture2D backTexture;
-    Sprite mapSprite;
 
-    //Gets the unit length of the sprite
-    float spriteWidth;
-    float spriteHeight;
-
-    //Script elements
-    public GameObject provincePrefab;
     public GameObject startScreenPrefab;
     public GameObject panelPrefab;
     public GameObject provinceDetailsPrefab;
-    public GameObject selectorPrefab;
+    public GameObject loadMapPrefab;
 
-    private int selectedProvince;
+    private GameObject loadMap;
+
     private MapObject currentMap;
     private System.Random rnd = new System.Random();
-    private Dictionary<int, GameObject> provinceSet = new Dictionary<int, GameObject>();
     public enum State //Generation States
     {
         Inactive,
@@ -63,18 +51,16 @@ public class MainScreenHandler : MonoBehaviour
     void Start()
     {
         currentMap = new MapObject(mapWidth, mapHeight);
-        selectedProvince = -1;
+
+        loadMap = Instantiate(loadMapPrefab,null); //Create new start screen instance
+        loadMap.name = "Map";
 
         startScreen = Instantiate(startScreenPrefab, Camera.transform, false); //Create new start screen instance
         startScreen.GetComponent<MenuComponents>().startGen.onClick.AddListener(StartGeneration);
 
         provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add panel to show province details. This automatically sets itself to invisible
 
-        selectorObject = Instantiate(selectorPrefab, loadedObjectsLayer.transform, false); //Add selector object - starts invisible
-        selectorObject.name = "Selector";
-        selectorObject.GetComponent<Selector>().SetData(ref selectorObject);
-
-        InitialiseMaps(); //Sets default map elements
+        newTexture = new Texture2D(mapWidth,mapHeight);
         UpdateLabel();
     }
 
@@ -103,79 +89,16 @@ public class MainScreenHandler : MonoBehaviour
         }
 
     }
-
-    void InitialiseMaps()
-    {
-        backTexture = new Texture2D(mapWidth, mapHeight);
-
-        mapSprite = Sprite.Create(backTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
-        backMap.GetComponent<SpriteRenderer>().sprite = mapSprite;
-
-        Color[] pixSet = new Color[mapWidth * mapHeight]; //1D set of pixels
-        
-        for(int i=0; i< mapWidth * mapHeight;i++)
-        {
-            pixSet[i] = new Color(0.61f, 0.4f, 0.23f); //Default colour
-        }
-
-        backTexture.SetPixels(pixSet, 0); //sets all the pixels
-        backTexture.Apply();
-
-        Bounds spriteBounds = mapSprite.bounds; //Get boundaries of the sprite in units
-        spriteWidth = spriteBounds.size.x;
-        spriteHeight = spriteBounds.size.y;
-
-
-    }
     void SaveFile() //To be called after generation has ended
     {
         string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving procedure
 
-        Byte[] imageBytes = backTexture.EncodeToPNG();
+        Byte[] imageBytes = newTexture.EncodeToPNG();
         SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes);
         SaveLoad.SavingScript.CreateProvinceMapping(filePath, ref currentMap.provinceSaveables);
         SaveLoad.SavingScript.CreateCultures(filePath, ref currentMap.cultures);
     }
-    public void UpdateMapMode(string mapMode)
-    {
-        foreach (ProvinceObject tProv in currentMap.provinceSaveables) //Loop through and display all provinces
-        {
-            if (!provinceSet.ContainsKey(tProv._id)) // On the first setting of the mapmode
-            {
-                provinceSet.Add(tProv._id, Instantiate(provincePrefab, loadedObjectsLayer.transform, false));//Instantiate in local space of parent
-                provinceSet[tProv._id].gameObject.name = "Prov_" + tProv._id;
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode, ref currentMap);
 
-                Vector3 newCentre = provinceSet[tProv._id].GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
-                provinceSet[tProv._id].transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
-                provinceSet[tProv._id].transform.Rotate(180, 180, 0); //Flip to correct orientation
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().SetClickAction(SelectProvince); //Append click action to allow selecting of province
-            }
-            else
-            {
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().UpdateMesh(mapMode, ref currentMap); //Updates the colours for the mesh for the appropriate mapmode
-            }
-        }
-    }
-    public void SelectProvince(ProvinceObject provToDisplay) //Updates province click
-    {
-        if(selectedProvince != provToDisplay._id)
-        {
-            provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay, ref currentMap.cultures); //Change province viewer screen
-
-            provinceSet[provToDisplay._id].transform.Translate(0, 0, -1); //Move selected province forward
-            provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>().FocusProvince(); //set new province into focus mode
-
-            if (selectedProvince != -1)
-            {
-                provinceSet[selectedProvince].transform.Translate(0, 0, 1); //Move previously selected province back into line
-                provinceSet[selectedProvince].GetComponent<ProvinceRenderer>().UnfocusProvince(); //unfocus previous province
-            }
-
-            selectorObject.GetComponent<Selector>().MoveSelector(provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>()._provinceMesh, provinceSet[provToDisplay._id].gameObject, provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>()._centrePoint);
-            selectedProvince = provToDisplay._id;
-        }
-    }
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
     {
         genStateText.text = "State: " + (State)currentState;
@@ -239,14 +162,14 @@ public class MainScreenHandler : MonoBehaviour
     {
         Color[] pixSet = new Color[mapWidth * mapHeight]; //1D set of pixels
         currentMap.IterateProvinces(ref pixSet, mapWidth, mapHeight, ref rnd); //Set all pixel values
-        backTexture.SetPixels(pixSet, 0); //sets all pixels from the chunk values
-        backTexture.Apply();
+        newTexture.SetPixels(pixSet, 0); //sets all pixels from the chunk values
 
         currentMap.SetProvinceSaveables(ref rnd); //Create saveable properties now the map has been generated, as tiledata is no longer needed
         SaveFile(); //Save data to new file
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
-        panelScreen.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);
-        UpdateMapMode("Geography");
+        loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture);
+        loadMap.GetComponent<LoadMap>().StartMap();
+
     }
 
 }
