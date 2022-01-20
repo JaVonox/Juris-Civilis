@@ -105,6 +105,10 @@ namespace SaveLoad
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("Coastal");
+                xmlWriter.WriteString(tProv._isCoastal.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Elevation");
                 xmlWriter.WriteString(tProv._elProp.ToString());
                 xmlWriter.WriteEndElement();

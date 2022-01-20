@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using BiomeData; //Biome stuff
 using WorldProperties;
-
 using UnityEngine;
 using UnityEngine.UI; //objects
 using PropertiesGenerator;
@@ -90,10 +89,13 @@ public class MapObject
             if(tProv._biome != 0)
             {
                 provinceSaveables.Add(new ProvinceObject(i, provNamesSet[i], tProv));
+                bool isCoastal = worldProvinces.Any(prov => prov._biome == 0 && provinceSaveables[i]._adjacentProvIDs.Contains(worldProvinces.IndexOf(prov))); //Finds if there are any adjacent coastal provinces
+                provinceSaveables[i].GenerateFinalValues(ref rnd, isCoastal); //Generates some final properties while putting the province into save mode.
             }
             else
             {
                 provinceSaveables.Add(new ProvinceObject(i, "Ocean", tProv)); //Maybe add ocean names in the future?
+                provinceSaveables[i]._provCol = new Color(0.02f, 0.25f, 0.45f);
             }
             i++;
         }

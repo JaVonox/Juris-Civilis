@@ -68,6 +68,7 @@ namespace WorldProperties
         public Property _tmpProp;
         public Property _rainProp;
         public Property _floraProp;
+        public bool _isCoastal;
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
         public int _cultureID;
@@ -83,6 +84,7 @@ namespace WorldProperties
             _rainProp = tProv._rainProp;
             _floraProp = tProv._floraProp;
             _cultureID = 0;
+            _isCoastal = false;
 
             foreach (Chunk compChunk in tProv._componentChunks.Values)
             {
@@ -90,6 +92,22 @@ namespace WorldProperties
                 {
                     _vertices.Add(new Vector3(compChunk.vertices[v].x, compChunk.vertices[v].y, 0));
                 }
+            }
+        }
+        public void GenerateFinalValues(ref System.Random rnd, bool isCoastal)
+        {
+            if(_biome != 0 && _elProp != Property.High)
+            {
+                if(rnd.Next(0,8) == 5) //randomly make hills across the map
+                {
+                    _elProp = Property.Medium;
+                }
+                else
+                {
+                    _elProp = Property.Low;
+                }
+
+                _isCoastal = isCoastal; //copy coastal info
             }
         }
         public Vector3 CalculateRelativeCenterPoint() //returns the relative centerpoint for the province

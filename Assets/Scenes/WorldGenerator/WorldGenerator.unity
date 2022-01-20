@@ -374,7 +374,7 @@ MonoBehaviour:
   startScreenPrefab: {fileID: 6032295767819620056, guid: eb3378a75ba70f1439222e38bf1c1745, type: 3}
   panelPrefab: {fileID: 7870054553805145967, guid: 409e0787af7b30f4f94812bb469c8db7, type: 3}
   provinceDetailsPrefab: {fileID: 6442800135758155378, guid: 9cb696bbf5cdab84ca9e46ddc65c6a23, type: 3}
-  selectedProvince: 0
+  selectorPrefab: {fileID: 6896709405703632739, guid: 7c7229178e9af704cbad23da07bbddd1, type: 3}
 --- !u!1 &1226119842
 GameObject:
   m_ObjectHideFlags: 0

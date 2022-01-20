@@ -7,10 +7,11 @@ using System;
 
 public class ProvinceRenderer : MonoBehaviour
 {
-    private Mesh _provinceMesh;
-    private Vector3 _centrePoint; //Worldspace centerpoint
+    public Mesh _provinceMesh;
+    public Vector3 _centrePoint; //Worldspace centerpoint
     public ProvinceObject _myProvince; //Stores a reference to province
     private Action _clickActions;
+    private Color currentColor;
     public Vector3 ReturnCentreUnitSpace(float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
         return ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
@@ -76,11 +77,11 @@ public class ProvinceRenderer : MonoBehaviour
         //Set a colour for the polygon
         Color[] colours = new Color[verticesSet.Length];
 
-        Color polyCol = GetColour(targetProv, propType, ref loadedMap.cultures);
+        currentColor = GetColour(targetProv, propType, ref loadedMap.cultures);
 
         for (int c = 0; c < verticesSet.Length; c++)
         {
-            colours[c] = polyCol;
+            colours[c] = currentColor;
         }
 
         _provinceMesh.colors = colours;
@@ -94,11 +95,11 @@ public class ProvinceRenderer : MonoBehaviour
     {
         Color[] colours = new Color[_provinceMesh.vertices.Length];
 
-        Color polyCol = GetColour(_myProvince, propType, ref loadedMap.cultures);
+        currentColor = GetColour(_myProvince, propType, ref loadedMap.cultures);
 
         for (int c = 0; c < _provinceMesh.vertices.Length; c++)
         {
-            colours[c] = polyCol;
+            colours[c] = currentColor;
         }
 
         _provinceMesh.colors = colours;
@@ -142,7 +143,6 @@ public class ProvinceRenderer : MonoBehaviour
     private Color GetColour(ProvinceObject targetProv, string propType, ref List<Culture> cultures) //Returns colours based on parameters
     {
         //Constants
-        //TODO look into better definitions for memory space?
         Color highVal = new Color(0,1,0.014f,0.6f);
         Color medVal = new Color(0.81f, 0.56f, 0 ,0.6f);
         Color lowVal = new Color(1, 0.014f, 0, 0.6f);
@@ -151,20 +151,22 @@ public class ProvinceRenderer : MonoBehaviour
         switch (propType)
         {
             case "Geography":
-                return new Color(1, 0, 1, 0); //Creates invisible mesh provinces
+                Color geoCol = targetProv._provCol;
+                geoCol.a = 0;
+                return geoCol;
             case "National":
                 Color tmpCol = targetProv._provCol;
-                tmpCol.a = 0.5f;
+                tmpCol.a = 0.4f;
                 return tmpCol;
             case "Elevation":
                 switch(targetProv._elProp)
                 {
                     case Property.High:
-                        return highVal;
+                        return lowVal;
                     case Property.Medium:
                         return medVal;
                     case Property.Low:
-                        return lowVal;
+                        return highVal;
                     case Property.NA:
                         return NAVal;
                 }
@@ -219,6 +221,30 @@ public class ProvinceRenderer : MonoBehaviour
         return new Color(0.85f, 0, 0.6f,1); //Error Colour
 
     }
+    public void FocusProvince() //Updates colours to focus mode
+    {
+        Color[] colours = new Color[_provinceMesh.vertices.Length];
+
+        for (int c = 0; c < _provinceMesh.vertices.Length; c++)
+        {
+            colours[c] = new Color(currentColor.r,currentColor.g,currentColor.b,0.9f); //Selected province is fully opaque
+        }
+
+        _provinceMesh.colors = colours;
+    }
+
+    public void UnfocusProvince()
+    {
+        Color[] colours = new Color[_provinceMesh.vertices.Length];
+
+        for (int c = 0; c < _provinceMesh.vertices.Length; c++)
+        {
+            colours[c] = currentColor; //Returns province to initial colours
+        }
+
+        _provinceMesh.colors = colours;
+    }
+
     void OnMouseDown() //On click, process all the valid actions
     {
         _clickActions();

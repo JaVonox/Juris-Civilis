@@ -16,6 +16,7 @@ public class MainScreenHandler : MonoBehaviour
     private GameObject startScreen;
     private GameObject panelScreen;
     private GameObject provinceDetailsScreen;
+    private GameObject selectorObject;
     public GameObject Camera;
     public Text genStateText;
 
@@ -36,8 +37,9 @@ public class MainScreenHandler : MonoBehaviour
     public GameObject startScreenPrefab;
     public GameObject panelPrefab;
     public GameObject provinceDetailsPrefab;
+    public GameObject selectorPrefab;
 
-    public int selectedProvince;
+    private int selectedProvince;
     private MapObject currentMap;
     private System.Random rnd = new System.Random();
     private Dictionary<int, GameObject> provinceSet = new Dictionary<int, GameObject>();
@@ -61,11 +63,16 @@ public class MainScreenHandler : MonoBehaviour
     void Start()
     {
         currentMap = new MapObject(mapWidth, mapHeight);
+        selectedProvince = -1;
 
         startScreen = Instantiate(startScreenPrefab, Camera.transform, false); //Create new start screen instance
         startScreen.GetComponent<MenuComponents>().startGen.onClick.AddListener(StartGeneration);
 
         provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add panel to show province details. This automatically sets itself to invisible
+
+        selectorObject = Instantiate(selectorPrefab, loadedObjectsLayer.transform, false); //Add selector object - starts invisible
+        selectorObject.name = "Selector";
+        selectorObject.GetComponent<Selector>().SetData(ref selectorObject);
 
         InitialiseMaps(); //Sets default map elements
         UpdateLabel();
@@ -152,7 +159,22 @@ public class MainScreenHandler : MonoBehaviour
     }
     public void SelectProvince(ProvinceObject provToDisplay) //Updates province click
     {
-        provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay,ref currentMap.cultures);
+        if(selectedProvince != provToDisplay._id)
+        {
+            provinceDetailsScreen.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay, ref currentMap.cultures); //Change province viewer screen
+
+            provinceSet[provToDisplay._id].transform.Translate(0, 0, -1); //Move selected province forward
+            provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>().FocusProvince(); //set new province into focus mode
+
+            if (selectedProvince != -1)
+            {
+                provinceSet[selectedProvince].transform.Translate(0, 0, 1); //Move previously selected province back into line
+                provinceSet[selectedProvince].GetComponent<ProvinceRenderer>().UnfocusProvince(); //unfocus previous province
+            }
+
+            selectorObject.GetComponent<Selector>().MoveSelector(provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>()._provinceMesh, provinceSet[provToDisplay._id].gameObject, provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>()._centrePoint);
+            selectedProvince = provToDisplay._id;
+        }
     }
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
     {
