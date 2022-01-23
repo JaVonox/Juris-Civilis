@@ -15,17 +15,17 @@ namespace WorldProperties
     public static class BiomesObject
     {
         public static List<Biome> activeBiomes = new List<Biome>(){
-        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),100), //ocean should always be 0th
-        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0),24),
-        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f),48),
-        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0),24),
+        new Biome("Ocean",Property.Low,Property.NA,Property.NA,Property.NA,new Color(0.04f,0.08f,0.58f),400), //ocean should always be 0th
+        new Biome("Temperate Forest",Property.Medium,Property.Medium,Property.NA,Property.High,new Color(0.01f,0.39f,0),16),
+        new Biome("Tropical Forest", Property.Medium, Property.High, Property.High, Property.High, new Color(0.06f,0.34f,0.05f),36),
+        new Biome("Taiga", Property.Medium, Property.Low, Property.NA, Property.High, new Color(0.06f,0.22f,0),36),
         new Biome("Grasslands", Property.Medium, Property.Medium, Property.NA, Property.Low, new Color(0.02f,0.54f,0),24),
         new Biome("Savannah", Property.Medium, Property.High, Property.High, Property.Low, new Color(0.78f,0.55f,0.15f),16),
         new Biome("Tundra", Property.Medium, Property.Low, Property.NA, Property.Low, new Color(1,0.78f,0.78f),48),
         new Biome("Desert", Property.Medium, Property.High, Property.Low, Property.Low, new Color(0.77f,0.61f,0.23f),36),
-        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),16),
-        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f),16),
-        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),16),
+        new Biome("Mountain", Property.High, Property.Low, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),8),
+        new Biome("Forested Plateau", Property.High, Property.NA, Property.NA, Property.High, new Color(0.5f,0.5f,0.5f),8),
+        new Biome("Shrubland Plateau", Property.High, Property.High, Property.NA, Property.Low, new Color(0.5f,0.5f,0.5f),8),
         };
 
         public static int SortTile(TileData target, ref int[,] deciles)
@@ -35,7 +35,9 @@ namespace WorldProperties
                 return 0;
             }
 
-            float[] indexScores = new float[activeBiomes.Count]; //make temporary array the size of the activeBiomes list
+            int acBiomesCount = activeBiomes.Count;
+
+            float[] indexScores = new float[acBiomesCount]; //make temporary array the size of the activeBiomes list
 
             foreach (Biome tBiome in activeBiomes) //find the score of each biome against the target data
             {
@@ -45,7 +47,7 @@ namespace WorldProperties
             float maxVal = -1;
             int maxIndex = -1;
 
-            for (int i = 1; i < activeBiomes.Count; i++) //iterate through all active biomes except ocean
+            for (int i = 1; i < acBiomesCount; i++) //iterate through all active biomes except ocean
             {
                 if (indexScores[i] > maxVal || maxIndex == -1)
                 {
@@ -106,9 +108,9 @@ namespace WorldProperties
                 {
                     _elProp = Property.Low;
                 }
-
-                _isCoastal = isCoastal; //copy coastal info
             }
+
+            _isCoastal = isCoastal; //copy coastal info
         }
         public Vector3 CalculateRelativeCenterPoint() //returns the relative centerpoint for the province
         {

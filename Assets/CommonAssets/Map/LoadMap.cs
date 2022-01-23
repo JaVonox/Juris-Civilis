@@ -6,8 +6,6 @@ using UnityEngine.UI; //objects
 using BiomeData;
 using WorldProperties;
 using SaveLoad;
-
-
 public class LoadMap : MonoBehaviour
 {
     //Mapping elements

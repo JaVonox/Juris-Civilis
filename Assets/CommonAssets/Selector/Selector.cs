@@ -10,6 +10,8 @@ public class Selector : MonoBehaviour
     //This class is spawned when the system is in display mode. It copies a province mesh but increases scale thereby creating a "border" around the province selected
     private Mesh _selectorMesh;
     private GameObject _selfObject;
+    private int _meshSize;
+    private int _triSize;
     public void SetData(ref GameObject self)
     {
         _selfObject = self;
@@ -17,34 +19,40 @@ public class Selector : MonoBehaviour
     }
     public void MoveSelector(Mesh meshToCopy, GameObject target, Vector3 centrePoint)
     {
-        MeshCopier(meshToCopy, centrePoint);
+        var tmpComp = target.GetComponent<ProvinceRenderer>();
+        MeshCopier(meshToCopy, tmpComp._meshSize, tmpComp._triSize);
+        tmpComp = null;
+
         _selfObject.transform.position = target.transform.position;
         _selfObject.transform.position = new Vector3(_selfObject.transform.position.x, _selfObject.transform.position.y, _selfObject.transform.position.z + 0.5f); //Move behind selected object
         _selfObject.transform.rotation = Quaternion.Euler(180, 180, 0); //Flip to correct orientation
         _selfObject.transform.localScale = new Vector3(1.1f, 1.1f, 1);
 
-        Color[] colours = new Color[_selectorMesh.vertices.Length];
+        Color[] colours = new Color[_meshSize];
 
-        for (int c = 0; c < _selectorMesh.vertices.Length; c++)
+        for (int c = 0; c < _meshSize; c++)
         {
             colours[c] = new Color(0,0,0,0.7f); //Sets borders to black
         }
 
-        _selectorMesh.colors = colours;
+        _selectorMesh.SetColors(colours);
 
         _selfObject.GetComponent<MeshRenderer>().enabled = true;
     }
-    private void MeshCopier(Mesh meshToCopy, Vector3 centrePoint)
+    private void MeshCopier(Mesh meshToCopy, int vertCount, int triCount)
     {
+        _meshSize = vertCount;
+        _triSize = triCount;
+
         _selectorMesh = new Mesh();
 
-        int[] triangles = new int[meshToCopy.triangles.Length];
-        Vector3[] verticesSet = new Vector3[meshToCopy.vertices.Length]; //storage for vertices
+        int[] triangles = new int[_triSize];
+        Vector3[] verticesSet = new Vector3[_meshSize]; //storage for vertices
 
         verticesSet[0] = meshToCopy.vertices[0];
 
         int i = 0;
-        for (int iter = 0; iter < meshToCopy.vertices.Length; iter += 3)
+        for (int iter = 0; iter < _meshSize; iter += 3)
         {
 
             for (int v = 0; v < 3; v++)
@@ -55,17 +63,16 @@ public class Selector : MonoBehaviour
             i+=3;
         }
 
-        for (int iter = 0; iter < meshToCopy.triangles.Length; iter++)
+        for (int iter = 0; iter < _triSize; iter++)
         {
             triangles[iter] = meshToCopy.triangles[iter];
         }
 
         //add vertices to mesh
-        _selectorMesh.vertices = verticesSet;
+        _selectorMesh.SetVertices(verticesSet);
 
         //add generated triangles to mesh
-        int[] arrTriangles = triangles;
-        _selectorMesh.triangles = arrTriangles;
+        _selectorMesh.SetTriangles(triangles, 0);
 
         _selectorMesh.RecalculateNormals();
 

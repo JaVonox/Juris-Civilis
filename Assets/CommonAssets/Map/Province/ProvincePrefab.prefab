@@ -95,6 +95,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a0c1d27a1eb46843b65f77208d3e7ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _provinceMesh: {fileID: 0}
+  _centrePoint: {x: 0, y: 0, z: 0}
 --- !u!64 &1916697249604955974
 MeshCollider:
   m_ObjectHideFlags: 0

@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using BiomeData; //Biome stuff
 using WorldProperties;
 using UnityEngine;
-using UnityEngine.UI; //objects
-using PropertiesGenerator;
 using System.Linq;
 public class MapObject
 {
@@ -82,27 +80,47 @@ public class MapObject
     public void SetProvinceSaveables(ref System.Random rnd) //Create saveable province objects
     {
         int i = 0;
-        List<string> provNamesSet = PropertiesGenerator.GenerateNames.GenerateProvinceName(ref rnd, worldProvinces.Count);
+        int lname = 0;
+        int oname = 0;
+        string[] oceanConnectedNames = { " Gulf", " Cove", " Bay", " Ocean", " Sea"};
+        string[] oceanUnconnectedNames = { " Ocean", " Sea" };
+        List<string> provNamesSet = PropertiesGenerator.GenerateNames.GenerateProvinceName(ref rnd, worldProvinces.Count(tProv => tProv._biome != 0));
+        List<string> oceanNamesSet = PropertiesGenerator.GenerateNames.GenerateOceanNames(ref rnd, worldProvinces.Count(tProv => tProv._biome == 0));
 
         foreach (Province tProv in worldProvinces)
         {
             if(tProv._biome != 0)
             {
-                provinceSaveables.Add(new ProvinceObject(i, provNamesSet[i], tProv));
+                provinceSaveables.Add(new ProvinceObject(i, provNamesSet[lname], tProv));
                 bool isCoastal = worldProvinces.Any(prov => prov._biome == 0 && provinceSaveables[i]._adjacentProvIDs.Contains(worldProvinces.IndexOf(prov))); //Finds if there are any adjacent coastal provinces
                 provinceSaveables[i].GenerateFinalValues(ref rnd, isCoastal); //Generates some final properties while putting the province into save mode.
+                lname++;
             }
             else
             {
                 provinceSaveables.Add(new ProvinceObject(i, "Ocean", tProv)); //Maybe add ocean names in the future?
+                bool isCoastal = worldProvinces.Any(prov => prov._biome != 0 && provinceSaveables[i]._adjacentProvIDs.Contains(worldProvinces.IndexOf(prov))); //Finds if there are any adjacent non-coastal provinces
+                string newOceanName = oceanNamesSet[oname];
+
+                if(isCoastal){ newOceanName = newOceanName + oceanConnectedNames[rnd.Next(0, oceanConnectedNames.Count())];}
+                else{newOceanName = newOceanName + oceanUnconnectedNames[rnd.Next(0, oceanUnconnectedNames.Count())];}
+                provinceSaveables[i]._cityName = newOceanName;
+
+                provinceSaveables[i].GenerateFinalValues(ref rnd, isCoastal);
                 provinceSaveables[i]._provCol = new Color(0.02f, 0.25f, 0.45f);
+                oname++;
             }
             i++;
         }
 
         //Clears unneeded data
         worldProvinces = null;
-        tiles = null;
+        provNamesSet = null;
+        oceanNamesSet = null;
+
+        //Use garbage collector manually to clear up data due to the heavy memory usage impacts of this program
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
 
         cultures.Add(new Culture("0", ref rnd));
         cultures[0]._name = "Ocean";
@@ -119,6 +137,14 @@ public class MapObject
                 i++;
             }
         }
+
+        var provCultures = from provs in provinceSaveables
+                      group provs._id by provs._cultureID into g
+                      orderby g.Count()
+                      select new { cultID = g.Key, counter = g.Count() };
+
+        Debug.Log("Max : " + provCultures.Max(t => t.counter));
+        Debug.Log("Min : " + provCultures.Min(t => t.counter));
     }
 
     public void SetAdjacentChunks(ref Dictionary<int, Chunk> worldChunks) //Sets the adjacencies of all chunks in the set. worldChunks stores each ID and chunk

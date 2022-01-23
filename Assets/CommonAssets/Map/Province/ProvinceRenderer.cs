@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using BiomeData;
 using WorldProperties;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI; //objects
 using System;
 
 public class ProvinceRenderer : MonoBehaviour
@@ -12,6 +14,8 @@ public class ProvinceRenderer : MonoBehaviour
     public ProvinceObject _myProvince; //Stores a reference to province
     private Action _clickActions;
     private Color currentColor;
+    public int _meshSize; //Unity has a weird thing where it has to make an array copy every time it wants to check vertices length. Setting this once stops accessing taking up too much data
+    public int _triSize;
     public Vector3 ReturnCentreUnitSpace(float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
         return ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
@@ -55,7 +59,8 @@ public class ProvinceRenderer : MonoBehaviour
 
 
         int i = 0;
-        for(int iter = 0; iter < targetProv._vertices.Count; iter+=3)
+        int tprovCount = targetProv._vertices.Count;
+        for (int iter = 0; iter < tprovCount; iter+=3)
         {
             for (int v = 0; v < 3; v++)
             {
@@ -66,43 +71,46 @@ public class ProvinceRenderer : MonoBehaviour
             //For unity, the triangle vertices must be in clockwise order to face the front.
             AppendInOrder(ref triangles, ref verticesSet, ref i);
         }
+        int vLength = verticesSet.Length;
 
         //add vertices to mesh
-        _provinceMesh.vertices = verticesSet;
+        _provinceMesh.SetVertices(verticesSet);
 
         //add generated triangles to mesh
-        int[] arrTriangles = triangles.ToArray();
-        _provinceMesh.triangles = arrTriangles;
+        _provinceMesh.SetTriangles(triangles, 0);
+        _triSize = triangles.Count;
 
         //Set a colour for the polygon
-        Color[] colours = new Color[verticesSet.Length];
+        Color[] colours = new Color[vLength];
 
         currentColor = GetColour(targetProv, propType, ref cult);
 
-        for (int c = 0; c < verticesSet.Length; c++)
+        for (int c = 0; c < vLength; c++)
         {
             colours[c] = currentColor;
         }
+
+        _meshSize = _provinceMesh.vertices.Length;
 
         _provinceMesh.colors = colours;
         _provinceMesh.RecalculateNormals();
 
         //assign mesh to filter and collider
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
-        GetComponent<MeshCollider>().sharedMesh = GetComponent<MeshFilter>().sharedMesh;
+        GetComponent<MeshCollider>().sharedMesh = _provinceMesh;
     }
     public void UpdateMesh(string propType, ref List<Culture> cult)
     {
-        Color[] colours = new Color[_provinceMesh.vertices.Length];
+        Color[] colours = new Color[_meshSize];
 
         currentColor = GetColour(_myProvince, propType, ref cult);
 
-        for (int c = 0; c < _provinceMesh.vertices.Length; c++)
+        for (int c = 0; c < _meshSize; c++)
         {
             colours[c] = currentColor;
         }
 
-        _provinceMesh.colors = colours;
+        _provinceMesh.SetColors(colours);
     }
 
     private void AppendInOrder(ref List<int> triangles, ref Vector3[] vertices, ref int i)
@@ -223,31 +231,35 @@ public class ProvinceRenderer : MonoBehaviour
     }
     public void FocusProvince() //Updates colours to focus mode
     {
-        Color[] colours = new Color[_provinceMesh.vertices.Length];
+        Color[] colours = new Color[_meshSize];
 
-        for (int c = 0; c < _provinceMesh.vertices.Length; c++)
+        for (int c = 0; c < _meshSize; c++)
         {
             colours[c] = new Color(currentColor.r,currentColor.g,currentColor.b,0.9f); //Selected province is fully opaque
         }
 
-        _provinceMesh.colors = colours;
+        _provinceMesh.SetColors(colours);
     }
 
     public void UnfocusProvince()
     {
-        Color[] colours = new Color[_provinceMesh.vertices.Length];
+        Color[] colours = new Color[_meshSize];
 
-        for (int c = 0; c < _provinceMesh.vertices.Length; c++)
+
+        for (int c = 0; c < _meshSize; c++)
         {
             colours[c] = currentColor; //Returns province to initial colours
         }
 
-        _provinceMesh.colors = colours;
+        _provinceMesh.SetColors(colours);
     }
 
     void OnMouseDown() //On click, process all the valid actions
     {
-        _clickActions();
+        if (!EventSystem.current.IsPointerOverGameObject()) //Stops clicks through the UI elements
+        {
+            _clickActions();
+        }
     }
 
 }
