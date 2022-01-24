@@ -109,6 +109,10 @@ namespace SaveLoad
                 xmlWriter.WriteString(tProv._isCoastal.ToString());
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("Population");
+                xmlWriter.WriteString(tProv._population.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Elevation");
                 xmlWriter.WriteString(tProv._elProp.ToString());
                 xmlWriter.WriteEndElement();

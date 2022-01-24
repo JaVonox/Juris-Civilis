@@ -222,6 +222,19 @@ public class ProvinceRenderer : MonoBehaviour
                 Color cultCol = cultures[targetProv._cultureID]._cultureCol;
                 cultCol.a = 0.7f;
                 return cultCol;
+            case "Population":
+                switch (targetProv._population)
+                {
+                    case Property.High:
+                        return highVal;
+                    case Property.Medium:
+                        return medVal;
+                    case Property.Low:
+                        return lowVal;
+                    case Property.NA:
+                        return NAVal;
+                }
+                break;
             default:
                 break;
         }

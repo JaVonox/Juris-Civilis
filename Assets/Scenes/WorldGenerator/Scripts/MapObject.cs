@@ -138,13 +138,62 @@ public class MapObject
             }
         }
 
+        //Sort the number of provinces each province owns. get the minimum and maximum
         var provCultures = from provs in provinceSaveables
                       group provs._id by provs._cultureID into g
                       orderby g.Count()
                       select new { cultID = g.Key, counter = g.Count() };
 
-        Debug.Log("Max : " + provCultures.Max(t => t.counter));
-        Debug.Log("Min : " + provCultures.Min(t => t.counter));
+        float cMax = (float)provCultures.Max(t => t.counter);
+        float cMin = (float)provCultures.Min(t => t.counter);
+
+        //Set population values for each non-ocean province
+
+        float maxP = -1;
+        float minP = -1;
+        float[] provScores = new float[provinceSaveables.Count];
+
+        foreach (ProvinceObject tProv in provinceSaveables) //Could be simplified
+        {
+            if (tProv._biome != 0)
+            {
+                float myCultCount = (float)(from cultC in provCultures where cultC.cultID == tProv._cultureID select cultC.counter).FirstOrDefault();
+                float normalisedValue = (myCultCount - cMin) / (cMax - cMin); //Gets value from 0 to 1
+
+                //y = (((-sec(T) / 2) + 1) + (-(E / (x+1)) + (1 / 4)) + (6xcos(F - 1))+(R / (x + 1) - 1) / 10
+                float elScore = ((int)tProv._elProp - 1);
+                float teScore = ((int)tProv._tmpProp - 1);
+                float rnScore = tProv._rainProp == Property.Low ? 0 : 1;
+                float flScore = tProv._floraProp == Property.Low ? 0 : 1;
+
+                float popScore =
+                    (((-(1 / (float)Math.Cos(teScore)) / 2) + 1) +
+                    (-(elScore / (normalisedValue + 1)) + (1 / 4)) +
+                    ((6 * normalisedValue) * (float)Math.Cos(flScore - 1)) +
+                    ((rnScore / (normalisedValue + 1)) - 1)) / 10;
+
+                if(popScore < -2) { popScore = -2; }
+                if(popScore > 2) { popScore = 2; }
+
+                provScores[tProv._id] = popScore;
+
+                if(popScore > maxP || maxP == -1) { maxP = popScore; }
+                if(popScore < minP || minP == -1) { minP = popScore; }
+                
+            }
+        }
+
+        foreach(ProvinceObject tprov in provinceSaveables)
+        {
+            if(tprov._biome != 0)
+            {
+                float relativeScore = (provScores[tprov._id] - minP) / (maxP - minP);
+
+                if(relativeScore < 0.65f) { tprov._population = Property.Low; }
+                else if(relativeScore > 0.65f && relativeScore < 0.8f) { tprov._population = Property.Medium; }
+                else { tprov._population = Property.High; }
+            }
+        }
     }
 
     public void SetAdjacentChunks(ref Dictionary<int, Chunk> worldChunks) //Sets the adjacencies of all chunks in the set. worldChunks stores each ID and chunk

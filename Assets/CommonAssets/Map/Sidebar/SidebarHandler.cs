@@ -18,6 +18,7 @@ public class SidebarHandler : MonoBehaviour
         Rainfall = 4,
         Flora = 5,
         Culture = 6,
+        Population = 7,
     }
 
     //Interactables

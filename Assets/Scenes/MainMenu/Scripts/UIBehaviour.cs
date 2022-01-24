@@ -20,6 +20,6 @@ public class UIBehaviour : MonoBehaviour
     }
     void WorldGenOnClick()
     {
-        SceneManager.LoadScene("WorldGenerator"); //Opens the world generator scene
+        SceneManager.LoadScene("WorldGenerator", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }
 }

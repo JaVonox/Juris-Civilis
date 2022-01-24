@@ -70,6 +70,7 @@ namespace WorldProperties
         public Property _tmpProp;
         public Property _rainProp;
         public Property _floraProp;
+        public Property _population;
         public bool _isCoastal;
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
@@ -85,6 +86,7 @@ namespace WorldProperties
             _tmpProp = tProv._tmpProp;
             _rainProp = tProv._rainProp;
             _floraProp = tProv._floraProp;
+            _population = Property.NA;
             _cultureID = 0;
             _isCoastal = false;
 

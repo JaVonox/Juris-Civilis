@@ -14,6 +14,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
     public Text biomeName;
     public Text geoDetailsVal;
     public Text cultureVal;
+    public Text popVal;
     enum HeightEnum
     {
         Flat = 0,
@@ -47,6 +48,13 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         Internal = 0,
         Coastal = 1,
     }
+    enum PopulationEnum
+    {
+        Village = 0,
+        Town = 1,
+        City = 2,
+        Empty = 3
+    }
 
     public void Start()
     {
@@ -55,6 +63,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
     public void DisplayProvince(ProvinceObject newSelection, ref List<Culture> cultures) //Updates the selection based on the provincial data provided
     {
         provName.text = newSelection._cityName.ToString();
+        popVal.text = ((PopulationEnum)(int)newSelection._population).ToString();
         biomeName.text = BiomesObject.activeBiomes[newSelection._biome]._name.ToString();
         geoDetailsVal.text = ((CoastalEnum)(Convert.ToInt32(newSelection._isCoastal))).ToString() + "/" + ((HeightEnum)((int)newSelection._elProp)).ToString() + "/" + ((TempEnum)((int)newSelection._tmpProp)).ToString() + "/" + ((RainEnum)((int)newSelection._rainProp)).ToString() + "/" + ((FloraEnum)((int)newSelection._floraProp)).ToString();
         cultureVal.text = "Culture: " + cultures[newSelection._cultureID]._name;

@@ -8,6 +8,8 @@ using WorldProperties;
 using SaveLoad;
 using PropertiesGenerator;
 using Perlin;
+using UnityEngine.SceneManagement; //Scene switching data
+
 
 using System.Threading;
 public class MainScreenHandler : MonoBehaviour
@@ -19,6 +21,7 @@ public class MainScreenHandler : MonoBehaviour
     private GameObject provinceDetailsScreen;
     public GameObject Camera;
     public Text genStateText;
+    public Button exitBtn;
     int mapWidth = 6000;
     int mapHeight = 4000;
 
@@ -50,6 +53,9 @@ public class MainScreenHandler : MonoBehaviour
 
     void Start()
     {
+        exitBtn.onClick.AddListener(ExitScene);
+        exitBtn.gameObject.SetActive(false);
+
         currentMap = new MapObject(mapWidth, mapHeight);
 
         loadMap = Instantiate(loadMapPrefab,null); //Create new start screen instance
@@ -74,6 +80,10 @@ public class MainScreenHandler : MonoBehaviour
                 queuedFunctions.Remove(item);
             }
         }
+    }
+    void ExitScene()
+    {
+        SceneManager.LoadScene("Main Menu", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }
 
     void StartGeneration()
@@ -169,7 +179,7 @@ public class MainScreenHandler : MonoBehaviour
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
         loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture);
         loadMap.GetComponent<LoadMap>().StartMap();
-
+        exitBtn.gameObject.SetActive(true); //reenable exit button
     }
 
 }
