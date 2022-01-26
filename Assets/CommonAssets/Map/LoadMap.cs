@@ -43,7 +43,7 @@ public class LoadMap : MonoBehaviour
         selectorObject = Instantiate(selectorPrefab, loadedObjectsLayer.transform, false); //Add selector object - starts invisible
         selectorObject.name = "Selector";
         selectorObject.GetComponent<Selector>().SetData(ref selectorObject);
-        PreLoadMap();
+        //PreLoadMap();
     }
     public void ApplyProperties(int mWidth, int mHeight, ref List<ProvinceObject> provLoad, ref List<Culture> cultLoad, ref GameObject mapModesPanel, ref GameObject detailsPanel, ref Texture2D mapTexture)
     {

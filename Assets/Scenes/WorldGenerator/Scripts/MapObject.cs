@@ -189,8 +189,8 @@ public class MapObject
             {
                 float relativeScore = (provScores[tprov._id] - minP) / (maxP - minP);
 
-                if(relativeScore < 0.65f) { tprov._population = Property.Low; }
-                else if(relativeScore > 0.65f && relativeScore < 0.8f) { tprov._population = Property.Medium; }
+                if(relativeScore < 0.55f) { tprov._population = Property.Low; }
+                else if(relativeScore > 0.55f && relativeScore < 0.8f) { tprov._population = Property.Medium; }
                 else { tprov._population = Property.High; }
             }
         }

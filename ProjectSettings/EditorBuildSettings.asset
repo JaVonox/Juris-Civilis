@@ -11,4 +11,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/WorldGenerator/WorldGenerator.unity
     guid: 1c8b3e5606fad734ab39bf872e07c3cf
+  - enabled: 1
+    path: Assets/Scenes/Simulator/Simulator.unity
+    guid: 8ab868e2723d9fa4c8b096f49dc8ed81
   m_configObjects: {}
