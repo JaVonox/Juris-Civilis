@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -150,6 +151,10 @@ namespace SaveLoad
                 xmlWriter.WriteString(tProv._isCoastal.ToString());
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("BiomeID");
+                xmlWriter.WriteString(tProv._biome.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Population");
                 xmlWriter.WriteString(tProv._population.ToString());
                 xmlWriter.WriteEndElement();
@@ -195,6 +200,48 @@ namespace SaveLoad
             xmlWriter.Close();
         }
 
+        public static void LoadProvinces(string filepath, ref List<ProvinceObject> outputProvs)
+        {
+            outputProvs.Clear();
+
+            XmlDocument xmlReader = new XmlDocument(); //Open xmlfile
+            xmlReader.Load(filepath + "/WorldData/Provinces.xml");
+
+            XmlNode provinceNodes = xmlReader.SelectSingleNode("Provinces");
+
+            foreach(XmlNode provNode in provinceNodes.ChildNodes)
+            {
+                //Xml file is by ID so add should order correctly
+                ProvinceObject loadedProv = new ProvinceObject();
+                loadedProv._id = Convert.ToInt32(provNode.Attributes["ID"].Value);
+                loadedProv._cityName = provNode.Attributes["City"].Value;
+                loadedProv._cultureID = Convert.ToInt32(provNode.Attributes["CultureID"].Value);
+
+                ColorUtility.TryParseHtmlString("#" + provNode["Colour"].InnerText, out loadedProv._provCol); //Sets colour via hex code
+                loadedProv._isCoastal = provNode["Coastal"].InnerText == "True" ? true : false;
+
+                loadedProv._population = (Property)Enum.Parse(typeof(Property), provNode["Population"].InnerText);
+                loadedProv._elProp = (Property)Enum.Parse(typeof(Property), provNode["Elevation"].InnerText);
+                loadedProv._tmpProp = (Property)Enum.Parse(typeof(Property), provNode["Temperature"].InnerText);
+                loadedProv._rainProp = (Property)Enum.Parse(typeof(Property), provNode["Rainfall"].InnerText);
+                loadedProv._floraProp = (Property)Enum.Parse(typeof(Property), provNode["Flora"].InnerText);
+                loadedProv._biome = Convert.ToInt32(provNode["BiomeID"].InnerText);
+
+                foreach (XmlNode verts in provNode["Vertices"].ChildNodes)
+                {
+                    string[] vertSet = verts.InnerText.Split(',');
+                    loadedProv._vertices.Add(new Vector3(Convert.ToInt32(vertSet[0]), Convert.ToInt32(vertSet[1]), -2)); //add vert
+                }
+
+                foreach (XmlNode adjs in provNode["Adjacents"].ChildNodes)
+                {
+                    loadedProv._adjacentProvIDs.Add(Convert.ToInt32(adjs.InnerText));
+                }
+
+                outputProvs.Add(loadedProv);
+            }
+
+        }
         public static void CreateCultures(string filePath, ref List<Culture> cultures) //draws just the mapping elements of a province
         {
             //Write all province properties to an xml file
@@ -217,6 +264,28 @@ namespace SaveLoad
             xmlWriter.WriteEndElement();
             xmlWriter.WriteEndDocument();
             xmlWriter.Close();
+        }
+
+        public static void LoadCultures(string filepath, ref List<Culture> outCulture)
+        {
+            outCulture.Clear();
+
+            XmlDocument xmlReader = new XmlDocument(); //Open xmlfile
+            xmlReader.Load(filepath + "/WorldData/Cultures.xml");
+
+            XmlNode cultNodes = xmlReader.SelectSingleNode("Cultures");
+
+            foreach (XmlNode cultNode in cultNodes.ChildNodes)
+            {
+                //Xml file is by ID so add should order correctly
+                Culture loadedCult = new Culture();
+                loadedCult._id = cultNode.Attributes["ID"].Value;
+                loadedCult._name = cultNode.Attributes["Name"].Value;
+
+                ColorUtility.TryParseHtmlString("#" + cultNode["Colour"].InnerText, out loadedCult._cultureCol); //Sets colour via hex code
+
+                outCulture.Add(loadedCult);
+            }
         }
     }
 }

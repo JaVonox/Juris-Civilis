@@ -8,6 +8,8 @@ public class UIBehaviour : MonoBehaviour
 {
     public Button worldGenButton; //the world gen button
     public Button playButton;
+    public Button exitButton;
+
     private AssetBundle sceneAssets;
     private string[] paths;
     void Start() //Initialisation
@@ -15,6 +17,7 @@ public class UIBehaviour : MonoBehaviour
         //Button starts
         worldGenButton.GetComponent<Button>().onClick.AddListener(WorldGenOnClick);
         playButton.GetComponent<Button>().onClick.AddListener(SimulateOnClick);
+        exitButton.GetComponent<Button>().onClick.AddListener(ExitOnClick);
     }
     void WorldGenOnClick()
     {
@@ -23,5 +26,9 @@ public class UIBehaviour : MonoBehaviour
     void SimulateOnClick()
     {
         SceneManager.LoadScene("Simulator", LoadSceneMode.Single); //Opens the simulator scene
+    }
+    void ExitOnClick()
+    {
+        Application.Quit(); //Exits the app
     }
 }

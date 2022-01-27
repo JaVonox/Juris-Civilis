@@ -41,39 +41,42 @@ public class SimulatorMainHandler : MonoBehaviour
     }
     void StartLoad()
     {
-        //try
-        //{
-        filePath = startScreen.GetComponent<FileBrowserBehaviour>().ReturnPath(); //append filepath to dataset
-
+        try
         {
-            Dictionary<string, string> prop = SaveLoad.SavingScript.LoadBaseData(filePath);
-            mapWidth = Convert.ToInt32(prop["Width"]);
-            mapHeight = Convert.ToInt32(prop["Height"]);
+            filePath = startScreen.GetComponent<FileBrowserBehaviour>().ReturnPath(); //append filepath to dataset
 
-            mapTexture = new Texture2D(mapWidth, mapHeight);
-            byte[] mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
-            mapTexture.LoadImage(mapBytes);
+            {
+                Dictionary<string, string> prop = SaveLoad.SavingScript.LoadBaseData(filePath);
+                mapWidth = Convert.ToInt32(prop["Width"]);
+                mapHeight = Convert.ToInt32(prop["Height"]);
+
+                mapTexture = new Texture2D(mapWidth, mapHeight);
+                byte[] mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
+                mapTexture.LoadImage(mapBytes);
+
+                SaveLoad.SavingScript.LoadProvinces(filePath, ref provinces);
+                SaveLoad.SavingScript.LoadCultures(filePath, ref cultures);
+            }
+
+            Destroy(startScreen); //remove screen from memory after getting applicable data
+
+            loadMap = Instantiate(loadMapPrefab, null); //Create new map instance
+            loadMap.name = "Map";
+
+            panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
+            provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
+
+            loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture);
+            loadMap.GetComponent<LoadMap>().StartMap();
+
+            Camera.GetComponent<CameraScript>().enabled = true; //Allows camera movement
+
         }
-
-        Destroy(startScreen); //remove screen from memory after getting applicable data
-
-        loadMap = Instantiate(loadMapPrefab, null); //Create new map instance
-        loadMap.name = "Map";
-
-        panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
-        provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
-
-        loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture);
-        loadMap.GetComponent<LoadMap>().StartMap();
-
-        Camera.GetComponent<CameraScript>().enabled = true; //Allows camera movement
-
-        //}
-        //catch(Exception ex)
-        //{
-        //    Debug.Log("CRASH! " + ex);
-        //    //Add error handling here TODO
-        //}
+        catch(Exception ex)
+        {
+            Debug.Log("CRASH! " + ex);
+            //Add error handling here TODO
+        }
     }
     // Update is called once per frame
     void Update()

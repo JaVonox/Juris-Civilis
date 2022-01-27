@@ -20,8 +20,13 @@ public class MainScreenHandler : MonoBehaviour
     private GameObject panelScreen;
     private GameObject provinceDetailsScreen;
     public GameObject Camera;
+
+    public GameObject loadBar;
     public Text genStateText;
+
+    public GameObject actionsPanel; //Includes exit button
     public Button exitBtn;
+
     int mapWidth = 6000;
     int mapHeight = 4000;
 
@@ -42,31 +47,23 @@ public class MainScreenHandler : MonoBehaviour
         Rainfall,
         Flora,
         Biomes,
-        Dividing,
-        Displaying,
+        Provinces,
+        Image,
     }
     int currentState = 0;
 
     private Thread threadProcess;
     private volatile bool threadRunning = false;
+    private bool isBarActive = false;
+    private float amountToIncrement = 0;
     private List<Action> queuedFunctions = new List<Action>(); //Stores functions to be ran - this allows for better use of multithreading.
 
     void Start()
     {
         exitBtn.onClick.AddListener(ExitScene);
-        exitBtn.gameObject.SetActive(false);
-
-        currentMap = new MapObject(mapWidth, mapHeight);
-
-        loadMap = Instantiate(loadMapPrefab,null); //Create new start screen instance
-        loadMap.name = "Map";
 
         startScreen = Instantiate(startScreenPrefab, Camera.transform, false); //Create new start screen instance
         startScreen.GetComponent<MenuComponents>().startGen.onClick.AddListener(StartGeneration);
-
-        provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add panel to show province details. This automatically sets itself to invisible
-
-        newTexture = new Texture2D(mapWidth,mapHeight);
         UpdateLabel();
     }
 
@@ -80,6 +77,14 @@ public class MainScreenHandler : MonoBehaviour
                 queuedFunctions.Remove(item);
             }
         }
+
+        if(isBarActive) //Animates the loading bar
+        {
+            float change = (amountToIncrement * (Time.deltaTime / 2));
+            loadBar.GetComponent<Slider>().value = loadBar.GetComponent<Slider>().value + change;
+            amountToIncrement -= change;
+
+        }
     }
     void ExitScene()
     {
@@ -88,10 +93,16 @@ public class MainScreenHandler : MonoBehaviour
 
     void StartGeneration()
     {
-        Camera.GetComponent<CameraScript>().enabled = true; //Allows camera movement
+        currentMap = new MapObject(mapWidth, mapHeight);
+        loadMap = Instantiate(loadMapPrefab, null); //Create new map instance
+        loadMap.name = "Map";
+        provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add panel to show province details. This automatically sets itself to invisible
+        newTexture = new Texture2D(mapWidth, mapHeight);
+
+        actionsPanel.gameObject.SetActive(false);
         Destroy(startScreen);
 
-        if(threadRunning == false)
+        if (threadRunning == false)
         {
             threadProcess = new Thread(ImageProcedure); //Begin running of the generation thread
             threadProcess.Start();
@@ -111,7 +122,14 @@ public class MainScreenHandler : MonoBehaviour
 
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
     {
-        genStateText.text = "State: " + (State)currentState;
+        if (currentState == 0) { loadBar.SetActive(false); isBarActive = false; amountToIncrement = 0; }
+        else
+        {
+            if(loadBar.activeSelf == false) { loadBar.SetActive(true); }
+            isBarActive = true;
+            amountToIncrement += 1 / (float)(Enum.GetNames(typeof(State)).Length - 2); //Add to the amount to draw
+            genStateText.text = "Generating: " + (State)currentState;
+        }
     }
 
     void ImageProcedure()
@@ -179,7 +197,8 @@ public class MainScreenHandler : MonoBehaviour
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
         loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture);
         loadMap.GetComponent<LoadMap>().StartMap();
-        exitBtn.gameObject.SetActive(true); //reenable exit button
+        actionsPanel.gameObject.SetActive(true); //reenable exit button
+        Camera.GetComponent<CameraScript>().enabled = true; //Enable camera movement
     }
 
 }

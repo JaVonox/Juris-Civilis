@@ -98,6 +98,10 @@ namespace WorldProperties
                 }
             }
         }
+        public ProvinceObject()
+        {
+            //Used for loading in save data
+        }
         public void GenerateFinalValues(ref System.Random rnd, bool isCoastal)
         {
             if(_biome != 0 && _elProp != Property.High)
@@ -147,6 +151,11 @@ namespace WorldProperties
 
             if (_id == "0") { new Color(0, 0, 0); }
             else { _cultureCol = new Color((float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255); }
+        }
+
+        public Culture()
+        {
+            //For loading in cultures
         }
     }
 
