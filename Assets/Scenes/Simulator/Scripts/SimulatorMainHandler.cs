@@ -69,6 +69,7 @@ public class SimulatorMainHandler : MonoBehaviour
             panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
             provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
             consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
+            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen);
             ToggleConsole();
 
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture);

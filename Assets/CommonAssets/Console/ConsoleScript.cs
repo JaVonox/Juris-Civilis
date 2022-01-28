@@ -2,20 +2,28 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using ConsoleInterpret;
 public class ConsoleScript : MonoBehaviour
 {
     public InputField textInput;
     public Text consoleLog;
 
+    private GameObject refProvDetails;
+    private ConsoleInterpreter interpreter;
     private string LoggedText;
 
     // Start is called before the first frame update
     void Start()
     {
+        interpreter = new ConsoleInterpreter(); //New console interpreter instance
         consoleLog.text = "";
         ResetInput();
     }
-
+    
+    public void LoadConsole(ref GameObject provDetails)
+    {
+        refProvDetails = provDetails;
+    }
     public void ResetInput()
     {
         textInput.text = "";
@@ -30,8 +38,8 @@ public class ConsoleScript : MonoBehaviour
     {
         if (textInput.text != "")
         {
+            LoggedText += interpreter.InterpretCommand(textInput.text, refProvDetails) + "\n";
             //Submit, add to log and then remove the text
-            LoggedText += textInput.text + "\n";
             consoleLog.text = LoggedText;
             ResetInput();   
         }

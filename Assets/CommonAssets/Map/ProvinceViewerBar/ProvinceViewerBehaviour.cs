@@ -5,58 +5,18 @@ using UnityEngine;
 using UnityEngine.UI;
 using BiomeData;
 using WorldProperties;
+using ProvViewEnums;
 
 public class ProvinceViewerBehaviour : MonoBehaviour
 {
 
     public GameObject container;
-    public Text provName;
-    public Text biomeName;
-    public Text geoDetailsVal;
-    public Text cultureVal;
-    public Text popVal;
     public List<Button> infoModeBtns = new List<Button>();
     public InfoMode activeInfoMode;
-    enum HeightEnum
-    {
-        Flat = 0,
-        Craggy = 1,
-        Alpine = 2,
-        Deep = 3,
-    }
-    enum TempEnum
-    {
-        Cold = 0,
-        Warm = 1,
-        Hot = 2,
-        Damp = 3,
-    }
-    enum RainEnum
-    {
-        Dry = 0,
-        NA = 1,
-        Wet = 2,
-        Harsh = 3,
-    }
-    enum FloraEnum
-    {
-        Infertile = 0,
-        NA = 1,
-        Fertile = 2,
-        Barren = 3,
-    }
-    enum CoastalEnum
-    {
-        Internal = 0,
-        Coastal = 1,
-    }
-    enum PopulationEnum
-    {
-        Village = 0,
-        Town = 1,
-        City = 2,
-        Empty = 3
-    }
+
+    private GameObject activeInfoScreen;
+    public GameObject basicsPrefab;
+    public GameObject debugPrefab;
     public enum InfoMode
     {
         Basic = 0,
@@ -77,8 +37,8 @@ public class ProvinceViewerBehaviour : MonoBehaviour
 
     private void InitDictionary()
     {
-        actionRef.Add(0, BasicsInfo);
-        actionRef.Add(1, DebugInfo);
+        actionRef.Add(0, LoadBasics);
+        actionRef.Add(1, LoadDebug);
         actionRef.Add(2, CloseTab);
     }
     public void AppendInfoModes()
@@ -111,7 +71,23 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         }
 
     }
-    private void InteriorUpdate() //Update data using interior data
+    public void LoadBasics(ProvinceObject newSelection)
+    {
+        if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
+        activeInfoScreen = null;
+        activeInfoScreen = Instantiate(basicsPrefab, container.transform, false);
+        activeInfoScreen.GetComponent<BasicsHandler>().BasicsInfo(newSelection, culturesSet);
+        container.SetActive(true);
+    }
+    public void LoadDebug(ProvinceObject newSelection)
+    {
+        if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
+        activeInfoScreen = null;
+        activeInfoScreen = Instantiate(debugPrefab, container.transform, false);
+        activeInfoScreen.GetComponent<DebugHandler>().DebugInfo(newSelection, culturesSet);
+        container.SetActive(true);
+    }
+    private void InteriorUpdate() //Updates from script
     {
         actionRef[(int)activeInfoMode](lastSelection);
     }
@@ -121,24 +97,6 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         if(culturesSet == null) { culturesSet = cultures; }
 
         actionRef[(int)activeInfoMode](newSelection);
-    }
-    void BasicsInfo(ProvinceObject newSelection)
-    {
-        provName.text = newSelection._cityName.ToString();
-        popVal.text = ((PopulationEnum)(int)newSelection._population).ToString();
-        biomeName.text = BiomesObject.activeBiomes[newSelection._biome]._name.ToString();
-        geoDetailsVal.text = ((CoastalEnum)(Convert.ToInt32(newSelection._isCoastal))).ToString() + "/" + ((HeightEnum)((int)newSelection._elProp)).ToString() + "/" + ((TempEnum)((int)newSelection._tmpProp)).ToString() + "/" + ((RainEnum)((int)newSelection._rainProp)).ToString() + "/" + ((FloraEnum)((int)newSelection._floraProp)).ToString();
-        cultureVal.text = "Culture: " + culturesSet[newSelection._cultureID]._name;
-        container.SetActive(true);
-    }
-    void DebugInfo(ProvinceObject newSelection)
-    {
-        provName.text = newSelection._id.ToString();
-        popVal.text = "";
-        biomeName.text = "";
-        geoDetailsVal.text = "";
-        cultureVal.text = "";
-        container.SetActive(true);
     }
 
     void CloseTab(ProvinceObject newSelection)
