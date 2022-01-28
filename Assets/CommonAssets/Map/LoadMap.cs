@@ -124,7 +124,6 @@ public class LoadMap : MonoBehaviour
     {
         if (selectedProvince != provToDisplay._id)
         {
-            _provDetails.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay, ref _culturesLoaded); //Change province viewer screen
 
             provinceSet[provToDisplay._id].transform.Translate(0, 0, -1); //Move selected province forward
             provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>().FocusProvince(); //set new province into focus mode
@@ -138,5 +137,7 @@ public class LoadMap : MonoBehaviour
             selectorObject.GetComponent<Selector>().MoveSelector(provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>()._provinceMesh, provinceSet[provToDisplay._id].gameObject, provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>()._centrePoint);
             selectedProvince = provToDisplay._id;
         }
+
+        _provDetails.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay, ref _culturesLoaded); //Change province viewer screen
     }
 }
