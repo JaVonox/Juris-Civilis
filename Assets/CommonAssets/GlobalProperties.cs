@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using BiomeData;
-
+using Empires;
 namespace WorldProperties
 {
     public enum Property
@@ -75,6 +75,9 @@ namespace WorldProperties
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
         public int _cultureID;
+
+        //Simulation variables
+        public Empire _ownerEmpire;
         public ProvinceObject(int id, string name, Province tProv) //Constructor from province object
         {
             _id = id;
@@ -101,6 +104,10 @@ namespace WorldProperties
         public ProvinceObject()
         {
             //Used for loading in save data
+        }
+        public void NewOwner(Empire empireOwner) //Used to set the new owner empire if applicable
+        {
+            _ownerEmpire = empireOwner;
         }
         public void GenerateFinalValues(ref System.Random rnd, bool isCoastal)
         {

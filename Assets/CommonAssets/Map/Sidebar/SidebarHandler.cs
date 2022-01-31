@@ -19,6 +19,7 @@ public class SidebarHandler : MonoBehaviour
         Flora = 5,
         Culture = 6,
         Population = 7,
+        Provinces = 8,
     }
 
     //Interactables

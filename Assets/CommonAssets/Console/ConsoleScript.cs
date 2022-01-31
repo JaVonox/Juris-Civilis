@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using ConsoleInterpret;
+using WorldProperties;
+using BiomeData;
+using Empires;
 public class ConsoleScript : MonoBehaviour
 {
     public InputField textInput;
@@ -10,6 +13,12 @@ public class ConsoleScript : MonoBehaviour
 
     private GameObject refProvDetails;
     private ConsoleInterpreter interpreter;
+
+    //Should be references
+    private List<ProvinceObject> _provinces;
+    private List<Culture> _cultures;
+    private List<Empire> _empires;
+
     private string LoggedText;
 
     // Start is called before the first frame update
@@ -20,9 +29,12 @@ public class ConsoleScript : MonoBehaviour
         ResetInput();
     }
     
-    public void LoadConsole(ref GameObject provDetails)
+    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires)
     {
         refProvDetails = provDetails;
+        _provinces = provs;
+        _cultures = cultures;
+        _empires = empires;
     }
     public void ResetInput()
     {
@@ -38,7 +50,7 @@ public class ConsoleScript : MonoBehaviour
     {
         if (textInput.text != "")
         {
-            LoggedText += interpreter.InterpretCommand(textInput.text, refProvDetails) + "\n";
+            LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires) + "\n" + LoggedText;
             //Submit, add to log and then remove the text
             consoleLog.text = LoggedText;
             ResetInput();   

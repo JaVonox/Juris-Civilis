@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement; //Scene switching data
 using WorldProperties;
+using Empires;
 public class SimulatorMainHandler : MonoBehaviour
 {
     public Button exitButton;
@@ -29,6 +30,7 @@ public class SimulatorMainHandler : MonoBehaviour
     private string filePath;
     private List<ProvinceObject> provinces;
     private List<Culture> cultures;
+    private List<Empire> empires;
 
     private System.Random rnd = new System.Random();
     private bool consoleIsActive = true;
@@ -36,6 +38,7 @@ public class SimulatorMainHandler : MonoBehaviour
     {
         provinces = new List<ProvinceObject>();
         cultures = new List<Culture>();
+        empires = new List<Empire>();
         exitButton.GetComponent<Button>().onClick.AddListener(ExitScene);
         Camera.GetComponent<CameraScript>().enabled = false; //Allows camera movement
 
@@ -69,7 +72,7 @@ public class SimulatorMainHandler : MonoBehaviour
             panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
             provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
             consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
-            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen);
+            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires);
             ToggleConsole();
 
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture);

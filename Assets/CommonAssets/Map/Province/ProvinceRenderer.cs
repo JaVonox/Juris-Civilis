@@ -163,9 +163,23 @@ public class ProvinceRenderer : MonoBehaviour
                 geoCol.a = 0;
                 return geoCol;
             case "National":
-                Color tmpCol = targetProv._provCol;
-                tmpCol.a = 0.4f;
-                return tmpCol;
+                Color nationalCol;
+                if(targetProv._ownerEmpire != null)
+                {
+                    nationalCol = targetProv._ownerEmpire._empireCol;
+                    nationalCol.a = 1;
+                }
+                else
+                {
+                    nationalCol = targetProv._provCol;
+                    nationalCol.a = 0;
+                }
+
+                return nationalCol;
+            case "Provinces":
+                Color provCols = targetProv._provCol;
+                provCols.a = 0.4f;
+                return provCols;
             case "Elevation":
                 switch(targetProv._elProp)
                 {
