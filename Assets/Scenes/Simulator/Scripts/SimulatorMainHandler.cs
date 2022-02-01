@@ -11,6 +11,7 @@ public class SimulatorMainHandler : MonoBehaviour
     public Button exitButton;
     //UI
     private Texture2D mapTexture;
+    private Texture2D maskTexture;
     private GameObject panelScreen;
     private GameObject provinceDetailsScreen;
     private GameObject startScreen;
@@ -57,8 +58,10 @@ public class SimulatorMainHandler : MonoBehaviour
                 mapHeight = Convert.ToInt32(prop["Height"]);
 
                 mapTexture = new Texture2D(mapWidth, mapHeight);
-                byte[] mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
-                mapTexture.LoadImage(mapBytes);
+                (byte[],byte[]) mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
+                mapTexture.LoadImage(mapBytes.Item1);
+                maskTexture = new Texture2D(mapWidth, mapHeight);
+                maskTexture.LoadImage(mapBytes.Item2);
 
                 SaveLoad.SavingScript.LoadEmpires(filePath, ref empires);
                 SaveLoad.SavingScript.LoadProvinces(filePath, ref provinces, ref empires);
@@ -76,7 +79,7 @@ public class SimulatorMainHandler : MonoBehaviour
             consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap);
             ToggleConsole();
 
-            loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture);
+            loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture);
             loadMap.GetComponent<LoadMap>().StartMap();
 
         }

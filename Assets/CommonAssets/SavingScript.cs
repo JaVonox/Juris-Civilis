@@ -127,17 +127,25 @@ namespace SaveLoad
 
             return properties;
         }
-        public static void CreateMap(string filePath, ref byte[] imageBytes) //draws a map to a file
+        public static void CreateMap(string filePath, ref byte[] imageBytes, ref byte[] maskBytes) //draws a map to a file
         {
             //Get bytes of map and convert to image
             FileStream mapFile = File.Create(filePath + "WorldData/Map.png");
             mapFile.Write(imageBytes, 0, imageBytes.Length);
 
             mapFile.Close();
+
+            FileStream maskFile = File.Create(filePath + "WorldData/Mask.png");
+            maskFile.Write(maskBytes, 0, maskBytes.Length);
+
+            maskFile.Close();
         }
-        public static byte[] LoadMap(string filepath, int width, int height)
+        public static (byte[],byte[]) LoadMap(string filepath, int width, int height)
         {
-            return File.ReadAllBytes(filepath + "/WorldData/Map.png"); ;
+            byte[] map = File.ReadAllBytes(filepath + "/WorldData/Map.png");
+            byte[] mask = File.ReadAllBytes(filepath + "/WorldData/Mask.png");
+            return (map, mask);
+
         }
         public static void CreateProvinceMapping(string filePath, ref List<ProvinceObject> provinces) //draws province elements to save file
         {

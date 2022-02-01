@@ -12,10 +12,13 @@ public class LoadMap : MonoBehaviour
     private int mapWidth = 6000;
     private int mapHeight = 4000;
     public GameObject backMap;
+    public GameObject maskMap;
     public GameObject loadedObjectsLayer;
     private GameObject selectorObject;
     private Texture2D backTexture;
+    private Texture2D maskTexture;
     private Sprite mapSprite;
+    private Sprite maskSprite;
 
     //Gets the unit length of the sprite
     float spriteWidth;
@@ -44,7 +47,7 @@ public class LoadMap : MonoBehaviour
         selectorObject.name = "Selector";
         selectorObject.GetComponent<Selector>().SetData(ref selectorObject);
     }
-    public void ApplyProperties(int mWidth, int mHeight, ref List<ProvinceObject> provLoad, ref List<Culture> cultLoad, ref GameObject mapModesPanel, ref GameObject detailsPanel, ref Texture2D mapTexture)
+    public void ApplyProperties(int mWidth, int mHeight, ref List<ProvinceObject> provLoad, ref List<Culture> cultLoad, ref GameObject mapModesPanel, ref GameObject detailsPanel, ref Texture2D mapTexture, ref Texture2D mask)
     {
         mapWidth = mWidth;
         mapHeight = mHeight;
@@ -56,6 +59,9 @@ public class LoadMap : MonoBehaviour
 
         backTexture = new Texture2D(mapWidth, mapHeight);
         backTexture = mapTexture;
+
+        maskTexture = new Texture2D(mapWidth, mapHeight);
+        maskTexture = mask;
         InitialiseMaps();
         
     }
@@ -89,9 +95,13 @@ public class LoadMap : MonoBehaviour
     }
     public void InitialiseMaps()
     {
-        mapSprite = Sprite.Create(backTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero);
+        mapSprite = Sprite.Create(backTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero); //Apply backmap
         backMap.GetComponent<SpriteRenderer>().sprite = mapSprite;
         backTexture.Apply();
+
+        maskSprite = Sprite.Create(maskTexture, new Rect(0, 0, mapWidth, mapHeight), Vector2.zero); //Apply masking
+        maskMap.GetComponent<SpriteRenderer>().sprite = maskSprite;
+        maskTexture.Apply();
 
         Bounds spriteBounds = mapSprite.bounds; //Get boundaries of the sprite in units
         spriteWidth = spriteBounds.size.x;
@@ -125,12 +135,28 @@ public class LoadMap : MonoBehaviour
         if (selectedProvince != provToDisplay._id)
         {
 
-            provinceSet[provToDisplay._id].transform.Translate(0, 0, -1); //Move selected province forward
+            if (provToDisplay._biome == 0)
+            {
+                provinceSet[provToDisplay._id].transform.Translate(0, 0, -15); //Move selected province forward (Oceans go infront of mask)
+            }
+            else
+            {
+                provinceSet[provToDisplay._id].transform.Translate(0, 0, -1); //Move selected province forward
+            }
+
             provinceSet[provToDisplay._id].GetComponent<ProvinceRenderer>().FocusProvince(); //set new province into focus mode
 
             if (selectedProvince != -1)
             {
-                provinceSet[selectedProvince].transform.Translate(0, 0, 1); //Move previously selected province back into line
+                if (_provincesLoaded[selectedProvince]._biome == 0)
+                {
+                    provinceSet[selectedProvince].transform.Translate(0, 0, 15); //Move selected province back to original position
+                }
+                else
+                {
+                    provinceSet[selectedProvince].transform.Translate(0, 0, 1);  //Move selected province back to original position
+                }
+
                 provinceSet[selectedProvince].GetComponent<ProvinceRenderer>().UnfocusProvince(); //unfocus previous province
             }
 

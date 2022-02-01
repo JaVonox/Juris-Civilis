@@ -158,7 +158,7 @@ public class ProvinceRenderer : MonoBehaviour
         Color medVal = new Color(0.81f, 0.56f, 0 ,0.6f);
         Color lowVal = new Color(1, 0.014f, 0, 0.6f);
         Color NAVal = new Color(0, 0, 0,0.5f);
-
+         
         if (propType == "-1") //Use last map mode command
         {
             propType = _lastMapMode;

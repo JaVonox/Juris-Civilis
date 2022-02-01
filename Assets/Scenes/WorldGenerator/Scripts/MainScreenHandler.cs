@@ -16,6 +16,7 @@ public class MainScreenHandler : MonoBehaviour
 {
     //UI
     private Texture2D newTexture;
+    private Texture2D maskTexture;
     private GameObject startScreen;
     private GameObject panelScreen;
     private GameObject provinceDetailsScreen;
@@ -115,7 +116,8 @@ public class MainScreenHandler : MonoBehaviour
         string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving procedure
 
         Byte[] imageBytes = newTexture.EncodeToPNG();
-        SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes);
+        Byte[] maskBytes = maskTexture.EncodeToPNG();
+        SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes, ref maskBytes);
         SaveLoad.SavingScript.CreateProvinceMapping(filePath, ref currentMap.provinceSaveables);
         SaveLoad.SavingScript.CreateCultures(filePath, ref currentMap.cultures);
     }
@@ -192,13 +194,41 @@ public class MainScreenHandler : MonoBehaviour
         currentMap.IterateProvinces(ref pixSet, mapWidth, mapHeight, ref rnd); //Set all pixel values
         newTexture.SetPixels(pixSet, 0); //sets all pixels from the chunk values
 
+        CreateMaskMap(ref pixSet, mapWidth, mapHeight);
+
         currentMap.SetProvinceSaveables(ref rnd); //Create saveable properties now the map has been generated, as tiledata is no longer needed
         SaveFile(); //Save data to new file
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
-        loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture);
+        loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture, ref maskTexture);
         loadMap.GetComponent<LoadMap>().StartMap();
         actionsPanel.gameObject.SetActive(true); //reenable exit button
         Camera.GetComponent<CameraScript>().enabled = true; //Enable camera movement
     }
 
+    public void CreateMaskMap(ref Color[] pixSet, int width, int height) //Used to create a mask of the ocean to be displayed infront of the regular map
+    {
+        Color[] maskSet = new Color[width * height];
+        maskTexture = new Texture2D(width, height);
+
+        Color tColour = WorldProperties.BiomesObject.activeBiomes[0].GetColour();
+        Debug.Log("PRE");
+
+        int i = -1;
+        foreach(Color tCol in pixSet)
+        {
+            i++;
+            if(tCol == tColour)
+            {
+                maskSet[i] = tColour;
+            }
+            else
+            {
+                maskSet[i] = new Color(0, 0, 0, 0);
+            }
+        }
+
+        maskTexture.SetPixels(maskSet, 0);
+
+        Debug.Log("POST");
+    }
 }
