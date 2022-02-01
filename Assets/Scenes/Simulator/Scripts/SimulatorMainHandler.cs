@@ -60,7 +60,8 @@ public class SimulatorMainHandler : MonoBehaviour
                 byte[] mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
                 mapTexture.LoadImage(mapBytes);
 
-                SaveLoad.SavingScript.LoadProvinces(filePath, ref provinces);
+                SaveLoad.SavingScript.LoadEmpires(filePath, ref empires);
+                SaveLoad.SavingScript.LoadProvinces(filePath, ref provinces, ref empires);
                 SaveLoad.SavingScript.LoadCultures(filePath, ref cultures);
             }
 
@@ -72,7 +73,7 @@ public class SimulatorMainHandler : MonoBehaviour
             panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
             provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
             consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
-            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires);
+            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap);
             ToggleConsole();
 
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture);
@@ -107,7 +108,10 @@ public class SimulatorMainHandler : MonoBehaviour
     }
     void ExitScene()
     {
-        //Add Saving
+        if(provinces.Count > 0) //Check if the data has been loaded before saving
+        {
+            SaveLoad.SavingScript.SaveEmpires(filePath, ref empires, ref provinces); //Save empire data
+        }
         SceneManager.LoadScene("Main Menu", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }
 }

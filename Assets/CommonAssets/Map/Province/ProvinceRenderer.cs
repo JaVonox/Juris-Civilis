@@ -16,6 +16,9 @@ public class ProvinceRenderer : MonoBehaviour
     private Color currentColor;
     public int _meshSize; //Unity has a weird thing where it has to make an array copy every time it wants to check vertices length. Setting this once stops accessing taking up too much data
     public int _triSize;
+
+    //TODO this might take up space
+    public static string _lastMapMode;
     public Vector3 ReturnCentreUnitSpace(float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
         return ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
@@ -156,6 +159,15 @@ public class ProvinceRenderer : MonoBehaviour
         Color lowVal = new Color(1, 0.014f, 0, 0.6f);
         Color NAVal = new Color(0, 0, 0,0.5f);
 
+        if (propType == "-1") //Use last map mode command
+        {
+            propType = _lastMapMode;
+        }
+        else if(_lastMapMode != propType)
+        {
+            _lastMapMode = propType; //Update last stored map mode
+        }
+
         switch (propType)
         {
             case "Geography":
@@ -164,7 +176,7 @@ public class ProvinceRenderer : MonoBehaviour
                 return geoCol;
             case "National":
                 Color nationalCol;
-                if(targetProv._ownerEmpire != null)
+                if (targetProv._ownerEmpire != null)
                 {
                     nationalCol = targetProv._ownerEmpire._empireCol;
                     nationalCol.a = 1;
@@ -181,7 +193,7 @@ public class ProvinceRenderer : MonoBehaviour
                 provCols.a = 0.4f;
                 return provCols;
             case "Elevation":
-                switch(targetProv._elProp)
+                switch (targetProv._elProp)
                 {
                     case Property.High:
                         return lowVal;
@@ -251,8 +263,8 @@ public class ProvinceRenderer : MonoBehaviour
                 break;
             default:
                 break;
+    
         }
-
         return new Color(0.85f, 0, 0.6f,1); //Error Colour
 
     }

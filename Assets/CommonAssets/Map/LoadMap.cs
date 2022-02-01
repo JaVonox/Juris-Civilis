@@ -62,7 +62,7 @@ public class LoadMap : MonoBehaviour
     public void StartMap()
     {
         _mapModesPanel.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);
-        UpdateMapMode("Geography");
+        UpdateMapMode("National");
     }
     public void PreLoadMap()
     {

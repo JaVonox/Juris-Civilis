@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using System.Linq;
 using BiomeData;
 using WorldProperties;
 using UnityEngine;
+using Empires;
 
 namespace SaveLoad
 {
@@ -101,6 +103,14 @@ namespace SaveLoad
             xmlWriter.WriteEndDocument();
             xmlWriter.Close();
 
+            Directory.CreateDirectory(path + "Simulation/");
+            XmlWriter simData = XmlWriter.Create(path + "Simulation/Empires.xml", settings); //This will store the simulated empires data, but is left blank at this stage.
+
+            simData.WriteStartDocument();
+            simData.WriteStartElement("Empires");
+            simData.WriteEndDocument();
+            simData.Close();
+
             return path; //Return save file name
         }
         public static Dictionary<string, string> LoadBaseData(string filepath)
@@ -129,7 +139,7 @@ namespace SaveLoad
         {
             return File.ReadAllBytes(filepath + "/WorldData/Map.png"); ;
         }
-        public static void CreateProvinceMapping(string filePath, ref List<ProvinceObject> provinces) //draws just the mapping elements of a province
+        public static void CreateProvinceMapping(string filePath, ref List<ProvinceObject> provinces) //draws province elements to save file
         {
             //Write all province properties to an xml file
             XmlWriter xmlWriter = XmlWriter.Create(filePath + "WorldData/Provinces.xml", settings);
@@ -175,6 +185,13 @@ namespace SaveLoad
                 xmlWriter.WriteString(tProv._floraProp.ToString());
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("Owner");
+                if (tProv._ownerEmpire != null)
+                {
+                    xmlWriter.WriteString(tProv._ownerEmpire._id.ToString());
+                }
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Vertices"); //Province vertices
                 foreach (Vector3 vec in tProv._vertices)
                 {
@@ -200,7 +217,7 @@ namespace SaveLoad
             xmlWriter.Close();
         }
 
-        public static void LoadProvinces(string filepath, ref List<ProvinceObject> outputProvs)
+        public static void LoadProvinces(string filepath, ref List<ProvinceObject> outputProvs, ref List<Empire> empires)
         {
             outputProvs.Clear();
 
@@ -225,6 +242,15 @@ namespace SaveLoad
                 loadedProv._tmpProp = (Property)Enum.Parse(typeof(Property), provNode["Temperature"].InnerText);
                 loadedProv._rainProp = (Property)Enum.Parse(typeof(Property), provNode["Rainfall"].InnerText);
                 loadedProv._floraProp = (Property)Enum.Parse(typeof(Property), provNode["Flora"].InnerText);
+
+                if(provNode["Owner"].InnerText != "")
+                {
+                    loadedProv._ownerEmpire = empires[Convert.ToInt32(provNode["Owner"].InnerText)];
+                }
+                else
+                {
+                    loadedProv._ownerEmpire = null;
+                }
                 loadedProv._biome = Convert.ToInt32(provNode["BiomeID"].InnerText);
 
                 foreach (XmlNode verts in provNode["Vertices"].ChildNodes)
@@ -285,6 +311,90 @@ namespace SaveLoad
                 ColorUtility.TryParseHtmlString("#" + cultNode["Colour"].InnerText, out loadedCult._cultureCol); //Sets colour via hex code
 
                 outCulture.Add(loadedCult);
+            }
+        }
+
+        public static void SaveEmpires(string filepath, ref List<Empire> emp, ref List<ProvinceObject> provs)
+        {
+            //Writing to the empire file requires clearing of empire file and recreation
+            //Provs also need to be written to, in order to store prov data
+
+            {
+                XmlDocument empFile = new XmlDocument();
+                empFile.Load(filepath + "/Simulation/Empires.xml");
+                empFile.DocumentElement.RemoveAll(); //Clears the file
+                empFile.Save(filepath + "/Simulation/Empires.xml");
+            }
+
+            XmlWriter empData = XmlWriter.Create(filepath + "/Simulation/Empires.xml", settings); //Begin writing onto empires doc
+
+            empData.WriteStartElement("Empires");
+            foreach (Empire tEmpire in emp) //Write in all the empire data
+            {
+                empData.WriteStartElement("Empire");
+                empData.WriteAttributeString("ID", tEmpire._id.ToString());
+                empData.WriteAttributeString("Name", tEmpire._empireName.ToString());
+
+                empData.WriteStartElement("Colour");
+                empData.WriteString(ColorUtility.ToHtmlStringRGB(tEmpire._empireCol));
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Components"); //Component provs
+                foreach (int compProv in tEmpire._componentProvinceIDs)
+                {
+                    empData.WriteStartElement("ProvinceID");
+                    empData.WriteString(compProv.ToString());
+                    empData.WriteEndElement();
+                }
+                empData.WriteEndElement();
+
+                empData.WriteEndElement();
+            }
+            empData.WriteEndElement();
+            empData.Close();
+
+
+            //Loading of provinces to change empire data where applicable
+            XmlDocument provFile = new XmlDocument();
+            provFile.Load(filepath + "/WorldData/Provinces.xml");
+
+            List<ProvinceObject> provsToAmmend = provs.Where(p => p._ownerEmpire != null).ToList(); //Get all provs that are owned - these are the only data points that need ammending
+            //TODO this assumes land cannot become unpopulated. If this changes change this
+
+            foreach(ProvinceObject tProv in provsToAmmend)
+            {
+                XmlNode provNode = provFile.SelectSingleNode("/Provinces/Province[@ID='" + tProv._id.ToString() + "']"); //Get the node with the appropriate ID
+                provNode["Owner"].InnerText = tProv._ownerEmpire._id.ToString();
+            }
+
+            provFile.Save(filepath + "/WorldData/Provinces.xml");
+
+        }
+
+        public static void LoadEmpires(string filepath, ref List<Empire> outEmpires)
+        {
+            outEmpires.Clear();
+
+            XmlDocument xmlReader = new XmlDocument(); //Open xmlfile
+            xmlReader.Load(filepath + "/Simulation/Empires.xml");
+
+            XmlNode empireNodes = xmlReader.SelectSingleNode("Empires");
+
+            foreach (XmlNode empNode in empireNodes.ChildNodes)
+            {
+                //Xml file is by ID so add should order correctly
+                Empire loadedEmp = new Empire();
+                loadedEmp._id = Convert.ToInt32(empNode.Attributes["ID"].Value);
+                loadedEmp._empireName = empNode.Attributes["Name"].Value;
+
+                ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
+
+                foreach (XmlNode comps in empNode["Components"].ChildNodes)
+                {
+                    loadedEmp._componentProvinceIDs.Add(Convert.ToInt32(comps.InnerText));
+                }
+
+                outEmpires.Add(loadedEmp);
             }
         }
     }

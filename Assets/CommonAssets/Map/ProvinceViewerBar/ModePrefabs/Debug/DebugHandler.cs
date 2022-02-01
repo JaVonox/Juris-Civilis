@@ -18,7 +18,7 @@ public class DebugHandler : MonoBehaviour
 
         if(newSelection._ownerEmpire != null)
         {
-            ownerEmpireID.text = "Owner : Empire " + newSelection._ownerEmpire._id.ToString();
+            ownerEmpireID.text = "OwnerID : " + newSelection._ownerEmpire._id.ToString();
         }
         else
         {

@@ -18,6 +18,7 @@ public class ConsoleScript : MonoBehaviour
     private List<ProvinceObject> _provinces;
     private List<Culture> _cultures;
     private List<Empire> _empires;
+    private GameObject _loadedMap;
 
     private string LoggedText;
 
@@ -29,12 +30,13 @@ public class ConsoleScript : MonoBehaviour
         ResetInput();
     }
     
-    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires)
+    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject map)
     {
         refProvDetails = provDetails;
         _provinces = provs;
         _cultures = cultures;
         _empires = empires;
+        _loadedMap = map;
     }
     public void ResetInput()
     {
@@ -50,7 +52,7 @@ public class ConsoleScript : MonoBehaviour
     {
         if (textInput.text != "")
         {
-            LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires) + "\n" + LoggedText;
+            LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap) + "\n" + LoggedText;
             //Submit, add to log and then remove the text
             consoleLog.text = LoggedText;
             ResetInput();   

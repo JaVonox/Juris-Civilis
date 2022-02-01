@@ -54,7 +54,7 @@ public class SidebarHandler : MonoBehaviour
         }
         expandPanel.GetComponent<Button>().onClick.AddListener(PanelExpand);
 
-        ActivateMapMode(mapModes[0]); //Use geography viewer to start off map procedure
+        ActivateMapMode(mapModes[1]); //Use nation viewer to start off map procedure
     }
     void ActivateMapMode(Button sender)
     {

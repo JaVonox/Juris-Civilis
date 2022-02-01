@@ -17,11 +17,13 @@ public class ProvinceViewerBehaviour : MonoBehaviour
     private GameObject activeInfoScreen;
     public GameObject basicsPrefab;
     public GameObject debugPrefab;
+    public GameObject nationalPrefab;
     public enum InfoMode
     {
         Basic = 0,
         Debug = 1,
-        Close = 2
+        Close = 2,
+        National = 3,
     }
 
     private Dictionary<int, Action<ProvinceObject>> actionRef = new Dictionary<int, Action<ProvinceObject>>();
@@ -40,6 +42,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         actionRef.Add(0, LoadBasics);
         actionRef.Add(1, LoadDebug);
         actionRef.Add(2, CloseTab);
+        actionRef.Add(3, LoadNational);
     }
     public void AppendInfoModes()
     {
@@ -85,6 +88,14 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         activeInfoScreen = null;
         activeInfoScreen = Instantiate(debugPrefab, container.transform, false);
         activeInfoScreen.GetComponent<DebugHandler>().DebugInfo(newSelection, culturesSet);
+        container.SetActive(true);
+    }
+    public void LoadNational(ProvinceObject newSelection)
+    {
+        if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
+        activeInfoScreen = null;
+        activeInfoScreen = Instantiate(nationalPrefab, container.transform, false);
+        activeInfoScreen.GetComponent<NationalHandler>().NationalInfo(newSelection, culturesSet);
         container.SetActive(true);
     }
     private void InteriorUpdate() //Updates from script
