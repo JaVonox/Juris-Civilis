@@ -41,5 +41,49 @@ namespace Act
                 return false;
             }
         }
+        public static bool UpdateCultures(ref List<Culture> cultures, ref List<ProvinceObject> provs, ref List<Empire> empires)
+        {
+            foreach(Culture x in cultures)
+            {
+                x.CalculateEconomy(ref empires,provs);
+            }
+
+            return true;
+        }
+
+        public static bool UpdateMilitary(ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
+        {
+            foreach (Empire x in empires)
+            {
+                x.RecruitMil(ref cultures, ref provs);
+            }
+
+            return true;
+        }
+
+        public static bool UpdateTech(ref List<Empire> empires, int id, string type)
+        { 
+            switch(type)
+            {
+                case "Military":
+                    empires[id].milTech += 1;
+                    return true;
+                case "Economic":
+                    empires[id].ecoTech += 1;
+                    return true;
+                case "Diplomacy":
+                    empires[id].dipTech += 1;
+                    return true;
+                case "Logistics":
+                    empires[id].logTech += 1;
+                    return true;
+                case "Culture":
+                    empires[id].culTech += 1;
+                    return true;
+                default:
+                    return false;
+            }
+
+        }
     }
 }

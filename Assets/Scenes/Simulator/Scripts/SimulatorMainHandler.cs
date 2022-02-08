@@ -114,6 +114,7 @@ public class SimulatorMainHandler : MonoBehaviour
         if(provinces.Count > 0) //Check if the data has been loaded before saving
         {
             SaveLoad.SavingScript.SaveEmpires(filePath, ref empires, ref provinces); //Save empire data
+            SaveLoad.SavingScript.CreateCultures(filePath, ref cultures);
         }
         SceneManager.LoadScene("Main Menu", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }

@@ -527,6 +527,7 @@ MonoBehaviour:
   basicsPrefab: {fileID: 1094365688908746563, guid: 6ec2e950db8959349b02dbb7cc9af41b, type: 3}
   debugPrefab: {fileID: 2206794159184246151, guid: a55fdfb49892ee4498f78569ecf27e17, type: 3}
   nationalPrefab: {fileID: 1094365688908746563, guid: 7ffc8d42257c40448b7a220be8e684fd, type: 3}
+  detailsPrefab: {fileID: 175778358892720898, guid: 1e0c9ca6b1736de499e4415d74d8c812, type: 3}
 --- !u!1 &7895103039221077389
 GameObject:
   m_ObjectHideFlags: 0

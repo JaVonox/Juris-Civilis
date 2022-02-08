@@ -95,7 +95,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
         activeInfoScreen = null;
         activeInfoScreen = Instantiate(nationalPrefab, container.transform, false);
-        activeInfoScreen.GetComponent<NationalHandler>().NationalInfo(newSelection, culturesSet);
+        activeInfoScreen.GetComponent<NationalHandler>().NationalInfo(ref newSelection, ref culturesSet);
         container.SetActive(true);
     }
     private void InteriorUpdate() //Updates from script

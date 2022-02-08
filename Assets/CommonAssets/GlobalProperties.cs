@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System;
 using UnityEngine;
 using BiomeData;
 using Empires;
@@ -152,10 +154,11 @@ namespace WorldProperties
         public string _id;
         public Color _cultureCol;
         public string _name;
+        public float _economyScore; //total of techs of all empires inside = economy score
         public Culture(string id, ref System.Random rnd)
         {
             _id = id;
-
+            _economyScore = 0;
             if (_id == "0") { new Color(0, 0, 0); }
             else { _cultureCol = new Color((float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255); }
         }
@@ -163,6 +166,41 @@ namespace WorldProperties
         public Culture()
         {
             //For loading in cultures
+        }
+
+        public void CalculateEconomy(ref List<Empire> empires, List<ProvinceObject> provinces) //Gets the total economic score of a region and set all components scores. done every year
+        {
+            int myID = Convert.ToInt32(_id);
+            List<Empire> applicableEmpires = empires.Where(t => t._cultureID == myID).ToList();
+
+            //Total of all techs
+            if (applicableEmpires.Count != 0)
+            {
+                _economyScore = applicableEmpires.Sum(x => x.ReturnTechTotal());
+
+                //ecoTech min/max
+                float ecoTechMax = applicableEmpires.Max(x => (float)x.ecoTech);
+
+                ecoTechMax += 0.001f; 
+
+                //empire size min/max
+                float empSizeMax = (float)applicableEmpires.Max(x => x.ReturnPopScore(provinces));
+                empSizeMax += 0.001f;
+
+                float sumScore = applicableEmpires.Sum(x => (float)(Math.PI * (Math.Sin((float)(x.ecoTech) / ecoTechMax))) + ((float)(Math.Log10(100 *(x.ReturnPopScore(provinces)/ empSizeMax) + 0.01f))));
+
+                foreach (Empire tEmp in applicableEmpires)
+                {
+                    //Set the percentage power of each empire within the culture group
+                    float myEmpSize = tEmp.ReturnPopScore(provinces);
+
+                    float myTechScore = (float)(Math.PI * (Math.Sin((float)(tEmp.ecoTech) / ecoTechMax)));
+                    float mySizeScore = (float)(Math.Log10(100 * ((myEmpSize / empSizeMax) + 0.01f)));
+                    float myScore = myTechScore + mySizeScore;
+
+                    tEmp.percentageEco = (float)(myScore) / (float)(sumScore);
+                }
+            }
         }
     }
 

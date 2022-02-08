@@ -111,6 +111,12 @@ namespace SaveLoad
             simData.WriteEndDocument();
             simData.Close();
 
+            XmlWriter culData = XmlWriter.Create(path + "WorldData/Cultures.xml", settings); //Makes blank culture doc
+            culData.WriteStartDocument();
+            culData.WriteStartElement("Cultures");
+            culData.WriteEndDocument();
+            culData.Close();
+
             return path; //Return save file name
         }
         public static Dictionary<string, string> LoadBaseData(string filepath)
@@ -278,8 +284,15 @@ namespace SaveLoad
         }
         public static void CreateCultures(string filePath, ref List<Culture> cultures) //draws just the mapping elements of a province
         {
+            {
+                XmlDocument empFile = new XmlDocument();
+                empFile.Load(filePath + "/WorldData/Cultures.xml");
+                empFile.DocumentElement.RemoveAll(); //Clears the file
+                empFile.Save(filePath + "/WorldData/Cultures.xml");
+            }
+
             //Write all province properties to an xml file
-            XmlWriter xmlWriter = XmlWriter.Create(filePath + "WorldData/Cultures.xml", settings);
+            XmlWriter xmlWriter = XmlWriter.Create(filePath + "/WorldData/Cultures.xml", settings);
             xmlWriter.WriteStartDocument();
 
             xmlWriter.WriteStartElement("Cultures");
@@ -291,6 +304,10 @@ namespace SaveLoad
 
                 xmlWriter.WriteStartElement("Colour");
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tCult._cultureCol));
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteStartElement("Economy");
+                xmlWriter.WriteString(tCult._economyScore.ToString());
                 xmlWriter.WriteEndElement();
 
                 xmlWriter.WriteEndElement();
@@ -315,7 +332,7 @@ namespace SaveLoad
                 Culture loadedCult = new Culture();
                 loadedCult._id = cultNode.Attributes["ID"].Value;
                 loadedCult._name = cultNode.Attributes["Name"].Value;
-
+                loadedCult._economyScore = (float)(Convert.ToDouble(cultNode["Economy"].Value));
                 ColorUtility.TryParseHtmlString("#" + cultNode["Colour"].InnerText, out loadedCult._cultureCol); //Sets colour via hex code
 
                 outCulture.Add(loadedCult);
@@ -347,6 +364,26 @@ namespace SaveLoad
                 empData.WriteString(ColorUtility.ToHtmlStringRGB(tEmpire._empireCol));
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("CultureID");
+                empData.WriteString(tEmpire._cultureID.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("MilitarySize");
+                empData.WriteString(tEmpire.curMil.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("MaxMil");
+                empData.WriteString(tEmpire.maxMil.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("ReligionID");
+                empData.WriteString(tEmpire.religionID.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("PercentageEco");
+                empData.WriteString(tEmpire.percentageEco.ToString());
+                empData.WriteEndElement();
+
                 empData.WriteStartElement("Components"); //Component provs
                 foreach (int compProv in tEmpire._componentProvinceIDs)
                 {
@@ -356,6 +393,31 @@ namespace SaveLoad
                 }
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("Technology"); //Tech scores
+
+                empData.WriteStartElement("Military");
+                empData.WriteString(tEmpire.milTech.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Economic");
+                empData.WriteString(tEmpire.ecoTech.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Diplomacy");
+                empData.WriteString(tEmpire.dipTech.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Logistics");
+                empData.WriteString(tEmpire.logTech.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Culture");
+                empData.WriteString(tEmpire.culTech.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteEndElement();
+
+                //TODO add ruler data
                 empData.WriteEndElement();
             }
             empData.WriteEndElement();
@@ -395,12 +457,25 @@ namespace SaveLoad
                 loadedEmp._id = Convert.ToInt32(empNode.Attributes["ID"].Value);
                 loadedEmp._empireName = empNode.Attributes["Name"].Value;
 
+                loadedEmp._cultureID = Convert.ToInt32(empNode["CultureID"].InnerText);
+                loadedEmp.curMil = (float)(Convert.ToDouble(empNode["MilitarySize"].InnerText));
+                loadedEmp.maxMil = (float)(Convert.ToDouble(empNode["MaxMil"].InnerText));
+                loadedEmp.religionID = Convert.ToInt32(empNode["ReligionID"].InnerText);
+                loadedEmp.percentageEco = (float)Convert.ToDouble(empNode["PercentageEco"].InnerText);
+
                 ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
 
                 foreach (XmlNode comps in empNode["Components"].ChildNodes)
                 {
                     loadedEmp._componentProvinceIDs.Add(Convert.ToInt32(comps.InnerText));
                 }
+
+                XmlNodeList techNodes = empNode["Technology"].ChildNodes;
+                loadedEmp.milTech = Convert.ToInt32(techNodes[0].InnerText);
+                loadedEmp.ecoTech = Convert.ToInt32(techNodes[1].InnerText);
+                loadedEmp.dipTech = Convert.ToInt32(techNodes[2].InnerText);
+                loadedEmp.logTech = Convert.ToInt32(techNodes[3].InnerText);
+                loadedEmp.culTech = Convert.ToInt32(techNodes[4].InnerText);
 
                 outEmpires.Add(loadedEmp);
             }

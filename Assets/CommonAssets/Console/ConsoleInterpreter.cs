@@ -39,6 +39,17 @@ namespace ConsoleInterpret
 
                         if (Act.Actions.ConquerLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])])) { ForceUpdate(ref loadedMap); return "Added new land"; }
                         else { return "Could not add land to empire"; }
+                    case "ECOUPDATE":
+                        Act.Actions.UpdateCultures(ref cultures, ref provs, ref empires);
+                        return "Updated economics data";
+                    case "TECHUP": //TECHUP EMPIREID TYPE
+                        if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                        if (!ValueLimiter(commandSplit[1], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                        if (Act.Actions.UpdateTech(ref empires, Convert.ToInt32(commandSplit[1]), commandSplit[2])) { return "Updated Tech"; } 
+                        else { return "Failed to update tech"; }
+                    case "SPAWNMIL": //SPAWNMIL
+                        Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provs);
+                        return "Spawned new military units";
                     default:
                         return "Invalid command";
                 }
