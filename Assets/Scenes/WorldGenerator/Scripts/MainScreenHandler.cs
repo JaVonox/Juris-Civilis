@@ -113,13 +113,13 @@ public class MainScreenHandler : MonoBehaviour
     }
     void SaveFile() //To be called after generation has ended
     {
-        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight); //Saving procedure
+        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, false, "",1,1,1); //Saving procedure
 
         Byte[] imageBytes = newTexture.EncodeToPNG();
         Byte[] maskBytes = maskTexture.EncodeToPNG();
         SaveLoad.SavingScript.CreateMap(filePath, ref imageBytes, ref maskBytes);
         SaveLoad.SavingScript.CreateProvinceMapping(filePath, ref currentMap.provinceSaveables);
-        SaveLoad.SavingScript.CreateCultures(filePath, ref currentMap.cultures);
+        SaveLoad.SavingScript.CreateCultures(filePath, ref currentMap.cultures, false);
     }
 
     void UpdateLabel() //using this in a function called by the queuedFunctions array stops there from being unnecessary comparitors
@@ -211,7 +211,6 @@ public class MainScreenHandler : MonoBehaviour
         maskTexture = new Texture2D(width, height);
 
         Color tColour = WorldProperties.BiomesObject.activeBiomes[0].GetColour();
-        Debug.Log("PRE");
 
         int i = -1;
         foreach(Color tCol in pixSet)
@@ -229,6 +228,5 @@ public class MainScreenHandler : MonoBehaviour
 
         maskTexture.SetPixels(maskSet, 0);
 
-        Debug.Log("POST");
     }
 }

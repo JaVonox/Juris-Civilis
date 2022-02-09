@@ -187,16 +187,14 @@ namespace WorldProperties
                 float empSizeMax = (float)applicableEmpires.Max(x => x.ReturnPopScore(provinces));
                 empSizeMax += 0.001f;
 
-                float sumScore = applicableEmpires.Sum(x => (float)(Math.PI * (Math.Sin((float)(x.ecoTech) / ecoTechMax))) + ((float)(Math.Log10(100 *(x.ReturnPopScore(provinces)/ empSizeMax) + 0.01f))));
+                float sumScore = applicableEmpires.Sum(x => (float)(Math.PI * (Math.Sin((float)(x.ecoTech) / ecoTechMax))) * 2+((float)(Math.Log10((x.ReturnPopScore(provinces)/ empSizeMax)))));
 
                 foreach (Empire tEmp in applicableEmpires)
                 {
                     //Set the percentage power of each empire within the culture group
                     float myEmpSize = tEmp.ReturnPopScore(provinces);
 
-                    float myTechScore = (float)(Math.PI * (Math.Sin((float)(tEmp.ecoTech) / ecoTechMax)));
-                    float mySizeScore = (float)(Math.Log10(100 * ((myEmpSize / empSizeMax) + 0.01f)));
-                    float myScore = myTechScore + mySizeScore;
+                    float myScore = (float)(Math.PI * (Math.Sin((float)(tEmp.ecoTech) / ecoTechMax))) * 2 + ((float)(Math.Log10((tEmp.ReturnPopScore(provinces) / empSizeMax))));
 
                     tEmp.percentageEco = (float)(myScore) / (float)(sumScore);
                 }

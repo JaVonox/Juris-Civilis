@@ -20,17 +20,6 @@ namespace SaveLoad
             settings.Indent = true;
         }
 
-        private static byte[] FormatData(Dictionary<string, string> data)
-        {
-            string collatedData = "";
-
-            foreach (KeyValuePair<string, string> subject in data)
-            {
-                collatedData += subject.Key + ":" + subject.Value + ",\n";
-            }
-
-            return Encoding.UTF8.GetBytes(collatedData);
-        }
         public static Dictionary<string, string> FindLoadables()
         {
             Dictionary<string, string> targetFiles = new Dictionary<string, string>(); //Name/path
@@ -53,7 +42,7 @@ namespace SaveLoad
 
             return targetFiles;
         }
-        public static string CreateFile(int worldWidth, int worldHeight) //Creates a new save file structure
+        public static string CreateFile(int worldWidth, int worldHeight, bool overwrite, string prePath, int day, int month, int year) //Creates a new save file structure
         {
 
             string path;
@@ -65,24 +54,33 @@ namespace SaveLoad
                     Directory.CreateDirectory(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/");
                 }
 
-
-                while (true) //Find the next available world save folder
+                if (!overwrite)
                 {
-                    if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate))
+                    while (true) //Find the next available world save folder
                     {
-                        path = System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate + "/";
-                        break;
-                    }
+                        if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate))
+                        {
+                            path = System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate + "/";
+                            Directory.CreateDirectory(path + "WorldData/");
+                            break;
+                        }
 
-                    iterate++;
+                        iterate++;
+                    }
+                }
+                else
+                {
+                    XmlDocument empFile = new XmlDocument();
+                    path = prePath + "/";
+                    empFile.Load(path + "/World.sav");
+                    empFile.DocumentElement.RemoveAll(); //Clears the file
+                    empFile.Save(path + "/World.sav");
                 }
 
             }
 
-            Directory.CreateDirectory(path + "WorldData/");
-
             //Write to the xml config file
-            XmlWriter xmlWriter = XmlWriter.Create(path + "World.sav", settings);
+            XmlWriter xmlWriter = XmlWriter.Create(path + "/World.sav", settings);
             xmlWriter.WriteStartDocument();
 
             xmlWriter.WriteStartElement("World");
@@ -98,25 +96,34 @@ namespace SaveLoad
             xmlWriter.WriteStartElement("Height");
             xmlWriter.WriteString(worldHeight.ToString());
             xmlWriter.WriteEndElement();
+
+            xmlWriter.WriteStartElement("Date");
+            xmlWriter.WriteAttributeString("Year", year.ToString());
+            xmlWriter.WriteAttributeString("Month", month.ToString());
+            xmlWriter.WriteAttributeString("Day", day.ToString());
+            xmlWriter.WriteEndElement();
+
             xmlWriter.WriteEndElement();
 
             xmlWriter.WriteEndDocument();
             xmlWriter.Close();
 
-            Directory.CreateDirectory(path + "Simulation/");
-            XmlWriter simData = XmlWriter.Create(path + "Simulation/Empires.xml", settings); //This will store the simulated empires data, but is left blank at this stage.
+            if (!overwrite)
+            {
+                Directory.CreateDirectory(path + "Simulation/");
+                XmlWriter simData = XmlWriter.Create(path + "Simulation/Empires.xml", settings); //This will store the simulated empires data, but is left blank at this stage.
 
-            simData.WriteStartDocument();
-            simData.WriteStartElement("Empires");
-            simData.WriteEndDocument();
-            simData.Close();
+                simData.WriteStartDocument();
+                simData.WriteStartElement("Empires");
+                simData.WriteEndDocument();
+                simData.Close();
 
-            XmlWriter culData = XmlWriter.Create(path + "WorldData/Cultures.xml", settings); //Makes blank culture doc
-            culData.WriteStartDocument();
-            culData.WriteStartElement("Cultures");
-            culData.WriteEndDocument();
-            culData.Close();
-
+                XmlWriter culData = XmlWriter.Create(path + "WorldData/Cultures.xml", settings); //Makes blank culture doc
+                culData.WriteStartDocument();
+                culData.WriteStartElement("Cultures");
+                culData.WriteEndDocument();
+                culData.Close();
+            }
             return path; //Return save file name
         }
         public static Dictionary<string, string> LoadBaseData(string filepath)
@@ -130,6 +137,9 @@ namespace SaveLoad
             properties.Add("Width", propNode["Width"].InnerText);
             properties.Add("Height", propNode["Height"].InnerText);
             properties.Add("Name", propNode["Name"].InnerText);
+            properties.Add("Year", propNode["Date"].Attributes["Year"].Value);
+            properties.Add("Month", propNode["Date"].Attributes["Month"].Value);
+            properties.Add("Day", propNode["Date"].Attributes["Day"].Value);
 
             return properties;
         }
@@ -282,12 +292,13 @@ namespace SaveLoad
             }
 
         }
-        public static void CreateCultures(string filePath, ref List<Culture> cultures) //draws just the mapping elements of a province
+        public static void CreateCultures(string filePath, ref List<Culture> cultures, bool isUpdate) //draws just the mapping elements of a province
         {
+            if(isUpdate)
             {
                 XmlDocument empFile = new XmlDocument();
                 empFile.Load(filePath + "/WorldData/Cultures.xml");
-                empFile.DocumentElement.RemoveAll(); //Clears the file
+                empFile.DocumentElement.RemoveAll();
                 empFile.Save(filePath + "/WorldData/Cultures.xml");
             }
 
@@ -332,7 +343,7 @@ namespace SaveLoad
                 Culture loadedCult = new Culture();
                 loadedCult._id = cultNode.Attributes["ID"].Value;
                 loadedCult._name = cultNode.Attributes["Name"].Value;
-                loadedCult._economyScore = (float)(Convert.ToDouble(cultNode["Economy"].Value));
+                loadedCult._economyScore = (float)(Convert.ToDouble(cultNode["Economy"].InnerText));
                 ColorUtility.TryParseHtmlString("#" + cultNode["Colour"].InnerText, out loadedCult._cultureCol); //Sets colour via hex code
 
                 outCulture.Add(loadedCult);

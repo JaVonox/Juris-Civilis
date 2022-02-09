@@ -70,7 +70,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         }
         public float ExpectedMilIncrease(ref List<Culture> cultures)
         {
-            return Math.Max(1, (float)Math.Ceiling((cultures[_cultureID]._economyScore * percentageEco) * (1 + ((float)(logTech) * 0.5f))));
+            return (float)Math.Floor(Math.Min(maxMil / 3,Math.Max(1, (float)Math.Ceiling(((cultures[_cultureID]._economyScore / (255/(float)(logTech))) * percentageEco)))));
         }
         public void RecruitMil(ref List<Culture> cultures, ref List<ProvinceObject> provinces) //Every month recalculate military gain
         {

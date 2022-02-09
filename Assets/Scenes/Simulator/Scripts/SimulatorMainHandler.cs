@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement; //Scene switching data
 using WorldProperties;
 using Empires;
+using Calendar;
 public class SimulatorMainHandler : MonoBehaviour
 {
     public Button exitButton;
@@ -20,12 +21,25 @@ public class SimulatorMainHandler : MonoBehaviour
 
     int mapWidth = 6000;
     int mapHeight = 4000;
+    int year = 0;
+    int month = 0;
+    int day = 0;
 
     public GameObject startPrefab;
     public GameObject panelPrefab;
     public GameObject provinceDetailsPrefab;
     public GameObject loadMapPrefab;
     public GameObject consolePrefab;
+
+    //Time controls
+    public Button pause;
+    public Button normal;
+    public Button fast;
+    public Button veryFast;
+    public Text currentDate;
+    private Calendar.Calendar.timeSettings simSpeed;
+    private bool processing = false;
+    private float timePassed = 0;
 
     private GameObject loadMap;
     private string filePath;
@@ -45,6 +59,12 @@ public class SimulatorMainHandler : MonoBehaviour
 
         startScreen = Instantiate(startPrefab, Camera.transform, false); //Create new start screen instance
         startScreen.GetComponent<FileBrowserBehaviour>().startBtn.onClick.AddListener(delegate { StartLoad(); });
+
+        pause.interactable = false;
+        normal.interactable = false;
+        fast.interactable = false;
+        veryFast.interactable = false;
+        simSpeed = Calendar.Calendar.timeSettings.Pause;
     }
     void StartLoad()
     {
@@ -56,6 +76,9 @@ public class SimulatorMainHandler : MonoBehaviour
                 Dictionary<string, string> prop = SaveLoad.SavingScript.LoadBaseData(filePath);
                 mapWidth = Convert.ToInt32(prop["Width"]);
                 mapHeight = Convert.ToInt32(prop["Height"]);
+                year = Convert.ToInt32(prop["Year"]);
+                month = Convert.ToInt32(prop["Month"]);
+                day = Convert.ToInt32(prop["Day"]);
 
                 mapTexture = new Texture2D(mapWidth, mapHeight);
                 (byte[],byte[]) mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
@@ -82,6 +105,14 @@ public class SimulatorMainHandler : MonoBehaviour
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture);
             loadMap.GetComponent<LoadMap>().StartMap();
 
+            pause.onClick.AddListener(delegate { Calendar.Calendar.PauseTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
+            normal.onClick.AddListener(delegate { Calendar.Calendar.NormalTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
+            fast.onClick.AddListener(delegate { Calendar.Calendar.FastTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
+            veryFast.onClick.AddListener(delegate { Calendar.Calendar.VeryFastTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
+
+            Calendar.Calendar.PauseTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); //auto pause
+            currentDate.text = Calendar.Calendar.SetDate(0, ref year, ref month, ref day);
+
         }
         catch (Exception ex)
         {
@@ -89,10 +120,32 @@ public class SimulatorMainHandler : MonoBehaviour
             //Add error handling here TODO
         }
     }
-    // Update is called once per frame
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.BackQuote) && consoleObject != null) { ToggleConsole(); } //on ` key press open console
+
+        timePassed += Time.deltaTime;
+        if(simSpeed != Calendar.Calendar.timeSettings.Pause && processing == false && timePassed > Calendar.Calendar.runSpeed[simSpeed])
+        {
+            timePassed = 0;
+            currentDate.text = Calendar.Calendar.SetDate(1, ref year, ref month, ref day);
+
+            processing = true;
+            
+            //time events
+            if(day == 1)
+            {
+                Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
+
+                if (month % 3 == 0)
+                {
+                    Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provinces);
+                }
+            }
+
+            processing = false;
+            
+        }
     }
     void ToggleConsole()
     {
@@ -111,11 +164,17 @@ public class SimulatorMainHandler : MonoBehaviour
     }
     void ExitScene()
     {
-        if(provinces.Count > 0) //Check if the data has been loaded before saving
+        if(simSpeed != Calendar.Calendar.timeSettings.Pause)
+        {
+            Calendar.Calendar.PauseTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); //auto pause
+        }
+        if (provinces.Count > 0) //Check if the data has been loaded before saving
         {
             SaveLoad.SavingScript.SaveEmpires(filePath, ref empires, ref provinces); //Save empire data
-            SaveLoad.SavingScript.CreateCultures(filePath, ref cultures);
+            SaveLoad.SavingScript.CreateCultures(filePath, ref cultures, true);
+            SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, true, filePath,day,month,year);
         }
         SceneManager.LoadScene("Main Menu", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }
+
 }

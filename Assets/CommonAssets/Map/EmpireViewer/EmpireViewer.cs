@@ -47,7 +47,7 @@ public class EmpireViewer : MonoBehaviour
         }
         empireName.text = target._empireName;
         empireFlag.color = target._empireCol;
-        curMilScore.text = "Military: " + target.curMil.ToString() + "/" + target.maxMil.ToString();
+        curMilScore.text = "Military Power: " + target.curMil.ToString() + "/" + target.maxMil.ToString();
         projectedMilScore.text = "Projected Growth:" + target.ExpectedMilIncrease(ref cults).ToString();
 
         milTech.text = "Military Tech: " + target.milTech;
@@ -58,7 +58,7 @@ public class EmpireViewer : MonoBehaviour
 
         culName.text = cults[target._cultureID]._name;
         culEco.text = "Economy: " + Math.Round(cults[target._cultureID]._economyScore,2).ToString() + " units";
-        cut.text = "Contribution: " + Math.Round(target.percentageEco*100,2) + "%";
+        cut.text = "Contribution: " + (target.percentageEco*100 >= 1 ? Math.Round(target.percentageEco * 100, 2).ToString() : "<1") + "%";
     }
     private void KillViewer()
     {
@@ -73,9 +73,10 @@ public class EmpireViewer : MonoBehaviour
         {
             updateCounter += Time.deltaTime;
 
-            if (updateCounter >= 5)
+            if (updateCounter >= 0.5f)
             {
                 UpdateData(ref lastEmpire, ref lastCults);
+                updateCounter = 0;
             }
         }
     }

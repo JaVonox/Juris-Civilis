@@ -18,8 +18,15 @@ namespace Act
         public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires)
         {
             if(provs[provID]._biome == 0) { return false; } //Prevent ocean takeover
-            empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID]));
-            return true;
+            if (provs[provID]._ownerEmpire == null)
+            {
+                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID]));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public static bool ConquerLand(ProvinceObject targetProv, Empire aggressorEmpire) //Used to try and conquer land
