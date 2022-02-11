@@ -114,12 +114,13 @@ public class SidebarHandler : MonoBehaviour
             //End of animation sequence
             animating = false;
             movementLeft = 0;
-            expandPanel.GetComponent<Button>().interactable = true; //Reenables the button to switch animation
+            expandPanel.GetComponent<Button>().enabled = true; //Reenables the button to switch animation
 
             foreach(Button btn in mapModes)
             {
-                btn.GetComponent<Button>().interactable = true;
-            }    
+                btn.GetComponent<Button>().enabled = true;
+            }
+            resetCamera.enabled = true;
         }
         else
         {
@@ -132,12 +133,13 @@ public class SidebarHandler : MonoBehaviour
     {
         if (!animating) //Start of animation sequence
         {
-            expandPanel.GetComponent<Button>().interactable = false;
+            expandPanel.GetComponent<Button>().enabled = false;
 
             foreach (Button btn in mapModes)
             {
-                btn.GetComponent<Button>().interactable = false;
+                btn.GetComponent<Button>().enabled = false;
             }
+            resetCamera.enabled = false;
 
             initPos = new Vector3(panel.transform.position.x, panel.transform.position.y, panel.transform.position.z);
             movementLeft = 150;
@@ -156,6 +158,7 @@ public class SidebarHandler : MonoBehaviour
     void CameraReset(GameObject tCam)
     {
         tCam.transform.position = new Vector3(0, 0, -10); //Reset the camera position
+        tCam.GetComponent<Camera>().orthographicSize = 20;
     }
 
 }

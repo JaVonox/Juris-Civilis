@@ -29,7 +29,7 @@ namespace ConsoleInterpret
                         if (provs.Count < Convert.ToInt32(commandSplit[1])) { return "Unrecognised integer ID supplied"; }
                         if (!ValueLimiter(commandSplit[1],0,provs.Count() - 1)) { return "Invalid ID parameters"; }
 
-                        if (Act.Actions.SpawnEmpire(ref provs, Convert.ToInt32(commandSplit[1]),ref empires)) { ForceUpdate(ref loadedMap); return "Spawned new empire"; }
+                        if (Act.Actions.SpawnEmpire(ref provs, Convert.ToInt32(commandSplit[1]),ref empires, ref cultures)) { ForceUpdate(ref loadedMap); return "Spawned new empire"; }
                         else { return "Could not spawn an empire"; }
                     case "ADD": //ADD (PROVID) (EMPIREID) - adds to empire without cost or restrictions
                         if (commandSplit.Count < 3) { return "Insufficient parameters"; }
@@ -77,6 +77,7 @@ namespace ConsoleInterpret
             }
             catch(Exception ex)
             {
+                Debug.Log(ex);
                 return "Error - " + ex.Message;
             }
         }

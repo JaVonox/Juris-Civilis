@@ -193,8 +193,8 @@ public class ProvinceRenderer : MonoBehaviour
                     if (targetProv._ownerEmpire != null)
                     {
                         nationalCol = targetProv._ownerEmpire._empireCol;
-                        if (!isFocused) { nationalCol.a = 0.8f; } else { nationalCol.a = 0.9f; };
-                        unfocusedAlpha = 0.8f;
+                        if (!isFocused) { nationalCol.a = 0.85f; } else { nationalCol.a = 0.9f; };
+                        unfocusedAlpha = 0.85f;
                     }
                     else
                     {
@@ -210,61 +210,85 @@ public class ProvinceRenderer : MonoBehaviour
                     unfocusedAlpha = 0.4f;
                     return provCols;
                 case "Elevation":
-                    unfocusedAlpha = lowVal.a;
+                    Color eCol = new Color(0,0,0,1);
                     switch (targetProv._elProp)
                     {
                         case Property.High:
-                            return lowVal;
+                            eCol = lowVal;
+                            break;
                         case Property.Medium:
-                            return medVal;
+                            eCol = medVal;
+                            break;
                         case Property.Low:
-                            return highVal;
+                            eCol = highVal;
+                            break;
                         case Property.NA:
-                            return NAVal;
+                            eCol = NAVal;
+                            break;
                     }
-                    break;
+                    if (!isFocused) { eCol.a = 0.6f; } else { eCol.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return eCol;
                 case "Temperature":
-                    unfocusedAlpha = lowVal.a;
+                    Color tCol = new Color(0, 0, 0, 1);
                     switch (targetProv._tmpProp)
                     {
                         case Property.High:
-                            return highVal;
+                            tCol = highVal;
+                            break;
                         case Property.Medium:
-                            return medVal;
+                            tCol = medVal;
+                            break;
                         case Property.Low:
-                            return lowVal;
+                            tCol = lowVal;
+                            break;
                         case Property.NA:
-                            return NAVal;
+                            tCol = NAVal;
+                            break;
                     }
-                    break;
+                    if (!isFocused) { tCol.a = 0.6f; } else { tCol.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return tCol;
                 case "Rainfall":
-                    unfocusedAlpha = lowVal.a;
+                    Color rCol = new Color(0, 0, 0, 1);
                     switch (targetProv._rainProp)
                     {
                         case Property.High:
-                            return highVal;
+                            rCol = highVal;
+                            break;
                         case Property.Medium:
-                            return medVal;
+                            rCol = medVal;
+                            break;
                         case Property.Low:
-                            return lowVal;
+                            rCol = lowVal;
+                            break;
                         case Property.NA:
-                            return NAVal;
+                            rCol = NAVal;
+                            break;
                     }
-                    break;
+                    if (!isFocused) { rCol.a = 0.6f; } else { rCol.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return rCol;
                 case "Flora":
-                    unfocusedAlpha = lowVal.a;
+                    Color fCol = new Color(0, 0, 0, 1);
                     switch (targetProv._floraProp)
                     {
                         case Property.High:
-                            return highVal;
+                            fCol = highVal;
+                            break;
                         case Property.Medium:
-                            return medVal;
+                            fCol = medVal;
+                            break;
                         case Property.Low:
-                            return lowVal;
+                            fCol = lowVal;
+                            break;
                         case Property.NA:
-                            return NAVal;
+                            fCol = NAVal;
+                            break;
                     }
-                    break;
+                    if (!isFocused) { fCol.a = 0.6f; } else { fCol.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return fCol;
                 case "Culture":
                     Color cultCol = cultures[targetProv._cultureID]._cultureCol;
                     if (!isFocused) { cultCol.a = 0.7f; } else { cultCol.a = 0.9f; };
@@ -365,6 +389,7 @@ public class ProvinceRenderer : MonoBehaviour
 
         Color tmpCol = currentColor;
         tmpCol.a = unfocusedAlpha;
+
         for (int c = 0; c < _meshSize; c++)
         {
             colours[c] = tmpCol; //Returns province to initial colours

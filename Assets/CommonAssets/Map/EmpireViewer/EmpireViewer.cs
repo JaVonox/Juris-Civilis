@@ -7,7 +7,7 @@ using BiomeData;
 using Empires;
 using WorldProperties;
 using SaveLoad;
-
+using Calendar;
 public class EmpireViewer : MonoBehaviour
 {
     public Button exitButton;
@@ -40,6 +40,14 @@ public class EmpireViewer : MonoBehaviour
     private Empire lastEmpire;
     private List<Culture> lastCults;
     private bool isActive = false;
+
+    private enum Suffix
+    {
+        th=0,
+        st=1,
+        nd=2,
+        rd=3,
+    }
     public void UpdateData(ref Empire target, ref List<Culture> cults)
     {
         updateCounter = 0;
@@ -65,8 +73,14 @@ public class EmpireViewer : MonoBehaviour
         culEco.text = "Economy: " + Math.Round(cults[target._cultureID]._economyScore,2).ToString() + " units";
         cut.text = "Contribution: " + (target.percentageEco*100 >= 1 ? Math.Round(target.percentageEco * 100, 2).ToString() : "<1") + "%";
 
-        rulerName.text = "Ruler: No Ruler";
-        rulerAge.text = "Age : N/A";
+        Ruler tRuler = target.curRuler;
+
+        rulerName.text = "Ruler: " + tRuler.fName + " " + tRuler.lName;
+
+        char[] splitBDay = tRuler.birthday.day.ToString().ToCharArray();
+        int suffixID = Convert.ToInt32(splitBDay[splitBDay.Length - 1].ToString());
+        string suffix = suffixID < 4 || (splitBDay.Length == 2 && splitBDay[0] == 1) ? ((Suffix)suffixID).ToString() : "th";
+        rulerAge.text = "Age: " + tRuler.age + " (Birthday " + ((Calendar.Calendar.Months)tRuler.birthday.month).ToString() + " " + tRuler.birthday.day + suffix + ")";
         stateReligion.text = "State Religion: " + (target.stateReligion == null ? "No Religion" : target.stateReligion._name);
     }
     private void KillViewer()

@@ -1,0 +1,312 @@
+Wessex
+Iclingas
+Godwin
+Normandy
+Blois
+Angevin
+Plantagenet
+Lancaster
+York
+Capet
+Tudor
+Stuart
+Hanover
+Saxe-Coburg
+Windsor
+Karling
+Poitiers
+Robert
+Bosonid
+Capet
+Valois
+Bourbon
+Bonaparte
+Balt
+Astur-Leon
+Jimenez
+Trastamara
+Foix
+Albret
+Habsburg
+Savoy
+Vimara Peres
+Aviz
+Braganaza
+Albert
+Albon
+Amboise
+Anjou
+Arenberg
+Artois
+Aubert
+Aubigne
+Aumont
+Avesnes
+Baux
+Beauchamp
+Bernadotte
+Bettencourt
+Blois
+Bourbon
+Brimeu
+Brienne
+Broglie
+Burgundy
+Cambout
+Camondo
+Castellane
+Castries
+Challant
+Chalon
+Chatillon
+Clary
+Clermont-Tonnere
+Colingy
+Coradin
+Courcillon
+Craon
+Crequy
+Croy
+Damas
+Dammartin
+Dampierre
+De Bombelles
+De Buade
+De Fonblanque
+De la Roche
+De Lancey
+De Marigny
+De Romanet
+De Saint Phalle
+Du Bellay
+Du Pont
+Erlanger
+Evreux
+Faucigny
+Foix
+Forbin
+Gascony
+Girard
+Gontaut
+Grailly
+Grimoard
+Guilhem
+Harcourt
+Henin-Lietard
+Hottinguer
+Montmirail
+Sully
+Hugo
+Ingelger
+Lalaing
+Lamoignon
+Laval
+Le Moyne
+De Lesseps
+Levis
+Lusignan
+MacMahon
+Bourbon-Maine
+Maiziere
+Marbot
+La Marche
+Melun
+Mensdorff-Pouilly
+Montbelliard
+Montdider
+Montfaucon
+Montfort
+Montmorency
+Murat
+Noailles
+Orleans
+Polignac
+Porhoet
+Rochechouart
+Rohan
+Rohan-Rohan
+Rothschild
+Rouergue
+Rouvroy
+Sable
+Sabran
+Saint Omer
+Taffin de Givenchy
+Taillefer
+Talleyrand-Perigord
+La Tellier
+Toucy
+La Tremoille
+Uzes
+Villehardouin
+Vitre
+Wimpffen
+Alba
+Albret
+Beni Alfons
+Aragon
+Argavieso
+Arrazola
+Banu Gomez
+Banu Qasi
+Borgia
+Camondo
+Coloma
+Columbus
+Cotoner
+Curiel
+Czartoryski
+De Osma
+Frias
+Godoy
+Haro
+Moncada
+Lara
+Lasso de la Vega
+Medina Sidonia
+Medinaceli
+Mendoza
+Moctezuma
+Osuna
+Primo de Rivera
+Riva Aguero
+Ruspoli
+Ventimiglia
+Wellesley
+Correia
+Corte-Real
+Atouguia
+Avintes
+Penela
+Goa
+Lafoes
+Camara
+Castro
+Maia
+Loule
+Lavradio
+Napoles
+Palmela
+Saldanha
+Sousa
+Terceira
+Iturbide
+Sverre
+Vasa
+Nassau
+Washington
+Adams
+Jefferson
+Madison
+Monroe
+Jackson
+Van Buren
+Harrison
+Tyler
+Polk
+Taylor
+Fillmore
+Pierce
+Buchanan
+Lincoln
+Johnson
+Grant
+Hayes
+Garfield
+Arthur
+Cleveland
+McKinley
+Roosevelt
+Taft
+Wilson
+Harding
+Coolidge
+Hoover
+Truman
+Walpole
+Compton
+Pelham
+Cavendish
+Grenville
+Wentworth
+Pitt
+FitzRoy
+North
+Petty
+Bentinck
+Addington
+Perceval
+Jenkinson
+Canning
+Robinson
+Wellesley
+Grey
+Lamb
+Peel
+Russell
+Stanley
+Gordon
+Temple
+Gladstone
+Primrose
+Cecil
+Balfour
+Bannerman
+Asquith
+George
+Law
+Baldwin
+MacDonald
+Churchill
+Eden
+Barras
+Thiers
+MacMahon
+Grevy
+Carnot
+Perier
+Faure
+Loubet
+Fallieres
+Poincare
+Deschanel
+Millerand
+Doumergue
+Doumer
+Lebrun
+Auriol
+Coty
+Gaulle
+Poher
+Pompidou
+Poher
+Mitterrand
+Saez
+de Irujo
+heredia
+Bermudez
+Toledo
+Salmon
+Alcudia
+la Rosa
+Alava
+Isturiz
+Calatrava
+Azara
+Heredia
+de Valasco
+Gonzales
+Ferraz
+Sancho
+Ferrer
+Rodil
+Lopez
+Becerra
+Olozaga
+Bravo
+Narvaez
+Pacheco
+Goyena
+Sotto
+Murillo
+de Cordova

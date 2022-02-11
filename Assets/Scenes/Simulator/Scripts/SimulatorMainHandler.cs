@@ -137,7 +137,7 @@ public class SimulatorMainHandler : MonoBehaviour
             processing = true;
             
             //time events
-            if(day == 1)
+            if(day == 5)
             {
                 Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
 
@@ -145,6 +145,11 @@ public class SimulatorMainHandler : MonoBehaviour
                 {
                     Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provinces);
                 }
+            }
+
+            foreach(Empire tEmp in empires) //gets 
+            {
+                tEmp.PollForAction((day,month,year), ref cultures, ref empires);
             }
 
             processing = false;

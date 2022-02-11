@@ -153,23 +153,63 @@ namespace WorldProperties
     }
     public class Culture
     {
+        public static List<string> names = new List<string>(){ "Asian", "Colonial", "European", "Indian", "Muslim"};
         public string _id;
         public Color _cultureCol;
         public string _name;
         public float _economyScore; //total of techs of all empires inside = economy score
+        public string _nameType; //Asian, Colonial, European, Indian, Muslim
         public Culture(string id, ref System.Random rnd)
         {
             _id = id;
             _economyScore = 0;
             if (_id == "0") { new Color(0, 0, 0); }
             else { _cultureCol = new Color((float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255); }
+            _nameType = names[rnd.Next(0, names.Count)];
         }
 
         public Culture()
         {
             //For loading in cultures
         }
+        public List<string> LoadNameBuffer(int count, ref System.Random rnd)
+        {
+            List<string> newNames = new List<string>();
 
+            TextAsset namesFile = (TextAsset)Resources.Load(_nameType + "F"); //Load relevant file
+            string[] namesSet = namesFile.text.Split('\n');
+
+            for(int i=0;i<count;i++)
+            {
+                int copyName = rnd.Next(1, 5);
+
+                if(copyName == 3 && i > 5)
+                {
+                    newNames.Add(newNames[rnd.Next(0, newNames.Count)]);
+                }
+                else
+                {
+                    newNames.Add(namesSet[rnd.Next(0, namesSet.Length)]);
+                }
+            }
+
+            return newNames;
+        }
+
+        public string LoadDynasty(ref List<Empire> empires, ref System.Random rnd)
+        {
+            //TODO add copy dynasty from culture partner
+            List<string> existingNames = empires.Where(t => t.curRuler.lName != "NULL").Select(p => p.curRuler.lName).ToList();
+            TextAsset namesFile = (TextAsset)Resources.Load(_nameType + "L"); //Load relevant file
+
+            List<string> namesSet = namesFile.text.Split('\n').ToList();
+
+            namesSet.RemoveAll(n => existingNames.Contains(n));
+
+            if (namesSet.Count < 10) { namesSet = namesFile.text.Split('\n').ToList(); } //If there are too few names
+
+            return namesSet[rnd.Next(0, namesSet.Count)];
+        }
         public void CalculateEconomy(ref List<Empire> empires, List<ProvinceObject> provinces) //Gets the total economic score of a region and set all components scores. done every year
         {
             int myID = Convert.ToInt32(_id);

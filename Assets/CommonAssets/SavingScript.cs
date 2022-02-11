@@ -327,6 +327,10 @@ namespace SaveLoad
                 xmlWriter.WriteString(tCult._economyScore.ToString());
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("NameScheme");
+                xmlWriter.WriteString(tCult._nameType.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteEndElement();
             }
             xmlWriter.WriteEndElement();
@@ -350,6 +354,7 @@ namespace SaveLoad
                 loadedCult._id = cultNode.Attributes["ID"].Value;
                 loadedCult._name = cultNode.Attributes["Name"].Value;
                 loadedCult._economyScore = (float)(Convert.ToDouble(cultNode["Economy"].InnerText));
+                loadedCult._nameType = cultNode["NameScheme"].InnerText;
                 ColorUtility.TryParseHtmlString("#" + cultNode["Colour"].InnerText, out loadedCult._cultureCol); //Sets colour via hex code
 
                 outCulture.Add(loadedCult);
@@ -431,7 +436,37 @@ namespace SaveLoad
 
                 empData.WriteEndElement();
 
-                //TODO add ruler data
+                ///Ruler data
+                Ruler tRuler = tEmpire.curRuler;
+                empData.WriteStartElement("Ruler");
+                empData.WriteAttributeString("FirstName", tRuler.fName);
+                empData.WriteAttributeString("LastName", tRuler.lName);
+                empData.WriteAttributeString("Age", tRuler.age.ToString());
+
+                empData.WriteStartElement("Birthday");
+                empData.WriteString(tRuler.birthday.day.ToString() + "/" + tRuler.birthday.month.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Deathday");
+                empData.WriteString(tRuler.deathday.day.ToString() + "/" + tRuler.deathday.month.ToString() + "/" + tRuler.deathday.age);
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("Personality");
+                foreach(KeyValuePair<string,float> persona in tRuler.rulerPersona)
+                {
+                    empData.WriteStartElement(persona.Key);
+                    empData.WriteAttributeString("Score", persona.Value.ToString());
+                    empData.WriteEndElement();
+                }
+
+                empData.WriteStartElement("TechFocus");
+                empData.WriteString(tRuler.techFocus[0].ToString() + "," + tRuler.techFocus[1].ToString());
+                empData.WriteEndElement();
+
+                empData.WriteEndElement();
+
+                empData.WriteEndElement();
+
                 empData.WriteEndElement();
             }
             empData.WriteEndElement();
@@ -489,6 +524,38 @@ namespace SaveLoad
                 loadedEmp.dipTech = Convert.ToInt32(techNodes[2].InnerText);
                 loadedEmp.logTech = Convert.ToInt32(techNodes[3].InnerText);
                 loadedEmp.culTech = Convert.ToInt32(techNodes[4].InnerText);
+
+                //Loading ruler data
+                XmlNode rulNode = empNode.SelectSingleNode("Ruler");
+                Ruler tmpRuler = new Ruler();
+
+                tmpRuler.fName = rulNode.Attributes["FirstName"].Value;
+                tmpRuler.lName = rulNode.Attributes["LastName"].Value;
+                tmpRuler.age = Convert.ToInt32(rulNode.Attributes["Age"].Value);
+                string[] bDay = rulNode.SelectSingleNode("Birthday").InnerText.ToString().Split('/');
+                tmpRuler.birthday.day = Convert.ToInt32(bDay[0]);
+                tmpRuler.birthday.month = Convert.ToInt32(bDay[1]);
+                string[] dDay = rulNode.SelectSingleNode("Deathday").InnerText.ToString().Split('/');
+                tmpRuler.deathday.day = Convert.ToInt32(dDay[0]);
+                tmpRuler.deathday.month = Convert.ToInt32(dDay[1]);
+                tmpRuler.deathday.age = Convert.ToInt32(dDay[2]);
+
+                XmlNode personalityNode = rulNode.SelectSingleNode("Personality");
+                foreach (XmlNode comps in personalityNode.ChildNodes)
+                {
+                    if (comps.Name.StartsWith("per_"))
+                    {
+                        tmpRuler.rulerPersona[comps.Name] = (float)Convert.ToDouble(comps.Attributes["Score"].Value);
+                    }
+                    else if(comps.Name == "TechFocus")
+                    {
+                        string[] techs = comps.InnerText.Split(',');
+                        tmpRuler.techFocus[0] = Convert.ToInt32(techs[0]);
+                        tmpRuler.techFocus[1] = Convert.ToInt32(techs[1]);
+                    }
+                }
+
+                loadedEmp.curRuler = tmpRuler;
 
                 outEmpires.Add(loadedEmp);
             }

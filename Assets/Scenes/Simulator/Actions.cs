@@ -15,12 +15,12 @@ namespace Act
             debugRef.SetActive(!debugRef.activeSelf);
         }
 
-        public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires)
+        public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires, ref List<Culture> cultures)
         {
             if(provs[provID]._biome == 0) { return false; } //Prevent ocean takeover
             if (provs[provID]._ownerEmpire == null)
             {
-                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID]));
+                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID], ref cultures, ref empires));
                 return true;
             }
             else
