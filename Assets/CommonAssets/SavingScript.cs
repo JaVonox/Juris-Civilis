@@ -9,6 +9,7 @@ using BiomeData;
 using WorldProperties;
 using UnityEngine;
 using Empires;
+using PropertiesGenerator;
 
 namespace SaveLoad
 {
@@ -123,6 +124,8 @@ namespace SaveLoad
                 culData.WriteStartElement("Cultures");
                 culData.WriteEndDocument();
                 culData.Close();
+
+                CreateReligions(path);
             }
             return path; //Return save file name
         }
@@ -176,6 +179,7 @@ namespace SaveLoad
                 xmlWriter.WriteAttributeString("ID", tProv._id.ToString());
                 xmlWriter.WriteAttributeString("City", tProv._cityName);
                 xmlWriter.WriteAttributeString("CultureID", tProv._cultureID.ToString());
+                xmlWriter.WriteAttributeString("ReligionID", tProv._localReligion == null ? "NULL" : tProv._localReligion._id.ToString());
 
                 xmlWriter.WriteStartElement("Colour");
                 xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tProv._provCol));
@@ -241,7 +245,7 @@ namespace SaveLoad
             xmlWriter.Close();
         }
 
-        public static void LoadProvinces(string filepath, ref List<ProvinceObject> outputProvs, ref List<Empire> empires)
+        public static void LoadProvinces(string filepath, ref List<ProvinceObject> outputProvs, ref List<Empire> empires, ref List<Religion> rels)
         {
             outputProvs.Clear();
 
@@ -257,6 +261,8 @@ namespace SaveLoad
                 loadedProv._id = Convert.ToInt32(provNode.Attributes["ID"].Value);
                 loadedProv._cityName = provNode.Attributes["City"].Value;
                 loadedProv._cultureID = Convert.ToInt32(provNode.Attributes["CultureID"].Value);
+                string relID = provNode.Attributes["ReligionID"].Value;
+                loadedProv._localReligion = relID == "NULL" ? null : rels[Convert.ToInt32(relID)];
 
                 ColorUtility.TryParseHtmlString("#" + provNode["Colour"].InnerText, out loadedProv._provCol); //Sets colour via hex code
                 loadedProv._isCoastal = provNode["Coastal"].InnerText == "True" ? true : false;
@@ -370,6 +376,7 @@ namespace SaveLoad
                 empData.WriteStartElement("Empire");
                 empData.WriteAttributeString("ID", tEmpire._id.ToString());
                 empData.WriteAttributeString("Name", tEmpire._empireName.ToString());
+                empData.WriteAttributeString("ReligionID", tEmpire.stateReligion == null ? "NULL" : tEmpire.stateReligion._id.ToString());
 
                 empData.WriteStartElement("Colour");
                 empData.WriteString(ColorUtility.ToHtmlStringRGB(tEmpire._empireCol));
@@ -385,10 +392,6 @@ namespace SaveLoad
 
                 empData.WriteStartElement("MaxMil");
                 empData.WriteString(tEmpire.maxMil.ToString());
-                empData.WriteEndElement();
-
-                empData.WriteStartElement("ReligionID");
-                empData.WriteString(tEmpire.religionID.ToString());
                 empData.WriteEndElement();
 
                 empData.WriteStartElement("PercentageEco");
@@ -439,20 +442,18 @@ namespace SaveLoad
             XmlDocument provFile = new XmlDocument();
             provFile.Load(filepath + "/WorldData/Provinces.xml");
 
-            List<ProvinceObject> provsToAmmend = provs.Where(p => p._ownerEmpire != null).ToList(); //Get all provs that are owned - these are the only data points that need ammending
-            //TODO this assumes land cannot become unpopulated. If this changes change this
-
-            foreach(ProvinceObject tProv in provsToAmmend)
+            foreach(ProvinceObject tProv in provs)
             {
                 XmlNode provNode = provFile.SelectSingleNode("/Provinces/Province[@ID='" + tProv._id.ToString() + "']"); //Get the node with the appropriate ID
-                provNode["Owner"].InnerText = tProv._ownerEmpire._id.ToString();
+                provNode["Owner"].InnerText = tProv._ownerEmpire == null ? "" : tProv._ownerEmpire._id.ToString();
+                provNode.Attributes["ReligionID"].Value = tProv._localReligion == null ? "NULL" : tProv._localReligion._id.ToString();
             }
 
             provFile.Save(filepath + "/WorldData/Provinces.xml");
 
         }
 
-        public static void LoadEmpires(string filepath, ref List<Empire> outEmpires)
+        public static void LoadEmpires(string filepath, ref List<Empire> outEmpires, ref List<Religion> rels)
         {
             outEmpires.Clear();
 
@@ -467,11 +468,12 @@ namespace SaveLoad
                 Empire loadedEmp = new Empire();
                 loadedEmp._id = Convert.ToInt32(empNode.Attributes["ID"].Value);
                 loadedEmp._empireName = empNode.Attributes["Name"].Value;
+                string relID = empNode.Attributes["ReligionID"].Value;
+                loadedEmp.stateReligion = relID == "NULL" ? null : rels[Convert.ToInt32(relID)];
 
                 loadedEmp._cultureID = Convert.ToInt32(empNode["CultureID"].InnerText);
                 loadedEmp.curMil = (float)(Convert.ToDouble(empNode["MilitarySize"].InnerText));
                 loadedEmp.maxMil = (float)(Convert.ToDouble(empNode["MaxMil"].InnerText));
-                loadedEmp.religionID = Convert.ToInt32(empNode["ReligionID"].InnerText);
                 loadedEmp.percentageEco = (float)Convert.ToDouble(empNode["PercentageEco"].InnerText);
 
                 ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
@@ -491,5 +493,54 @@ namespace SaveLoad
                 outEmpires.Add(loadedEmp);
             }
         }
+
+        public static void CreateReligions(string filePath) //Creates a number of religions and saves them to a file. Only called on generation saving.
+        {
+            System.Random rnd = new System.Random();
+
+            List<Religion> religions = PropertiesGenerator.GenerateNames.PullReligions(ref rnd);
+            //Write all religion properties to an xml file
+            XmlWriter xmlWriter = XmlWriter.Create(filePath + "Simulation/Religions.xml", settings);
+            xmlWriter.WriteStartDocument();
+
+            xmlWriter.WriteStartElement("Religions");
+            foreach (Religion tRel in religions)
+            {
+                xmlWriter.WriteStartElement("Religion");
+                xmlWriter.WriteAttributeString("ID", tRel._id.ToString());
+                xmlWriter.WriteAttributeString("Name", tRel._name);
+
+                xmlWriter.WriteStartElement("Colour");
+                xmlWriter.WriteString(ColorUtility.ToHtmlStringRGB(tRel._col));
+                xmlWriter.WriteEndElement();
+
+                xmlWriter.WriteEndElement();
+            }
+            xmlWriter.WriteEndElement();
+            xmlWriter.WriteEndDocument();
+            xmlWriter.Close();
+        }
+
+        public static void LoadReligions(string filepath, ref List<Religion> outRels)
+        {
+            outRels.Clear();
+
+            XmlDocument xmlReader = new XmlDocument(); //Open xmlfile
+            xmlReader.Load(filepath + "/Simulation/Religions.xml");
+
+            XmlNode relNodes = xmlReader.SelectSingleNode("Religions");
+
+            foreach (XmlNode relNode in relNodes.ChildNodes)
+            {
+                //Xml file is by ID so add should order correctly
+                Religion loadedReligion = new Religion();
+                loadedReligion._id = Convert.ToInt32(relNode.Attributes["ID"].Value);
+                loadedReligion._name = relNode.Attributes["Name"].Value;
+
+                ColorUtility.TryParseHtmlString("#" + relNode["Colour"].InnerText, out loadedReligion._col); //Sets colour via hex code
+                outRels.Add(loadedReligion);
+            }
+        }
+
     }
 }

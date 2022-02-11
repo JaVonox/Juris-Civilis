@@ -8,7 +8,9 @@ public class SidebarHandler : MonoBehaviour
     public Button expandPanel;
     public GameObject panel;
     public GameObject mapModeHandler;
-
+    private float updateCounter;
+    private int lastSender = -1;
+    private bool isActive = false;
     public enum mapModesEnum //correlates with position in mapmodes list
     {
         Geography = 0,
@@ -20,12 +22,19 @@ public class SidebarHandler : MonoBehaviour
         Culture = 6,
         Population = 7,
         Provinces = 8,
+        Economy = 9,
+        LocalEconomy = 10,
+        Tech = 11,
+        Religion = 12,
+        StateReligion = 13,
+        Military = 14,
     }
 
     //Interactables
     public mapModesEnum activeMapMode;
     public List<Button> mapModes = new List<Button>();
 
+    public Button resetCamera;
     //Animator
     private bool panelOut; //Stores if the panel is expanded or not
     private bool animating;
@@ -40,11 +49,26 @@ public class SidebarHandler : MonoBehaviour
     }
     void Update()
     {
-        if (animating)
+        if (lastSender != -1 && isActive)
+        {
+            updateCounter += Time.deltaTime;
+
+            if (updateCounter >= 2)
+            {
+                mapModes[lastSender].onClick.Invoke();//Force autoupdate
+                updateCounter = 0;
+            }
+        }
+
+        if (animating && isActive)
         {
             int dir = panelOut ? -1 : 1;
             GetMovement(dir);
         }
+    }
+    public void SetCameraBtns(GameObject mainCam)
+    {
+        resetCamera.onClick.AddListener(delegate { CameraReset(mainCam); });
     }
     public void AppendListener(Action<string> updater) //gives the required updating methods when used
     {
@@ -54,10 +78,12 @@ public class SidebarHandler : MonoBehaviour
         }
         expandPanel.GetComponent<Button>().onClick.AddListener(PanelExpand);
 
-        ActivateMapMode(mapModes[1]); //Use nation viewer to start off map procedure
+        mapModes[1].onClick.Invoke();//Use nation viewer to start off map procedure
+        isActive = true;
     }
     void ActivateMapMode(Button sender)
     {
+        lastSender = mapModes.IndexOf(sender);
         activeMapMode = (mapModesEnum)(mapModes.IndexOf(sender)); //Set new mapmode
 
         foreach(Button mapBtn in mapModes) //Swap map images and interactability
@@ -126,6 +152,10 @@ public class SidebarHandler : MonoBehaviour
                 panelOut = !panelOut;
             }
         }
+    }
+    void CameraReset(GameObject tCam)
+    {
+        tCam.transform.position = new Vector3(0, 0, -10); //Reset the camera position
     }
 
 }

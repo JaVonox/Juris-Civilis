@@ -30,6 +30,11 @@ public class EmpireViewer : MonoBehaviour
     public Text culEco;
     public Text cut;
 
+    //Ruler
+    public Text rulerName;
+    public Text rulerAge;
+    public Text stateReligion;
+
     public float updateCounter;
 
     private Empire lastEmpire;
@@ -59,6 +64,10 @@ public class EmpireViewer : MonoBehaviour
         culName.text = cults[target._cultureID]._name;
         culEco.text = "Economy: " + Math.Round(cults[target._cultureID]._economyScore,2).ToString() + " units";
         cut.text = "Contribution: " + (target.percentageEco*100 >= 1 ? Math.Round(target.percentageEco * 100, 2).ToString() : "<1") + "%";
+
+        rulerName.text = "Ruler: No Ruler";
+        rulerAge.text = "Age : N/A";
+        stateReligion.text = "State Religion: " + (target.stateReligion == null ? "No Religion" : target.stateReligion._name);
     }
     private void KillViewer()
     {

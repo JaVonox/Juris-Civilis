@@ -13,6 +13,7 @@ public class BasicsHandler : MonoBehaviour
     public Text geoDetailsVal;
     public Text cultureVal;
     public Text popVal;
+    public Text religion;
 
     public void BasicsInfo(ProvinceObject newSelection, List<Culture> culturesSet)
     {
@@ -21,5 +22,6 @@ public class BasicsHandler : MonoBehaviour
         biomeName.text = BiomesObject.activeBiomes[newSelection._biome]._name.ToString();
         geoDetailsVal.text = ((CoastalEnum)(Convert.ToInt32(newSelection._isCoastal))).ToString() + "/" + ((HeightEnum)((int)newSelection._elProp)).ToString() + "/" + ((TempEnum)((int)newSelection._tmpProp)).ToString() + "/" + ((RainEnum)((int)newSelection._rainProp)).ToString() + "/" + ((FloraEnum)((int)newSelection._floraProp)).ToString();
         cultureVal.text = "Culture: " + culturesSet[newSelection._cultureID]._name;
+        religion.text = "Religion: " + (newSelection._localReligion == null ? "Local Beliefs" : newSelection._localReligion._name);
     }
 }

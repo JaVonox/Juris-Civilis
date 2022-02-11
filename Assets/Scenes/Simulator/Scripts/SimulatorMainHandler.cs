@@ -46,6 +46,7 @@ public class SimulatorMainHandler : MonoBehaviour
     private List<ProvinceObject> provinces;
     private List<Culture> cultures;
     private List<Empire> empires;
+    private List<Religion> religions;
 
     private System.Random rnd = new System.Random();
     private bool consoleIsActive = true;
@@ -54,6 +55,8 @@ public class SimulatorMainHandler : MonoBehaviour
         provinces = new List<ProvinceObject>();
         cultures = new List<Culture>();
         empires = new List<Empire>();
+        religions = new List<Religion>();
+
         exitButton.GetComponent<Button>().onClick.AddListener(ExitScene);
         Camera.GetComponent<CameraScript>().enabled = false; //Allows camera movement
 
@@ -86,8 +89,9 @@ public class SimulatorMainHandler : MonoBehaviour
                 maskTexture = new Texture2D(mapWidth, mapHeight);
                 maskTexture.LoadImage(mapBytes.Item2);
 
-                SaveLoad.SavingScript.LoadEmpires(filePath, ref empires);
-                SaveLoad.SavingScript.LoadProvinces(filePath, ref provinces, ref empires);
+                SaveLoad.SavingScript.LoadReligions(filePath, ref religions);
+                SaveLoad.SavingScript.LoadEmpires(filePath, ref empires, ref religions);
+                SaveLoad.SavingScript.LoadProvinces(filePath, ref provinces, ref empires, ref religions);
                 SaveLoad.SavingScript.LoadCultures(filePath, ref cultures);
             }
 
@@ -99,11 +103,11 @@ public class SimulatorMainHandler : MonoBehaviour
             panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
             provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
             consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
-            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap);
+            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap, ref religions);
             ToggleConsole();
 
-            loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture);
-            loadMap.GetComponent<LoadMap>().StartMap();
+            loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture, ref religions, ref empires);
+            loadMap.GetComponent<LoadMap>().StartMap(ref Camera);
 
             pause.onClick.AddListener(delegate { Calendar.Calendar.PauseTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
             normal.onClick.AddListener(delegate { Calendar.Calendar.NormalTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });

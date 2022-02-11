@@ -11,6 +11,7 @@ public class DebugHandler : MonoBehaviour
     public Text provinceID;
     public Text cultureID;
     public Text ownerEmpireID;
+    public Text religionID;
     public void DebugInfo(ProvinceObject newSelection, List<Culture> culturesSet)
     {
         provinceID.text = "ID: " + newSelection._id.ToString();
@@ -23,6 +24,15 @@ public class DebugHandler : MonoBehaviour
         else
         {
             ownerEmpireID.text = "Owner : No Owner";
+        }
+
+        if (newSelection._localReligion != null)
+        {
+            religionID.text = "Religion : " + newSelection._localReligion._id.ToString();
+        }
+        else
+        {
+            religionID.text = "Religion : No Faith";
         }
     }
 }

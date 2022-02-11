@@ -29,9 +29,8 @@ namespace Act
             }
         }
 
-        public static bool ConquerLand(ProvinceObject targetProv, Empire aggressorEmpire) //Used to try and conquer land
+        public static bool ForceConquerLand(ProvinceObject targetProv, Empire aggressorEmpire) //Used to and conquer land without cost/restrictions
         {
-            //TODO add changing of values such as military power or units (if applicable)
 
             if(aggressorEmpire != null && targetProv._ownerEmpire != aggressorEmpire && targetProv._biome != 0)
             {
@@ -91,6 +90,46 @@ namespace Act
                     return false;
             }
 
+        }
+
+        public static bool NewReligion(ref List<ProvinceObject> provs, ref List<Religion> religions, int targetProv)
+        {
+            List<Religion> availableReligions = religions.Except(provs.Select(t => t._localReligion).Distinct().ToList()).ToList(); //Find unknown religion
+            if (availableReligions.Count > 0)
+            {
+                provs[targetProv]._localReligion = availableReligions[0]; //Select next available religion in set
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public static bool SetReligion(ref List<ProvinceObject> provs, ref List<Religion> religions, int targetProv, int targetReligion)
+        {
+            if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion]) && provs[targetProv]._biome != 0) //Check if religion exists on map
+            {
+                provs[targetProv]._localReligion = religions[targetReligion]; //set religion
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public static bool SetStateReligion(ref List<ProvinceObject> provs, ref List<Empire> empires, ref List<Religion> religions, int targetEmpire, int targetReligion)
+        {
+            if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion])) //Check if religion exists on map
+            {
+                empires[targetEmpire].stateReligion = religions[targetReligion]; //set religion
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }

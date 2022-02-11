@@ -6,6 +6,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI; //objects
 using System;
+using System.Linq;
+using Empires;
 
 public class ProvinceRenderer : MonoBehaviour
 {
@@ -17,8 +19,9 @@ public class ProvinceRenderer : MonoBehaviour
     public int _meshSize; //Unity has a weird thing where it has to make an array copy every time it wants to check vertices length. Setting this once stops accessing taking up too much data
     public int _triSize;
 
-    //TODO this might take up space
     public static string _lastMapMode;
+    private bool isFocused = false;
+    private float unfocusedAlpha = 0.6f; //Stores the would-be-alpha value for unfocusedprovs
     public Vector3 ReturnCentreUnitSpace(float spriteWidth, float spriteHeight, int mapWidth, int mapHeight)
     {
         return ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
@@ -48,7 +51,7 @@ public class ProvinceRenderer : MonoBehaviour
         return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, -2);
     }
 
-    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType, ref List<Culture> cult) //Renders based on chunk data.
+    public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType, ref List<Culture> cult, ref List<Religion> religions, ref List<ProvinceObject> provs, ref List<Empire> empires) //Renders based on chunk data.
     {
         SetCentreObject(ref targetProv, mapWidth, mapHeight);
 
@@ -86,7 +89,7 @@ public class ProvinceRenderer : MonoBehaviour
         //Set a colour for the polygon
         Color[] colours = new Color[vLength];
 
-        currentColor = GetColour(targetProv, propType, ref cult);
+        currentColor = GetColour(targetProv, propType, ref cult, ref religions, ref provs, ref empires);
 
         for (int c = 0; c < vLength; c++)
         {
@@ -102,11 +105,11 @@ public class ProvinceRenderer : MonoBehaviour
         GetComponent<MeshFilter>().sharedMesh = _provinceMesh;
         GetComponent<MeshCollider>().sharedMesh = _provinceMesh;
     }
-    public void UpdateMesh(string propType, ref List<Culture> cult)
+    public void UpdateMesh(string propType, ref List<Culture> cult, ref List<Religion> religions, ref List<ProvinceObject> provs, ref List<Empire> empires)
     {
         Color[] colours = new Color[_meshSize];
 
-        currentColor = GetColour(_myProvince, propType, ref cult);
+        currentColor = GetColour(_myProvince, propType, ref cult, ref religions, ref provs, ref empires);
 
         for (int c = 0; c < _meshSize; c++)
         {
@@ -151,14 +154,22 @@ public class ProvinceRenderer : MonoBehaviour
         i+=3;
     }
 
-    private Color GetColour(ProvinceObject targetProv, string propType, ref List<Culture> cultures) //Returns colours based on parameters
+    private Color GetColour(ProvinceObject targetProv, string propType, ref List<Culture> cultures, ref List<Religion> religions, ref List<ProvinceObject> provs, ref List<Empire> empires) //Returns colours based on parameters
     {
         //Constants
         Color highVal = new Color(0,1,0.014f,0.6f);
         Color medVal = new Color(0.81f, 0.56f, 0 ,0.6f);
         Color lowVal = new Color(1, 0.014f, 0, 0.6f);
         Color NAVal = new Color(0, 0, 0,0.5f);
-         
+        Color invVal = new Color(0, 0, 0, 0);
+
+        if (isFocused) { 
+            highVal.a = 0.9f;
+            medVal.a = 0.9f;
+            lowVal.a = 0.9f;
+            NAVal.a = 0.9f;
+        };
+
         if (propType == "-1") //Use last map mode command
         {
             propType = _lastMapMode;
@@ -168,108 +179,175 @@ public class ProvinceRenderer : MonoBehaviour
             _lastMapMode = propType; //Update last stored map mode
         }
 
-        switch (propType)
+        try
         {
-            case "Geography":
-                Color geoCol = targetProv._provCol;
-                geoCol.a = 0;
-                return geoCol;
-            case "National":
-                Color nationalCol;
-                if (targetProv._ownerEmpire != null)
-                {
-                    nationalCol = targetProv._ownerEmpire._empireCol;
-                    nationalCol.a = 1;
-                }
-                else
-                {
-                    nationalCol = targetProv._provCol;
-                    nationalCol.a = 0;
-                }
+            switch (propType)
+            {
+                case "Geography":
+                    Color geoCol = targetProv._provCol;
+                    if (!isFocused) { geoCol.a = 0; };
+                    unfocusedAlpha = 0;
+                    return geoCol;
+                case "National":
+                    Color nationalCol;
+                    if (targetProv._ownerEmpire != null)
+                    {
+                        nationalCol = targetProv._ownerEmpire._empireCol;
+                        if (!isFocused) { nationalCol.a = 0.8f; } else { nationalCol.a = 0.9f; };
+                        unfocusedAlpha = 0.8f;
+                    }
+                    else
+                    {
+                        nationalCol = targetProv._provCol;
+                        if (!isFocused) { nationalCol.a = 0; } else { nationalCol.a = 0.9f; };
+                        unfocusedAlpha = 0;
+                    }
 
-                return nationalCol;
-            case "Provinces":
-                Color provCols = targetProv._provCol;
-                provCols.a = 0.4f;
-                return provCols;
-            case "Elevation":
-                switch (targetProv._elProp)
-                {
-                    case Property.High:
-                        return lowVal;
-                    case Property.Medium:
-                        return medVal;
-                    case Property.Low:
-                        return highVal;
-                    case Property.NA:
-                        return NAVal;
-                }
-                break;
-            case "Temperature":
-                switch (targetProv._tmpProp)
-                {
-                    case Property.High:
-                        return highVal;
-                    case Property.Medium:
-                        return medVal;
-                    case Property.Low:
-                        return lowVal;
-                    case Property.NA:
-                        return NAVal;
-                }
-                break;
-            case "Rainfall":
-                switch (targetProv._rainProp)
-                {
-                    case Property.High:
-                        return highVal;
-                    case Property.Medium:
-                        return medVal;
-                    case Property.Low:
-                        return lowVal;
-                    case Property.NA:
-                        return NAVal;
-                }
-                break;
-            case "Flora":
-                switch (targetProv._floraProp)
-                {
-                    case Property.High:
-                        return highVal;
-                    case Property.Medium:
-                        return medVal;
-                    case Property.Low:
-                        return lowVal;
-                    case Property.NA:
-                        return NAVal;
-                }
-                break;
-            case "Culture":
-                Color cultCol = cultures[targetProv._cultureID]._cultureCol;
-                cultCol.a = 0.7f;
-                return cultCol;
-            case "Population":
-                switch (targetProv._population)
-                {
-                    case Property.High:
-                        return highVal;
-                    case Property.Medium:
-                        return medVal;
-                    case Property.Low:
-                        return lowVal;
-                    case Property.NA:
-                        return NAVal;
-                }
-                break;
-            default:
-                break;
-    
+                    return nationalCol;
+                case "Provinces":
+                    Color provCols = targetProv._provCol;
+                    if (!isFocused) { provCols.a = 0.4f; }else { provCols.a = 0.9f; };
+                    unfocusedAlpha = 0.4f;
+                    return provCols;
+                case "Elevation":
+                    unfocusedAlpha = lowVal.a;
+                    switch (targetProv._elProp)
+                    {
+                        case Property.High:
+                            return lowVal;
+                        case Property.Medium:
+                            return medVal;
+                        case Property.Low:
+                            return highVal;
+                        case Property.NA:
+                            return NAVal;
+                    }
+                    break;
+                case "Temperature":
+                    unfocusedAlpha = lowVal.a;
+                    switch (targetProv._tmpProp)
+                    {
+                        case Property.High:
+                            return highVal;
+                        case Property.Medium:
+                            return medVal;
+                        case Property.Low:
+                            return lowVal;
+                        case Property.NA:
+                            return NAVal;
+                    }
+                    break;
+                case "Rainfall":
+                    unfocusedAlpha = lowVal.a;
+                    switch (targetProv._rainProp)
+                    {
+                        case Property.High:
+                            return highVal;
+                        case Property.Medium:
+                            return medVal;
+                        case Property.Low:
+                            return lowVal;
+                        case Property.NA:
+                            return NAVal;
+                    }
+                    break;
+                case "Flora":
+                    unfocusedAlpha = lowVal.a;
+                    switch (targetProv._floraProp)
+                    {
+                        case Property.High:
+                            return highVal;
+                        case Property.Medium:
+                            return medVal;
+                        case Property.Low:
+                            return lowVal;
+                        case Property.NA:
+                            return NAVal;
+                    }
+                    break;
+                case "Culture":
+                    Color cultCol = cultures[targetProv._cultureID]._cultureCol;
+                    if (!isFocused) { cultCol.a = 0.7f; } else { cultCol.a = 0.9f; };
+                    unfocusedAlpha = 0.7f;
+                    return cultCol;
+                case "Population":
+                    unfocusedAlpha = lowVal.a;
+                    switch (targetProv._population)
+                    {
+                        case Property.High:
+                            return highVal;
+                        case Property.Medium:
+                            return medVal;
+                        case Property.Low:
+                            return lowVal;
+                        case Property.NA:
+                            return NAVal;
+                    }
+                    break;
+                case "Economy":
+                    if(provs.Select(tprov=> tprov._cultureID == targetProv._cultureID && tprov._ownerEmpire != null).Count() < 1){ unfocusedAlpha = 0; return invVal;}
+                    List<float> ecoVals = cultures.Select(tC => tC._economyScore).ToList();
+                    float minEco = ecoVals.Min();
+                    float maxEco = ecoVals.Max();
+                    float normalScoreEco = (cultures[targetProv._cultureID]._economyScore - minEco) / ((float)(maxEco - minEco) + 0.001f);
+                    Color interpEcoVal = Color.Lerp(lowVal, highVal, normalScoreEco);
+                    if (!isFocused) { interpEcoVal.a = 0.6f; } else { interpEcoVal.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return interpEcoVal;
+                case "LocalEconomy":
+                    if(targetProv._ownerEmpire == null || empires.Count <= 0) { unfocusedAlpha = 0; return invVal; }
+                    Color localEco = Color.Lerp(lowVal, highVal, Math.Max(0, Math.Min(1, targetProv._ownerEmpire.percentageEco))); ;
+                    if (!isFocused) { localEco.a = 0.6f; } else { localEco.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return localEco;
+                case "Tech":
+                    if (targetProv._ownerEmpire == null || empires.Count <= 0) { unfocusedAlpha = 0; return invVal; }
+                    float minTech = 4;
+                    float maxTech = empires.Select(emp => emp.ReturnTechTotal()).ToList().Max();
+                    float normalScoreTech = (((float)targetProv._ownerEmpire.ReturnTechTotal()) - minTech) / ((float)(maxTech - minTech) + 0.001f);
+                    Color techVal = Color.Lerp(lowVal, highVal, Math.Max(0, Math.Min(1, normalScoreTech)));
+                    if (!isFocused) { techVal.a = 0.6f; } else { techVal.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return techVal;
+                case "Religion":
+                    if(targetProv._localReligion == null) { unfocusedAlpha = 0; return invVal; }
+                    Color locRel = targetProv._localReligion._col;
+                    if (!isFocused) { locRel.a = 0.6f; } else { locRel.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return locRel;
+                case "StateReligion":
+                    if(targetProv._ownerEmpire == null) { unfocusedAlpha = 0; return invVal; }
+                    if(targetProv._ownerEmpire.stateReligion == null) { unfocusedAlpha = 0.5f; return NAVal; }
+                    Color statRel = targetProv._ownerEmpire.stateReligion._col;
+                    if (!isFocused) { statRel.a = 0.6f; } else { statRel.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return statRel;
+                case "Military":
+                    if (targetProv._ownerEmpire == null) { unfocusedAlpha = 0; return invVal; }
+                    float minMin = 0;
+                    float maxMil = empires.Select(emp => emp.curMil).ToList().Max();
+                    float normalScoreMil = (((float)targetProv._ownerEmpire.curMil) - minMin) / ((float)(maxMil - minMin) + 0.001f);
+                    Color milVal = Color.Lerp(lowVal, highVal, Math.Max(0, Math.Min(1, normalScoreMil)));
+                    if (!isFocused) { milVal.a = 0.6f; } else { milVal.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return milVal;
+                default:
+                    unfocusedAlpha = 0.6f;
+                    return NAVal;
+
+            }
+            return new Color(0.85f, 0, 0.6f, 1); //Error Colour
         }
-        return new Color(0.85f, 0, 0.6f,1); //Error Colour
+        catch (Exception ex)
+        {
+            Debug.Log("Province Error - " + ex.ToString());
+            return new Color(0.85f, 0, 0.6f, 1); //Error Colour
+        }
 
     }
     public void FocusProvince() //Updates colours to focus mode
     {
+        isFocused = true;
         Color[] colours = new Color[_meshSize];
 
         for (int c = 0; c < _meshSize; c++)
@@ -282,12 +360,14 @@ public class ProvinceRenderer : MonoBehaviour
 
     public void UnfocusProvince()
     {
+        isFocused = false;
         Color[] colours = new Color[_meshSize];
 
-
+        Color tmpCol = currentColor;
+        tmpCol.a = unfocusedAlpha;
         for (int c = 0; c < _meshSize; c++)
         {
-            colours[c] = currentColor; //Returns province to initial colours
+            colours[c] = tmpCol; //Returns province to initial colours
         }
 
         _provinceMesh.SetColors(colours);

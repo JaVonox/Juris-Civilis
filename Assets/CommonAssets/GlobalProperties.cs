@@ -76,6 +76,7 @@ namespace WorldProperties
         public bool _isCoastal;
         public List<Vector3> _vertices = new List<Vector3>();
         public List<int> _adjacentProvIDs = new List<int>();
+        public Religion _localReligion;
         public int _cultureID;
 
         //Simulation variables
@@ -94,6 +95,7 @@ namespace WorldProperties
             _population = Property.NA;
             _cultureID = 0;
             _isCoastal = false;
+            _localReligion = null;
 
             foreach (Chunk compChunk in tProv._componentChunks.Values)
             {
@@ -199,6 +201,24 @@ namespace WorldProperties
                     tEmp.percentageEco = (float)(myScore) / (float)(sumScore);
                 }
             }
+        }
+    }
+
+    public class Religion
+    {
+        public string _name;
+        public int _id;
+
+        public Color _col;
+        public Religion(int id, ref System.Random rnd)
+        {
+            _id = id;
+            _col = new Color((float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255);
+        }
+
+        public Religion()
+        {
+            //For loading in religions
         }
     }
 

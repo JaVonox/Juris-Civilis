@@ -8,6 +8,7 @@ using WorldProperties;
 using SaveLoad;
 using PropertiesGenerator;
 using Perlin;
+using Empires;
 using UnityEngine.SceneManagement; //Scene switching data
 
 
@@ -199,8 +200,10 @@ public class MainScreenHandler : MonoBehaviour
         currentMap.SetProvinceSaveables(ref rnd); //Create saveable properties now the map has been generated, as tiledata is no longer needed
         SaveFile(); //Save data to new file
         panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
-        loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture, ref maskTexture);
-        loadMap.GetComponent<LoadMap>().StartMap();
+        List<Religion> tmpRel = new List<Religion>();
+        List<Empire> tmpEmp = new List<Empire>();
+        loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight,ref currentMap.provinceSaveables, ref currentMap.cultures, ref panelScreen, ref provinceDetailsScreen, ref newTexture, ref maskTexture, ref tmpRel, ref tmpEmp);
+        loadMap.GetComponent<LoadMap>().StartMap(ref Camera);
         actionsPanel.gameObject.SetActive(true); //reenable exit button
         Camera.GetComponent<CameraScript>().enabled = true; //Enable camera movement
     }

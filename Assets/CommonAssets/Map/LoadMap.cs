@@ -6,6 +6,7 @@ using UnityEngine.UI; //objects
 using BiomeData;
 using WorldProperties;
 using SaveLoad;
+using Empires;
 public class LoadMap : MonoBehaviour
 {
     //Mapping elements
@@ -34,6 +35,8 @@ public class LoadMap : MonoBehaviour
 
     public List<ProvinceObject> _provincesLoaded;
     public List<Culture> _culturesLoaded;
+    public List<Religion> _religionsLoaded;
+    public List<Empire> _empiresLoaded;
 
     //Asset refs
     private GameObject _mapModesPanel;
@@ -47,12 +50,14 @@ public class LoadMap : MonoBehaviour
         selectorObject.name = "Selector";
         selectorObject.GetComponent<Selector>().SetData(ref selectorObject);
     }
-    public void ApplyProperties(int mWidth, int mHeight, ref List<ProvinceObject> provLoad, ref List<Culture> cultLoad, ref GameObject mapModesPanel, ref GameObject detailsPanel, ref Texture2D mapTexture, ref Texture2D mask)
+    public void ApplyProperties(int mWidth, int mHeight, ref List<ProvinceObject> provLoad, ref List<Culture> cultLoad, ref GameObject mapModesPanel, ref GameObject detailsPanel, ref Texture2D mapTexture, ref Texture2D mask, ref List<Religion> religions, ref List<Empire> empires)
     {
         mapWidth = mWidth;
         mapHeight = mHeight;
         _provincesLoaded = provLoad;
         _culturesLoaded = cultLoad;
+        _religionsLoaded = religions;
+        _empiresLoaded = empires;
 
         _mapModesPanel = mapModesPanel;
         _provDetails = detailsPanel;
@@ -65,10 +70,10 @@ public class LoadMap : MonoBehaviour
         InitialiseMaps();
         
     }
-    public void StartMap()
+    public void StartMap(ref GameObject mainCam)
     {
         _mapModesPanel.GetComponent<SidebarHandler>().AppendListener(UpdateMapMode);
-        UpdateMapMode("National");
+        _mapModesPanel.GetComponent<SidebarHandler>().SetCameraBtns(mainCam);
     }
     public void PreLoadMap()
     {
@@ -116,7 +121,7 @@ public class LoadMap : MonoBehaviour
             {
                 provinceSet.Add(tProv._id, Instantiate(provincePrefab, loadedObjectsLayer.transform, false));//Instantiate in local space of parent
                 provinceSet[tProv._id].gameObject.name = "Prov_" + tProv._id;
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode, ref _culturesLoaded);
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().RenderProvinceFromObject(tProv, spriteWidth, spriteHeight, mapWidth, mapHeight, mapMode, ref _culturesLoaded, ref _religionsLoaded, ref _provincesLoaded, ref _empiresLoaded );
 
                 Vector3 newCentre = provinceSet[tProv._id].GetComponent<ProvinceRenderer>().ReturnCentreUnitSpace(spriteWidth, spriteHeight, mapWidth, mapHeight);
                 provinceSet[tProv._id].transform.Translate(newCentre.x, newCentre.y, newCentre.z); //set the unitspace based provinces
@@ -125,7 +130,7 @@ public class LoadMap : MonoBehaviour
             }
             else
             {
-                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().UpdateMesh(mapMode, ref _culturesLoaded); //Updates the colours for the mesh for the appropriate mapmode
+                provinceSet[tProv._id].GetComponent<ProvinceRenderer>().UpdateMesh(mapMode, ref _culturesLoaded, ref _religionsLoaded, ref _provincesLoaded, ref _empiresLoaded); //Updates the colours for the mesh for the appropriate mapmode
             }
         }
     }

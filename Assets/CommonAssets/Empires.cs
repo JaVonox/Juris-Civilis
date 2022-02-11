@@ -25,12 +25,12 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public int logTech;
         public int culTech;
 
-        //Ruler
+        //Ruler + Religion
         public Ruler curRuler;
+        public Religion stateReligion;
 
         //Simulation properties
         public float percentageEco; //Percentage of the culuture economy owned by this nation
-        public int religionID;
 
         public float maxMil;
         public float curMil;
@@ -48,8 +48,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             dipTech = 1;
             logTech = 1;
             culTech = 1;
-            religionID = 0;
             _cultureID = startingProvince._cultureID;
+            stateReligion = startingProvince._localReligion != null ? startingProvince._localReligion : null;
         }
         public Empire() //For loading
         {

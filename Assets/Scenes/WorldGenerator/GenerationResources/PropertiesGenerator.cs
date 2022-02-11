@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; //objects
+using WorldProperties;
 
 //For quick querying
 using System.Linq;
@@ -196,6 +197,42 @@ namespace PropertiesGenerator
             }
 
             return newGeneratedOceans;
+        }
+
+        public static List<Religion> PullReligions(ref System.Random rnd)
+        {
+            //Pulls religious names from set of pre-existing religions
+            TextAsset religionFile = (TextAsset)Resources.Load("Religions");
+            List<string> religions = religionFile.text.Split('\n').ToList();
+
+            for (int i = 0; i < religions.Count(); i++)
+            {
+                string tmpStore = religions[i];
+                int newIndex = rnd.Next(0, religions.Count);
+                religions[i] = religions[newIndex];
+                religions[newIndex] = tmpStore;
+            }
+
+            int rCount = Convert.ToInt32(Math.Floor((float)religions.Count / 4));
+            Religion[] rels = new Religion[rCount];
+
+            int iter = 0;
+            foreach(string rel in religions)
+            {
+                Religion tmpRel = new Religion(iter, ref rnd);
+                tmpRel._name = rel.TrimEnd();
+                rels[iter] = tmpRel;
+                iter++;
+
+                if(iter >= rCount)
+                {
+                    break;
+                }
+
+            }
+
+            return rels.ToList();
+
         }
 
         private static List<string> FindMatchAtIndex(ref string[] set, int ind, char match) //Returns a list of all matches for a query
