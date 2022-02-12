@@ -75,7 +75,19 @@ public class EmpireViewer : MonoBehaviour
 
         Ruler tRuler = target.curRuler;
 
-        rulerName.text = "Ruler: " + tRuler.fName + " " + tRuler.lName;
+        string lanType = cults[target._cultureID]._nameType;
+        switch (lanType) //Switch naming scheme for different languages
+        {
+            case "Asian":
+                rulerName.text = "Ruler: " + tRuler.lName + " " + tRuler.fName;
+                break;
+            case "Pacific":
+                rulerName.text = "Ruler: " + tRuler.fName;
+                break;
+            default:
+                rulerName.text = "Ruler: " + tRuler.fName + " " + tRuler.lName;
+                break;
+        }
 
         char[] splitBDay = tRuler.birthday.day.ToString().ToCharArray();
         int suffixID = Convert.ToInt32(splitBDay[splitBDay.Length - 1].ToString());

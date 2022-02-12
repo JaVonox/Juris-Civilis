@@ -153,7 +153,7 @@ namespace WorldProperties
     }
     public class Culture
     {
-        public static List<string> names = new List<string>(){ "Asian", "Colonial", "European", "Indian", "Muslim"};
+        public static List<string> names = new List<string>(){ "Asian", "Colonial", "European", "Indian", "Muslim", "Latin", "Pacific"};
         public string _id;
         public Color _cultureCol;
         public string _name;
@@ -163,9 +163,8 @@ namespace WorldProperties
         {
             _id = id;
             _economyScore = 0;
-            if (_id == "0") { new Color(0, 0, 0); }
+            if (_id == "0") { new Color(0, 0, 0); _nameType = "Pacific"; }
             else { _cultureCol = new Color((float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255, (float)rnd.Next(0, 256) / (float)255); }
-            _nameType = names[rnd.Next(0, names.Count)];
         }
 
         public Culture()
@@ -176,7 +175,7 @@ namespace WorldProperties
         {
             List<string> newNames = new List<string>();
 
-            TextAsset namesFile = (TextAsset)Resources.Load(_nameType + "F"); //Load relevant file
+            TextAsset namesFile = (TextAsset)Resources.Load("Naming/" + _nameType + "F"); //Load relevant file
             string[] namesSet = namesFile.text.Split('\n');
 
             for(int i=0;i<count;i++)
@@ -200,7 +199,7 @@ namespace WorldProperties
         {
             //TODO add copy dynasty from culture partner
             List<string> existingNames = empires.Where(t => t.curRuler.lName != "NULL").Select(p => p.curRuler.lName).ToList();
-            TextAsset namesFile = (TextAsset)Resources.Load(_nameType + "L"); //Load relevant file
+            TextAsset namesFile = (TextAsset)Resources.Load("Naming/" + _nameType + (_nameType != "Pacific" ? "L" : "F")); //Load relevant file. Pacific has no last names, so first names take their place.
 
             List<string> namesSet = namesFile.text.Split('\n').ToList();
 

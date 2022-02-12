@@ -128,6 +128,13 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public Ruler(Ruler previousRuler, Empire ownedEmpire, ref List<Culture> cultures, ref List<Empire> empires)
         {
             //TODO add names and make previous ruler details not apply if last name is changed
+            bool newDyn = false;
+
+            if(rulerRND.Next(0,20) == 2 || previousRuler == null) //Dynasty Replacement chance
+            {
+                newDyn = true;
+            }
+
             if (nameBuffer.Count == 0)
             {
                 nameBuffer = cultures[ownedEmpire._cultureID].LoadNameBuffer(25, ref rulerRND); //Load 25 names to minimize the amount of file accessing done at a time
@@ -136,9 +143,32 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             fName = nameBuffer[0];
             nameBuffer.RemoveAt(0);
 
-            if(previousRuler == null) //If no predecessor exists
+            if(newDyn == true) //If replacing a ruler with a new dynasty
             {
-                lName = cultures[ownedEmpire._cultureID].LoadDynasty(ref empires, ref rulerRND);
+                if (previousRuler != null)
+                {
+                    List<string> applicableDyn = empires.Where(t => t._cultureID == ownedEmpire._cultureID && t.curRuler.lName != previousRuler.lName && t._id != ownedEmpire._id).Select(l=> l.curRuler.lName).ToList(); //Get all other dynasties in the same culture group
+                    if (applicableDyn.Count > 0)
+                    {
+                        if (rulerRND.Next(0, 100 - Math.Min((int)Math.Floor(((float)(ownedEmpire.dipTech) / 10)), 90)) == 1) //Take dynasty from within culture group
+                        {
+                            lName = applicableDyn[rulerRND.Next(0, applicableDyn.Count)]; //Get dynasty from other nation
+                        }
+                        else
+                        {
+                            lName = cultures[ownedEmpire._cultureID].LoadDynasty(ref empires, ref rulerRND);
+                        }
+                    }
+                    else
+                    {
+                        lName = cultures[ownedEmpire._cultureID].LoadDynasty(ref empires, ref rulerRND);
+                    }
+                }
+                else
+                {
+                    lName = cultures[ownedEmpire._cultureID].LoadDynasty(ref empires, ref rulerRND);
+                }
+
                 foreach (string personality in rulerPersona.Keys.ToArray()) //Entirely random stats
                 {
                     rulerPersona[personality] = ((float)(rulerRND.Next(0, 101))) / 100;

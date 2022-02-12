@@ -295,19 +295,25 @@ public class ProvinceRenderer : MonoBehaviour
                     unfocusedAlpha = 0.7f;
                     return cultCol;
                 case "Population":
-                    unfocusedAlpha = lowVal.a;
+                    Color pCol = new Color(0, 0, 0, 1);
                     switch (targetProv._population)
                     {
                         case Property.High:
-                            return highVal;
+                            pCol = highVal;
+                            break;
                         case Property.Medium:
-                            return medVal;
+                            pCol = medVal;
+                            break;
                         case Property.Low:
-                            return lowVal;
+                            pCol = lowVal;
+                            break;
                         case Property.NA:
-                            return NAVal;
+                            pCol = NAVal;
+                            break;
                     }
-                    break;
+                    if (!isFocused) { rCol.a = 0.6f; } else { rCol.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return pCol;
                 case "Economy":
                     if(provs.Select(tprov=> tprov._cultureID == targetProv._cultureID && tprov._ownerEmpire != null).Count() < 1){ unfocusedAlpha = 0; return invVal;}
                     List<float> ecoVals = cultures.Select(tC => tC._economyScore).ToList();
@@ -355,9 +361,45 @@ public class ProvinceRenderer : MonoBehaviour
                     if (!isFocused) { milVal.a = 0.6f; } else { milVal.a = 0.9f; };
                     unfocusedAlpha = 0.6f;
                     return milVal;
-                default:
+                case "Language":
+                    Color lCol = new Color(0, 0, 0, 1);
+                    //{ "Asian", "Colonial", "European", "Indian", "Muslim"};
+                    string cultureLang = cultures[targetProv._cultureID]._nameType;
                     unfocusedAlpha = 0.6f;
-                    return NAVal;
+                    if(targetProv._biome == 0) { unfocusedAlpha = 0; return invVal; }
+                    switch(cultureLang)
+                    {
+                        case "Asian":
+                            lCol = new Color(0.98f, 0.53f, 0.01f, 0.6f);
+                            break;
+                        case "Colonial":
+                            lCol = new Color(0.98f, 0.01f, 0.01f, 0.6f);
+                            break;
+                        case "European":
+                            lCol = new Color(0.01f, 0.19f, 0.98f, 0.6f);
+                            break;
+                        case "Indian":
+                            lCol = new Color(0.54f, 0.01f, 0.98f, 0.6f);
+                            break;
+                        case "Muslim":
+                            lCol = new Color(0.01f, 0.98f, 0.04f, 0.6f);
+                            break;
+                        case "Latin":
+                            lCol = new Color(0.91f, 0.16f, 0.78f, 0.6f);
+                            break;
+                        case "Pacific":
+                            lCol = new Color(1, 1, 0, 0.6f);
+                            break;
+                        default:
+                            lCol = invVal;
+                            break;
+                    }
+                    if (!isFocused) { lCol.a = 0.6f; } else { lCol.a = 0.9f; };
+                    unfocusedAlpha = 0.6f;
+                    return lCol;
+                default:
+                    unfocusedAlpha = 1;
+                    return new Color(0.85f, 0, 0.6f, 1);
 
             }
             return new Color(0.85f, 0, 0.6f, 1); //Error Colour

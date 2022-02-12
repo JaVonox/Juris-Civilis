@@ -392,6 +392,75 @@ public class MapObject
             id++;
         }
     }
+    private void CultureLanguages(ref System.Random rnd) //Sets the language for each culture based on proximity
+    {
+        List<string> languages = new List<string>(){ "Asian", "Colonial", "European", "Indian", "Muslim", "Latin", "Pacific" };
+        int lanCount = Math.Min(5,languages.Count);
+        for (int i=0;i<languages.Count;i++) //Shuffle set
+        {
+            int swapNum = rnd.Next(0, languages.Count);
+            string store = languages[i];
+            languages[i] = languages[swapNum];
+            languages[swapNum] = store;
+        }
+
+        float cultsPerLanguage = ((float)(cultures.Count - 1) / (float)(lanCount)); //Check number of cultures to assign to each language
+        int id = 0;
+
+        Dictionary<Vector3, Culture> unSetCultures = new Dictionary<Vector3, Culture>();
+
+        foreach(Culture tCult in cultures)
+        {
+            if (tCult._id != "0") //Skip ocean culture
+            {
+                unSetCultures.Add(provinceSaveables.First(p => p._cultureID.ToString() == tCult._id).CalculateRelativeCenterPoint(), tCult); //Gets the centerpoint of a province in the culture group
+            }
+        }
+
+        //Get a random cultureVector
+        while (id < lanCount)
+        {
+            KeyValuePair<Vector3, Culture> tmp = unSetCultures.ElementAt(rnd.Next(0, unSetCultures.Count)); //Get random key value pair
+            unSetCultures.Remove(tmp.Key); //Remove from set of unsetCultures
+            tmp.Value._nameType = languages[id];
+            Dictionary<Culture, float> distances = new Dictionary<Culture, float>();
+
+            foreach(KeyValuePair<Vector3,Culture> tCult in unSetCultures)
+            {
+                distances.Add(tCult.Value, Vector3.Distance(tmp.Key, tCult.Key));
+            }
+
+            if(id == lanCount -1) { cultsPerLanguage = unSetCultures.Count - 1; } //If this is the last language, set all remaining cultures
+            List<Culture> culturesToSetLang = (distances.OrderBy(x => x.Value).Take((int)(Math.Floor(cultsPerLanguage)))).Select(p=>p.Key).ToList(); //Get a proportion of the cultures based on distance to the first province in the set.
+
+            foreach(Culture aCult in culturesToSetLang)
+            {
+                aCult._nameType = languages[id];
+                unSetCultures.Remove(unSetCultures.FirstOrDefault(x => x.Value == aCult).Key); //Remove this culture from the set of unset languages
+            }
+
+            id++;
+
+        }
+
+        string smallestLan = "";
+        for (int i = 0; i < lanCount; i++) //Shuffle set
+        {
+            int lCount = cultures.Count(x => x._nameType == languages[i] && x._id != "0");
+            if(smallestLan.Length < lCount || smallestLan == "")
+            {
+                smallestLan = languages[i];
+            }
+
+        }
+
+        //Any leftover (likely just ocean culture but worth setting for robustness)
+        List<Culture> finalUnsets = cultures.Where(x => x._nameType == null || !(languages.Contains(x._nameType))).ToList();
+        foreach (Culture tCult in finalUnsets)
+        {
+            tCult._nameType = smallestLan;
+        }
+    }
     private void FindNewCultureLocation(ref System.Random rnd, ref int cultureID, ref List<ProvinceObject> expandableProvinces, ref List<ProvinceObject> potentialTargets)
     {
         int newCultureTarget = rnd.Next(0, potentialTargets.Count);
@@ -478,6 +547,7 @@ public class MapObject
             }
         }
 
+        CultureLanguages(ref rnd);
 
     }
     public void IterateProvinces(ref Color[] PixelsSet, int maxWidth, int maxHeight, ref System.Random rn) //Iterate through all provinces and append to the pixels set array
