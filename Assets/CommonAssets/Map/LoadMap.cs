@@ -169,6 +169,6 @@ public class LoadMap : MonoBehaviour
             selectedProvince = provToDisplay._id;
         }
 
-        _provDetails.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay, ref _culturesLoaded); //Change province viewer screen
+        _provDetails.GetComponent<ProvinceViewerBehaviour>().DisplayProvince(provToDisplay, ref _culturesLoaded, ref _provincesLoaded); //Change province viewer screen
     }
 }

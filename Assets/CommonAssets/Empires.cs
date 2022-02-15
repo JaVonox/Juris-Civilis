@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using UnityEngine;
 using WorldProperties;
 using BiomeData;
@@ -12,9 +13,10 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 {
     public class Empire
     {
+        public bool _exists;
         public int _id;
         public string _empireName;
-        public List<int> _componentProvinceIDs = new List<int>();
+        public BindingList<int> _componentProvinceIDs = new BindingList<int>();
         public Color _empireCol;
         public int _cultureID;
         //Empire values
@@ -31,16 +33,19 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public Religion stateReligion;
 
         //Simulation properties
-        public float percentageEco; //Percentage of the culuture economy owned by this nation
+        public float percentageEco; //Percentage of the culture economy owned by this nation
 
         public float maxMil;
         public float curMil;
+        private float leftoverMil;
         public Empire(int id, string name, ProvinceObject startingProvince, ref List<Culture> cultures, ref List<Empire> empires) //Constructor for an empire - used when a new empire is spawned
         {
             _id = id;
+            _exists = true;
             _empireName = name;
             _componentProvinceIDs.Add(startingProvince._id);
             startingProvince.NewOwner(this); //Append self to set of owner
+            _componentProvinceIDs.ListChanged += CheckEmpireExists;
             _empireCol = startingProvince._provCol;
 
             //TODO make new empire spawn with duplicate of lowest tech in their culture?
@@ -58,32 +63,55 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         {
 
         }
-
+        private void CheckEmpireExists(object sender, ListChangedEventArgs e)
+        {
+            if (_componentProvinceIDs.Count == 0) //If no more component provs
+            {
+                _exists = false;
+                _cultureID = -1;
+            }
+        }
         public float ReturnPopScore(List<ProvinceObject> provinces)
         {
-            return (float)_componentProvinceIDs.Count(y => provinces[y]._population == Property.High) * 5 + (float)_componentProvinceIDs.Count(y => provinces[y]._population == Property.Medium) * 2 + (float)_componentProvinceIDs.Count(y => provinces[y]._population == Property.Low) * 0.5f;
+            return ((float)(_componentProvinceIDs.Count(y => provinces[y]._population == Property.High)) * 1.0f) + ((float)(_componentProvinceIDs.Count(y => provinces[y]._population == Property.Medium) * 0.5f)) + ((float)(_componentProvinceIDs.Count(y => provinces[y]._population == Property.Low) * 0.25f));
         }
         public int ReturnTechTotal()
         {
             return milTech + ecoTech + dipTech + logTech + culTech;
         }
+        public float ReturnEcoScore(ref List<ProvinceObject> provinces) //Get economics score for this empire
+        {
+            return ((float)(this.ReturnTechTotal())/5.0f)*(0.1f+
+                ((ReturnPopScore(provinces))/20.0f)+((float)(ecoTech)/30.0f));
+        }
+
         public void RecalculateMilMax(List<ProvinceObject> provinces) //Finds the appropriate max military. Redone every time mil is recruited
         {
-            maxMil = Math.Min(100000000,Math.Max(10,(float)Math.Floor((milTech * 25) * (ReturnPopScore(provinces)/5))));
+            maxMil = 25 + Math.Min(100000000,(float)Math.Floor(((float)(milTech) * (0.5f + (ReturnPopScore(provinces)/10.0f)))));
         }
-        public float ExpectedMilIncrease(ref List<Culture> cultures)
+        public float ExpectedMilIncrease(ref List<ProvinceObject> provinces)
         {
-            return (float)Math.Floor(Math.Min(maxMil / 3,Math.Max(1, (float)Math.Ceiling(((cultures[_cultureID]._economyScore / (255/(float)(logTech))) * percentageEco)))));
+            return (float)Math.Round(1.0f+(float)Math.Min(100000000,ReturnEcoScore(ref provinces)/2.0f),2);
         }
         public void RecruitMil(ref List<Culture> cultures, ref List<ProvinceObject> provinces) //Every month recalculate military gain
         {
             RecalculateMilMax(provinces);
-            curMil += ExpectedMilIncrease(ref cultures);
+            float trueMilExp = ExpectedMilIncrease(ref provinces);
+            leftoverMil += trueMilExp - (float)Math.Floor(trueMilExp);
+            curMil += (float)Math.Floor(trueMilExp);
+            if (leftoverMil >= 1) //If the leftovers are enough to increment
+            {
+                curMil += (float)Math.Floor(leftoverMil);
+                leftoverMil -= (float)Math.Floor(leftoverMil);
+            }
             if (curMil > maxMil) { curMil = maxMil; }
         }
         public void PollForAction((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires)
         {
-            AgeMechanics(currentDate, ref cultures, ref empires);
+            if (_exists) //If this empire is active
+            {
+                AgeMechanics(currentDate, ref cultures, ref empires);
+            }
         }
         public void AgeMechanics((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires)
         {
@@ -130,7 +158,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             //TODO add names and make previous ruler details not apply if last name is changed
             bool newDyn = false;
 
-            if(rulerRND.Next(0,20) == 2 || previousRuler == null) //Dynasty Replacement chance
+            if(rulerRND.Next(0,10) == 2 || previousRuler == null) //Dynasty Replacement chance
             {
                 newDyn = true;
             }
@@ -150,7 +178,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     List<string> applicableDyn = empires.Where(t => t._cultureID == ownedEmpire._cultureID && t.curRuler.lName != previousRuler.lName && t._id != ownedEmpire._id).Select(l=> l.curRuler.lName).ToList(); //Get all other dynasties in the same culture group
                     if (applicableDyn.Count > 0)
                     {
-                        if (rulerRND.Next(0, 100 - Math.Min((int)Math.Floor(((float)(ownedEmpire.dipTech) / 10)), 90)) == 1) //Take dynasty from within culture group
+                        if (rulerRND.Next(0, 10 - Math.Min((int)Math.Floor(((float)(ownedEmpire.dipTech) / 100)), 5)) == 1) //Take dynasty from within culture group
                         {
                             lName = applicableDyn[rulerRND.Next(0, applicableDyn.Count)]; //Get dynasty from other nation
                         }

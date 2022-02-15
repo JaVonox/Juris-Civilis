@@ -39,6 +39,7 @@ public class EmpireViewer : MonoBehaviour
 
     private Empire lastEmpire;
     private List<Culture> lastCults;
+    private List<ProvinceObject> lastProvs;
     private bool isActive = false;
 
     private enum Suffix
@@ -48,11 +49,12 @@ public class EmpireViewer : MonoBehaviour
         nd=2,
         rd=3,
     }
-    public void UpdateData(ref Empire target, ref List<Culture> cults)
+    public void UpdateData(ref Empire target, ref List<Culture> cults, ref List<ProvinceObject> provs)
     {
         updateCounter = 0;
         lastEmpire = target;
         lastCults = cults;
+        lastProvs = provs;
         if(isActive != true)
         {
             exitButton.onClick.AddListener(KillSelf);
@@ -61,7 +63,7 @@ public class EmpireViewer : MonoBehaviour
         empireName.text = target._empireName;
         empireFlag.color = target._empireCol;
         curMilScore.text = "Military Power: " + target.curMil.ToString() + "/" + target.maxMil.ToString();
-        projectedMilScore.text = "Projected Growth:" + target.ExpectedMilIncrease(ref cults).ToString();
+        projectedMilScore.text = "Projected Growth:" + target.ExpectedMilIncrease(ref provs).ToString();
 
         milTech.text = "Military Tech: " + target.milTech;
         ecoTech.text = "Economic Tech: " + target.ecoTech;
@@ -91,7 +93,7 @@ public class EmpireViewer : MonoBehaviour
 
         char[] splitBDay = tRuler.birthday.day.ToString().ToCharArray();
         int suffixID = Convert.ToInt32(splitBDay[splitBDay.Length - 1].ToString());
-        string suffix = suffixID < 4 || (splitBDay.Length == 2 && splitBDay[0] == 1) ? ((Suffix)suffixID).ToString() : "th";
+        string suffix = suffixID < 4  && (splitBDay.Length == 0 || (splitBDay.Length == 2 && splitBDay[0] == 2)) ? ((Suffix)suffixID).ToString() : "th";
         rulerAge.text = "Age: " + tRuler.age + " (Birthday " + ((Calendar.Calendar.Months)tRuler.birthday.month).ToString() + " " + tRuler.birthday.day + suffix + ")";
         stateReligion.text = "State Religion: " + (target.stateReligion == null ? "No Religion" : target.stateReligion._name);
     }
@@ -110,7 +112,7 @@ public class EmpireViewer : MonoBehaviour
 
             if (updateCounter >= 0.5f)
             {
-                UpdateData(ref lastEmpire, ref lastCults);
+                UpdateData(ref lastEmpire, ref lastCults, ref lastProvs);
                 updateCounter = 0;
             }
         }

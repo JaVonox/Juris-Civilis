@@ -29,23 +29,37 @@ namespace Act
             }
         }
 
-        public static bool ForceConquerLand(ProvinceObject targetProv, Empire aggressorEmpire) //Used to and conquer land without cost/restrictions
+        public static bool ForceConquerLand(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs) //Used to and conquer land without cost/restrictions
         {
 
-            if(aggressorEmpire != null && targetProv._ownerEmpire != aggressorEmpire && targetProv._biome != 0)
+            if(aggressorEmpire != null && aggressorEmpire._exists == true && targetProv._ownerEmpire != aggressorEmpire && targetProv._biome != 0)
             {
-                if(targetProv._ownerEmpire != null)
+                if (IsAdjacent(targetProv,aggressorEmpire,ref provs)) 
                 {
-                    targetProv._ownerEmpire._componentProvinceIDs.Remove(targetProv._id); //Remove province from set of owned provinces in previous owner
+                    if (targetProv._ownerEmpire != null)
+                    {
+                        targetProv._ownerEmpire._componentProvinceIDs.Remove(targetProv._id); //Remove province from set of owned provinces in previous owner
+                    }
+
+                    targetProv._ownerEmpire = aggressorEmpire;
+                    aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
+
+                    return true;
                 }
-                targetProv._ownerEmpire = aggressorEmpire;
-                aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
-                return true;
+                else
+                {
+                    return false;
+                }
             }
             else
             {
                 return false;
             }
+        }
+        public static bool IsAdjacent(ProvinceObject targetProv, Empire tEmpire, ref List<ProvinceObject> provs) //Checks if the selected province is adjacent to the empire
+        {
+            if(tEmpire._exists != true) { return false; }
+            return provs.Where(tP => tEmpire._componentProvinceIDs.Contains(tP._id)).SelectMany(p => p._adjacentProvIDs).Distinct().ToList().Contains(targetProv._id);
         }
         public static bool UpdateCultures(ref List<Culture> cultures, ref List<ProvinceObject> provs, ref List<Empire> empires)
         {
@@ -59,7 +73,8 @@ namespace Act
 
         public static bool UpdateMilitary(ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
         {
-            foreach (Empire x in empires)
+            List<Empire> appEmpires = empires.Where(t => t._exists == true).ToList();
+            foreach (Empire x in appEmpires)
             {
                 x.RecruitMil(ref cultures, ref provs);
             }
@@ -69,6 +84,11 @@ namespace Act
 
         public static bool UpdateTech(ref List<Empire> empires, int id, string type)
         { 
+            if(empires[id]._exists == false)
+            {
+                return false;
+            }
+
             switch(type)
             {
                 case "Military":
@@ -121,7 +141,7 @@ namespace Act
 
         public static bool SetStateReligion(ref List<ProvinceObject> provs, ref List<Empire> empires, ref List<Religion> religions, int targetEmpire, int targetReligion)
         {
-            if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion])) //Check if religion exists on map
+            if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion]) && empires[targetEmpire]._exists == true) //Check if religion exists on map
             {
                 empires[targetEmpire].stateReligion = religions[targetReligion]; //set religion
                 return true;

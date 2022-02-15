@@ -30,6 +30,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
 
     private ProvinceObject lastSelection;
     private List<Culture> culturesSet;
+    private List<ProvinceObject> provsSet;
     public void Start()
     {
         container.SetActive(false);
@@ -95,17 +96,18 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
         activeInfoScreen = null;
         activeInfoScreen = Instantiate(nationalPrefab, container.transform, false);
-        activeInfoScreen.GetComponent<NationalHandler>().NationalInfo(ref newSelection, ref culturesSet);
+        activeInfoScreen.GetComponent<NationalHandler>().NationalInfo(ref newSelection, ref culturesSet, ref provsSet);
         container.SetActive(true);
     }
     private void InteriorUpdate() //Updates from script
     {
         actionRef[(int)activeInfoMode](lastSelection);
     }
-    public void DisplayProvince(ProvinceObject newSelection, ref List<Culture> cultures) //Updates the selection based on the provincial data provided
+    public void DisplayProvince(ProvinceObject newSelection, ref List<Culture> cultures, ref List<ProvinceObject> provs) //Updates the selection based on the provincial data provided
     {
         lastSelection = newSelection;
         if(culturesSet == null) { culturesSet = cultures; }
+        if(provsSet == null) { provsSet = provs; }
 
         actionRef[(int)activeInfoMode](newSelection);
     }

@@ -382,6 +382,7 @@ namespace SaveLoad
                 empData.WriteAttributeString("ID", tEmpire._id.ToString());
                 empData.WriteAttributeString("Name", tEmpire._empireName.ToString());
                 empData.WriteAttributeString("ReligionID", tEmpire.stateReligion == null ? "NULL" : tEmpire.stateReligion._id.ToString());
+                empData.WriteAttributeString("Exists", tEmpire._exists.ToString());
 
                 empData.WriteStartElement("Colour");
                 empData.WriteString(ColorUtility.ToHtmlStringRGB(tEmpire._empireCol));
@@ -505,6 +506,7 @@ namespace SaveLoad
                 loadedEmp._empireName = empNode.Attributes["Name"].Value;
                 string relID = empNode.Attributes["ReligionID"].Value;
                 loadedEmp.stateReligion = relID == "NULL" ? null : rels[Convert.ToInt32(relID)];
+                loadedEmp._exists = Convert.ToBoolean(empNode.Attributes["Exists"].Value);
 
                 loadedEmp._cultureID = Convert.ToInt32(empNode["CultureID"].InnerText);
                 loadedEmp.curMil = (float)(Convert.ToDouble(empNode["MilitarySize"].InnerText));

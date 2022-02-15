@@ -17,19 +17,23 @@ public class NationalHandler : MonoBehaviour
 
     private ProvinceObject newSelec;
     private List<Culture> cultSet;
-    public void NationalInfo(ref ProvinceObject newSelection, ref List<Culture> culturesSet)
+    private List<ProvinceObject> provSet;
+    public void NationalInfo(ref ProvinceObject newSelection, ref List<Culture> culturesSet, ref List<ProvinceObject> provs)
     {
         newSelec = newSelection;
         cultSet = culturesSet;
+        provSet = provs;
 
         if(newSelection._ownerEmpire == null)
         {
             EmpireName.text = "Unowned Land";
+            detailsBtn.interactable = false;
         }
         else
         {
             EmpireName.text = "Owner: " + newSelection._ownerEmpire._empireName;
             detailsBtn.onClick.AddListener(LoadDetails);
+            detailsBtn.interactable = true;
         }
 
         ProvName.text = newSelection._cityName;
@@ -40,11 +44,11 @@ public class NationalHandler : MonoBehaviour
         {
             loadedMoreDetails = Instantiate(detailsPrefab);
             loadedMoreDetails.name = "EmpireViewer";
-            loadedMoreDetails.GetComponent<EmpireViewer>().UpdateData(ref newSelec._ownerEmpire, ref cultSet);
+            loadedMoreDetails.GetComponent<EmpireViewer>().UpdateData(ref newSelec._ownerEmpire, ref cultSet, ref provSet);
         }
         else
         {
-            GameObject.Find("EmpireViewer").GetComponent<EmpireViewer>().UpdateData(ref newSelec._ownerEmpire, ref cultSet);
+            GameObject.Find("EmpireViewer").GetComponent<EmpireViewer>().UpdateData(ref newSelec._ownerEmpire, ref cultSet, ref provSet);
         }
     }
 }

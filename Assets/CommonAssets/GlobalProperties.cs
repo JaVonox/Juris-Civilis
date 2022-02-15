@@ -198,7 +198,7 @@ namespace WorldProperties
         public string LoadDynasty(ref List<Empire> empires, ref System.Random rnd)
         {
             //TODO add copy dynasty from culture partner
-            List<string> existingNames = empires.Where(t => t.curRuler.lName != "NULL").Select(p => p.curRuler.lName).ToList();
+            List<string> existingNames = empires.Where(t => t.curRuler.lName != "NULL" && t._exists == true).Select(p => p.curRuler.lName).ToList();
             TextAsset namesFile = (TextAsset)Resources.Load("Naming/" + _nameType + (_nameType != "Pacific" ? "L" : "F")); //Load relevant file. Pacific has no last names, so first names take their place.
 
             List<string> namesSet = namesFile.text.Split('\n').ToList();
@@ -212,33 +212,21 @@ namespace WorldProperties
         public void CalculateEconomy(ref List<Empire> empires, List<ProvinceObject> provinces) //Gets the total economic score of a region and set all components scores. done every year
         {
             int myID = Convert.ToInt32(_id);
-            List<Empire> applicableEmpires = empires.Where(t => t._cultureID == myID).ToList();
+            List<Empire> applicableEmpires = empires.Where(t => t._cultureID == myID && t._exists == true).ToList();
 
             //Total of all techs
             if (applicableEmpires.Count != 0)
             {
-                _economyScore = applicableEmpires.Sum(x => x.ReturnTechTotal());
+                _economyScore = applicableEmpires.Sum(l => l.ReturnEcoScore(ref provinces));
 
-                //ecoTech min/max
-                float ecoTechMax = applicableEmpires.Max(x => (float)x.ecoTech);
-
-                ecoTechMax += 0.001f; 
-
-                //empire size min/max
-                float empSizeMax = (float)applicableEmpires.Max(x => x.ReturnPopScore(provinces));
-                empSizeMax += 0.001f;
-
-                float sumScore = applicableEmpires.Sum(x => (float)(Math.PI * (Math.Sin((float)(x.ecoTech) / ecoTechMax))) * 2+((float)(Math.Log10((x.ReturnPopScore(provinces)/ empSizeMax)))));
-
-                foreach (Empire tEmp in applicableEmpires)
+                foreach (Empire e in applicableEmpires)
                 {
-                    //Set the percentage power of each empire within the culture group
-                    float myEmpSize = tEmp.ReturnPopScore(provinces);
-
-                    float myScore = (float)(Math.PI * (Math.Sin((float)(tEmp.ecoTech) / ecoTechMax))) * 2 + ((float)(Math.Log10((tEmp.ReturnPopScore(provinces) / empSizeMax))));
-
-                    tEmp.percentageEco = (float)(myScore) / (float)(sumScore);
+                    e.percentageEco = e.ReturnEcoScore(ref provinces) / _economyScore;
                 }
+            }
+            else
+            {
+                _economyScore = 0;
             }
         }
     }
