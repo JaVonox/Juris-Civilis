@@ -153,7 +153,20 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             {"per_IncreaseOpinion",0 },
             {"per_SpawnRebellion",0 },
             {"per_Colonize",0 },
-            {"per_Teach",0 }};
+            {"per_Teach",0 },
+            {"per_Attack",0 }};
+
+        public static Dictionary<string,(string low1,string low2,string high1,string high2)> personalityNames = new Dictionary<string, (string low1, string low2, string high1, string high2)>(){
+            {"per_DeclareWar",("Peaceful","Peacemaker","Aggressive","Warmonger")},
+            {"per_DevelopTech",("Orthodox","Traditionalist","Educated","Philosopher")},
+            {"per_LearnTech",("Stubborn","Conservative","Progressive","Erudite")},
+            {"per_Idle",("Active","Activist","Indecisive","Hedonist") },
+            {"per_SpreadReligion",("Sceptical","Atheist","Faithful","Saint") },
+            {"per_IncreaseOpinion",("Shy","Isolationist","Gregarious","Diplomat") },
+            {"per_SpawnRebellion",("Beloved","Lawmaker","Controversial","Tyrant") },
+            {"per_Colonize",("Insular","Stray","Adventurous","Explorer") },
+            {"per_Teach",("Absent","Misanthrope","Loving","Educator")},
+            {"per_Attack",("Disorganized","Coward","Wise","Strategist")}};
 
         //Tech focuses (0-5) Military, Economics, Diplomacy, Logistics, Culture
         public float[] techFocus = new float[2];
@@ -257,6 +270,27 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             age = rulerRND.Next(18, 70);
 
             deathday.age = rulerRND.Next(age, 72 + Convert.ToInt32(Math.Floor((float)(ownedEmpire.ReturnTechTotal()) / 50)));
+        }
+        public string GetRulerPersonality()
+        {
+            List<(string personality, float power)> PersonalityValues = new List<(string personality, float power)>();
+            foreach(KeyValuePair<string,float> personality in rulerPersona)
+            {
+                PersonalityValues.Add((personality.Key, personality.Value));
+            }
+            PersonalityValues = PersonalityValues.OrderBy(x => (float)Math.Abs(x.power - 0.5f)).ToList();
+
+            string title = "";
+
+            {
+                (string personality, bool IsHigh) persona1 = (PersonalityValues[0].personality, PersonalityValues[0].power <= 0.5f ? false : true);
+                (string personality, bool IsHigh) persona2 = (PersonalityValues[1].personality, PersonalityValues[1].power <= 0.5f ? false : true);
+
+                title += (persona2.IsHigh == true ? personalityNames[persona2.personality].high1 : personalityNames[persona2.personality].low1) + " ";
+                title += persona1.IsHigh == true ? personalityNames[persona1.personality].high2 : personalityNames[persona1.personality].low2;
+            }
+
+            return title;
         }
         public Ruler()
         {

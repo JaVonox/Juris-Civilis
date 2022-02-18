@@ -33,6 +33,7 @@ public class EmpireViewer : MonoBehaviour
     //Ruler
     public Text rulerName;
     public Text rulerAge;
+    public Text rulerPersona;
     public Text stateReligion;
 
     public float updateCounter;
@@ -96,6 +97,7 @@ public class EmpireViewer : MonoBehaviour
         string suffix = suffixID < 4  && (splitBDay.Length == 0 || (splitBDay.Length == 2 && splitBDay[0] == 2)) ? ((Suffix)suffixID).ToString() : "th";
         rulerAge.text = "Age: " + tRuler.age + " (Birthday " + ((Calendar.Calendar.Months)tRuler.birthday.month).ToString() + " " + tRuler.birthday.day + suffix + ")";
         stateReligion.text = "State Religion: " + (target.stateReligion == null ? "No Religion" : target.stateReligion._name);
+        rulerPersona.text = "Personality: " + tRuler.GetRulerPersonality();
     }
     private void KillViewer()
     {
@@ -108,12 +110,16 @@ public class EmpireViewer : MonoBehaviour
     {
         if (isActive)
         {
-            updateCounter += Time.deltaTime;
-
-            if (updateCounter >= 0.5f)
+            if (Input.GetKeyDown(KeyCode.Escape)) { KillViewer(); Destroy(this.gameObject); }
+            else
             {
-                UpdateData(ref lastEmpire, ref lastCults, ref lastProvs);
-                updateCounter = 0;
+                updateCounter += Time.deltaTime;
+
+                if (updateCounter >= 0.5f)
+                {
+                    UpdateData(ref lastEmpire, ref lastCults, ref lastProvs);
+                    updateCounter = 0;
+                }
             }
         }
     }

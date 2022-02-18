@@ -97,7 +97,6 @@ public class MainScreenHandler : MonoBehaviour
     void StartGeneration()
     {
         worldName = startScreen.GetComponent<MenuComponents>().worldName.text;
-        Debug.Log(worldName);
         currentMap = new MapObject(mapWidth, mapHeight);
         loadMap = Instantiate(loadMapPrefab, null); //Create new map instance
         loadMap.name = "Map";

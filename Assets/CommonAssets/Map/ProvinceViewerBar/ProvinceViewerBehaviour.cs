@@ -55,6 +55,16 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         activeInfoMode = (InfoMode)(0);
         SwitchInfoMode(infoModeBtns[0]); //Start by using terrain viewer mode
     }
+    void Update()
+    {
+        if(Input.GetKeyDown(KeyCode.Escape))
+        {
+            if(GameObject.Find("EmpireViewer") == null)
+            {
+                container.SetActive(false);
+            }
+        }
+    }
 
     void SwitchInfoMode(Button sender)
     {
