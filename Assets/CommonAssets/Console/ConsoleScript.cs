@@ -6,10 +6,12 @@ using ConsoleInterpret;
 using WorldProperties;
 using BiomeData;
 using Empires;
+using System.Linq;
 public class ConsoleScript : MonoBehaviour
 {
     public InputField textInput;
     public Text consoleLog;
+    public GameObject console;
 
     private GameObject refProvDetails;
     private ConsoleInterpreter interpreter;
@@ -54,10 +56,24 @@ public class ConsoleScript : MonoBehaviour
     {
         if (textInput.text != "")
         {
-            LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap, ref _religions) + "\n" + LoggedText;
-            //Submit, add to log and then remove the text
-            consoleLog.text = LoggedText;
-            ResetInput();   
+            if (textInput.text.ToUpper() == "CLEAR")
+            {
+                consoleLog.text = "";
+                LoggedText = "";
+            }
+            else
+            {
+                LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap, ref _religions) + "\n" + LoggedText;
+                //Submit, add to log and then remove the text
+                List<string> textLog = LoggedText.Split('\n').ToList();
+                if (textLog.Count() > 15)
+                {
+                    LoggedText = string.Join("\n",textLog.GetRange(0,15).ToArray());
+                }
+                consoleLog.text = LoggedText;
+            }
+            ResetInput();
+            Canvas.ForceUpdateCanvases();
         }
     }
 }

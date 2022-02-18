@@ -5,5 +5,6 @@ using UnityEngine.UI; //objects
 
 public class MenuComponents : MonoBehaviour
 {
+    public Text worldName;
     public Button startGen;
 }

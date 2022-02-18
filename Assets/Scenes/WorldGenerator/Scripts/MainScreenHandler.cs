@@ -21,6 +21,7 @@ public class MainScreenHandler : MonoBehaviour
     private GameObject startScreen;
     private GameObject panelScreen;
     private GameObject provinceDetailsScreen;
+    private string worldName;
     public GameObject Camera;
 
     public GameObject loadBar;
@@ -95,6 +96,8 @@ public class MainScreenHandler : MonoBehaviour
 
     void StartGeneration()
     {
+        worldName = startScreen.GetComponent<MenuComponents>().worldName.text;
+        Debug.Log(worldName);
         currentMap = new MapObject(mapWidth, mapHeight);
         loadMap = Instantiate(loadMapPrefab, null); //Create new map instance
         loadMap.name = "Map";
@@ -114,7 +117,7 @@ public class MainScreenHandler : MonoBehaviour
     }
     void SaveFile() //To be called after generation has ended
     {
-        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, false, "",1,1,1); //Saving procedure
+        string filePath = SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, false, "",1,1,1, worldName); //Saving procedure
 
         Byte[] imageBytes = newTexture.EncodeToPNG();
         Byte[] maskBytes = maskTexture.EncodeToPNG();

@@ -111,7 +111,7 @@ namespace Act
             if((float)(aggressorEmpire._componentProvinceIDs.Count()) /2 <= (float)(provs.Where(x=>x._ownerEmpire == aggressorEmpire).Count(y=>y._biome == targetProv._biome))) { modifier--; }
 
             if(modifier < 1) { modifier = Math.Max(0.1f,Math.Min(1,1-(Math.Abs(modifier) / 10.0f))); } //If modifier is less than 1, set it to become reduction modifiers.
-            int cost = Math.Max(Convert.ToInt32(Math.Min(Math.Ceiling(aggressorEmpire.ExpectedMilIncrease(ref provs) * 12.0f), Math.Max(1, aggressorEmpire.maxMil))), Convert.ToInt32(Math.Floor(BaseCost * (modifier))));
+            int cost = Math.Max(Convert.ToInt32(Math.Min(Math.Ceiling((aggressorEmpire.ExpectedMilIncrease(ref provs) * 12.0f) * modifier), Math.Max(1, aggressorEmpire.maxMil))), Convert.ToInt32(Math.Floor(BaseCost * (modifier))));
 
             {
                 List<int> adjacentProvIds = provs.First(x => x._id == targetProv._id)._adjacentProvIDs;
@@ -121,7 +121,7 @@ namespace Act
                 {
                     if(adjacentProvs.All(x=>x._ownerEmpire == aggressorEmpire))
                     {
-                        int reducedCost = Math.Max(5,Convert.ToInt32(Math.Min(Math.Floor((aggressorEmpire.ExpectedMilIncrease(ref provs) * 6.0f)), Math.Max(1, aggressorEmpire.maxMil / 2.0f))));
+                        int reducedCost = Math.Max(5,Convert.ToInt32(Math.Min(Math.Floor((aggressorEmpire.ExpectedMilIncrease(ref provs) * 6.0f) * modifier), Math.Max(1, aggressorEmpire.maxMil / 2.0f))));
                         return (reducedCost < cost ? reducedCost : cost);
                     }
                 }

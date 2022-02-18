@@ -43,11 +43,11 @@ namespace SaveLoad
 
             return targetFiles;
         }
-        public static string CreateFile(int worldWidth, int worldHeight, bool overwrite, string prePath, int day, int month, int year) //Creates a new save file structure
+        public static string CreateFile(int worldWidth, int worldHeight, bool overwrite, string prePath, int day, int month, int year, string WorldName) //Creates a new save file structure
         {
 
-            string path;
-            int iterate = 0;
+            string path = "";
+            string setWorldName = "";
 
             {
                 if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/")) //Create a save folder if one does not exist
@@ -57,22 +57,50 @@ namespace SaveLoad
 
                 if (!overwrite)
                 {
-                    while (true) //Find the next available world save folder
-                    {
-                        if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate))
-                        {
-                            path = System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/World" + iterate + "/";
-                            Directory.CreateDirectory(path + "WorldData/");
-                            break;
-                        }
+                    bool isWrittenTo = false;
 
-                        iterate++;
+                    if(WorldName == "(DEFAULT)")
+                    {
+                        WorldName = "World";
+                        isWrittenTo = false;
+                    }
+                    else
+                    {
+                        if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/" + WorldName))
+                        {
+                            path = System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/" + WorldName + "/";
+                            Directory.CreateDirectory(path + "WorldData/");
+                            setWorldName = WorldName;
+                            isWrittenTo = true;
+                        }
+                        else
+                        {
+                            isWrittenTo = false;
+                        }
+                    }
+
+                    if (!isWrittenTo)
+                    {
+                        int iterate = 1;
+                        while (true) //Find the next available world save folder
+                        {
+                            if (!Directory.Exists(System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/" + WorldName + "(" + iterate + ")"))
+                            {
+                                path = System.IO.Directory.GetCurrentDirectory().ToString() + "/Saves/" + WorldName + "(" + iterate + ")/";
+                                Directory.CreateDirectory(path + "WorldData/");
+                                setWorldName = WorldName + "(" + iterate + ")";
+                                break;
+                            }
+
+                            iterate++;
+                        }
                     }
                 }
                 else
                 {
                     XmlDocument empFile = new XmlDocument();
                     path = prePath + "/";
+                    setWorldName = WorldName;
                     empFile.Load(path + "/World.sav");
                     empFile.DocumentElement.RemoveAll(); //Clears the file
                     empFile.Save(path + "/World.sav");
@@ -87,7 +115,7 @@ namespace SaveLoad
             xmlWriter.WriteStartElement("World");
 
             xmlWriter.WriteStartElement("Name");
-            xmlWriter.WriteString("World" + iterate);
+            xmlWriter.WriteString(setWorldName);
             xmlWriter.WriteEndElement();
 
             xmlWriter.WriteStartElement("Width");

@@ -24,6 +24,7 @@ public class SimulatorMainHandler : MonoBehaviour
     int year = 0;
     int month = 0;
     int day = 0;
+    string worldName = "";
 
     public GameObject startPrefab;
     public GameObject panelPrefab;
@@ -82,6 +83,7 @@ public class SimulatorMainHandler : MonoBehaviour
                 year = Convert.ToInt32(prop["Year"]);
                 month = Convert.ToInt32(prop["Month"]);
                 day = Convert.ToInt32(prop["Day"]);
+                worldName = prop["Name"];
 
                 mapTexture = new Texture2D(mapWidth, mapHeight);
                 (byte[],byte[]) mapBytes = SaveLoad.SavingScript.LoadMap(filePath, mapWidth, mapHeight);
@@ -181,7 +183,7 @@ public class SimulatorMainHandler : MonoBehaviour
         {
             SaveLoad.SavingScript.SaveEmpires(filePath, ref empires, ref provinces); //Save empire data
             SaveLoad.SavingScript.CreateCultures(filePath, ref cultures, true);
-            SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, true, filePath,day,month,year);
+            SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, true, filePath,day,month,year,worldName);
         }
         SceneManager.LoadScene("Main Menu", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }
