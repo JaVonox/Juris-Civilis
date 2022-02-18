@@ -94,6 +94,50 @@ namespace ConsoleInterpret
                             { return "Set state Religion"; }
                             else { return "Failed to set state religion"; }
                         }
+                    case "COLONY": //COLONY (PROVID) (EMPIREID)
+                        if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                        if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
+                        if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                        if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The target empire is dead"; }
+                        if (provs.Count < Convert.ToInt32(commandSplit[1]) || empires.Count < Convert.ToInt32(commandSplit[2])) { return "Unrecognised integer ID supplied"; }
+
+                        (bool canColonize, int colonyCost) colonyApplicable = Act.Actions.CanColonize(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs);
+                        if (colonyApplicable.canColonize) {
+                            if (Act.Actions.ColonizeLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                            {
+                                ForceUpdate(ref loadedMap);
+                                return "Colonized new land for mil score " + colonyApplicable.colonyCost;
+                            }
+                            else
+                            {
+                                return "Failed to Colonize";
+                            }
+                        }
+                        else 
+                        {
+                            if(colonyApplicable.colonyCost == 0) { return "Could not colonize"; }
+                            else { return "Could not afford colony cost of " + colonyApplicable.colonyCost; }
+                        }
+                    case "ATTACK": //ATTACK (PROVID) (EMPIREID)
+                        if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                        if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
+                        if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                        if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The target empire is dead"; }
+                        if (provs.Count < Convert.ToInt32(commandSplit[1]) || empires.Count < Convert.ToInt32(commandSplit[2])) { return "Unrecognised integer ID supplied"; }
+
+                        if (Act.Actions.CanConquer(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                        {
+                            if (Act.Actions.ConquerLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                            {
+                                ForceUpdate(ref loadedMap);
+                                return "Successfully won battle";
+                            }
+                            else
+                            {
+                                return "Attack Failed";
+                            }
+                        }
+                        else { return "Could not attack"; }
                     default:
                         return "Invalid command";
                 }

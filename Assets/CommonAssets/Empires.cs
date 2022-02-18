@@ -127,6 +127,10 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 curRuler = tmpRuler;
             }
         }
+        public List<int> ReturnAdjacentIDs(ref List<ProvinceObject> provs)
+        {
+            return provs.Where(x => x._ownerEmpire == this).SelectMany(y => y._adjacentProvIDs).Distinct().Where(z => !_componentProvinceIDs.Contains(z)).ToList();
+        }
     }
 
     public class Ruler
