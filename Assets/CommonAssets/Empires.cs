@@ -37,8 +37,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
         public float maxMil;
         public float curMil;
-        private float leftoverMil;
-        public Empire(int id, string name, ProvinceObject startingProvince, ref List<Culture> cultures, ref List<Empire> empires) //Constructor for an empire - used when a new empire is spawned
+        public float leftoverMil;
+        public Empire(int id, string name, ProvinceObject startingProvince, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs) //Constructor for an empire - used when a new empire is spawned
         {
             _id = id;
             _exists = true;
@@ -58,6 +58,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             stateReligion = startingProvince._localReligion != null ? startingProvince._localReligion : null;
 
             curRuler = new Ruler(null,this, ref cultures, ref empires); //Create new random ruler
+            RecruitMil(ref cultures, ref provs);
         }
         public Empire() //For loading
         {
@@ -87,24 +88,50 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
         public void RecalculateMilMax(List<ProvinceObject> provinces) //Finds the appropriate max military. Redone every time mil is recruited
         {
-            maxMil = 25 + Math.Min(100000000,(float)Math.Floor(((float)(milTech) * (0.5f + (ReturnPopScore(provinces)/10.0f)))));
+            maxMil = ((25 + Math.Min(100000000,(float)Math.Floor(((float)(milTech) * (0.5f + (ReturnPopScore(provinces)/10.0f)))))) * 10.0f) + (float)(Math.Floor(ReturnPopScore(provinces) * 4.0f));
         }
         public float ExpectedMilIncrease(ref List<ProvinceObject> provinces)
         {
-            return (float)Math.Round(1.0f+(float)Math.Min(100000000,ReturnEcoScore(ref provinces)/2.0f),2);
+            return ((float)Math.Round(1.0f+(float)Math.Min(100000000,ReturnEcoScore(ref provinces)/2.0f),2)*5);
         }
         public void RecruitMil(ref List<Culture> cultures, ref List<ProvinceObject> provinces) //Every month recalculate military gain
         {
             RecalculateMilMax(provinces);
             float trueMilExp = ExpectedMilIncrease(ref provinces);
-            leftoverMil += trueMilExp - (float)Math.Floor(trueMilExp);
-            curMil += (float)Math.Floor(trueMilExp);
-            if (leftoverMil >= 1) //If the leftovers are enough to increment
+            if (leftoverMil < 0) // If there is a reinforcement debt
             {
-                curMil += (float)Math.Floor(leftoverMil);
-                leftoverMil -= (float)Math.Floor(leftoverMil);
+                leftoverMil += trueMilExp;
             }
-            if (curMil > maxMil) { curMil = maxMil; }
+            else
+            {
+                leftoverMil += trueMilExp - (float)Math.Floor(trueMilExp);
+                curMil += (float)Math.Floor(trueMilExp);
+                if (leftoverMil >= 1) //If the leftovers are enough to increment
+                {
+                    curMil += (float)Math.Floor(leftoverMil);
+                    leftoverMil -= (float)Math.Floor(leftoverMil);
+                }
+                if (curMil > maxMil) { curMil = maxMil; }
+            }
+        }
+
+        public void TakeLoss(float losses)
+        {
+            int intLoss = Convert.ToInt32(Math.Floor(losses));
+            float leftoverLosses = losses - (float)(intLoss);
+
+            if(curMil - intLoss < 0)
+            {
+                leftoverLosses += curMil - (float)(intLoss);
+                curMil = 0;
+            }
+            else
+            {
+                curMil -= intLoss;
+            }
+
+            leftoverLosses = (float)Math.Round(leftoverLosses, 2);
+            leftoverMil -= leftoverLosses; //Reduce leftover losses by
         }
         public void PollForAction((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires)
         {
@@ -127,9 +154,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 curRuler = tmpRuler;
             }
         }
-        public List<int> ReturnAdjacentIDs(ref List<ProvinceObject> provs)
+        public List<int> ReturnAdjacentIDs(ref List<ProvinceObject> provs, bool isDistinct)
         {
-            return provs.Where(x => x._ownerEmpire == this).SelectMany(y => y._adjacentProvIDs).Distinct().Where(z => !_componentProvinceIDs.Contains(z)).ToList();
+            List<int> pSet = provs.Where(x => x._ownerEmpire == this).SelectMany(y => y._adjacentProvIDs).ToList();
+            if(isDistinct) { pSet = pSet.Distinct().ToList(); }
+            return pSet.Where(z => !_componentProvinceIDs.Contains(z)).ToList();
         }
     }
 
@@ -142,6 +171,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public (int day, int month) birthday;
         public (int day, int month, int age) deathday;
         private List<string> nameBuffer = new List<string>() { };
+        private string rTitle = "NULL";
 
         //Personality values
         public Dictionary<string, float> rulerPersona = new Dictionary<string, float>() {
@@ -154,7 +184,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             {"per_SpawnRebellion",0 },
             {"per_Colonize",0 },
             {"per_Teach",0 },
-            {"per_Attack",0 }};
+            {"per_Attack",0 },
+            {"per_Risk",0 } //Willingness to fight low chance battles
+        };
 
         public static Dictionary<string,(string low1,string low2,string high1,string high2)> personalityNames = new Dictionary<string, (string low1, string low2, string high1, string high2)>(){
             {"per_DeclareWar",("Peaceful","Peacemaker","Aggressive","Warmonger")},
@@ -166,7 +198,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             {"per_SpawnRebellion",("Beloved","Lawmaker","Controversial","Tyrant") },
             {"per_Colonize",("Insular","Stray","Adventurous","Explorer") },
             {"per_Teach",("Absent","Misanthrope","Loving","Educator")},
-            {"per_Attack",("Disorganized","Coward","Wise","Strategist")}};
+            {"per_Attack",("Weak","Defender","Strong","Fighter")},
+            {"per_Risk",("Craven","Coward","Brazen","Gambler")}
+        };
 
         //Tech focuses (0-5) Military, Economics, Diplomacy, Logistics, Culture
         public float[] techFocus = new float[2];
@@ -273,24 +307,28 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         }
         public string GetRulerPersonality()
         {
-            List<(string personality, float power)> PersonalityValues = new List<(string personality, float power)>();
-            foreach(KeyValuePair<string,float> personality in rulerPersona)
+            if (rTitle == "NULL")
             {
-                PersonalityValues.Add((personality.Key, personality.Value));
+                List<(string personality, float power)> PersonalityValues = new List<(string personality, float power)>();
+                foreach (KeyValuePair<string, float> personality in rulerPersona)
+                {
+                    PersonalityValues.Add((personality.Key, personality.Value));
+                }
+                PersonalityValues = PersonalityValues.OrderBy(x => (float)Math.Abs(x.power - 0.5f)).ToList();
+
+                string title = "";
+
+                {
+                    (string personality, bool IsHigh) persona1 = (PersonalityValues[0].personality, PersonalityValues[0].power <= 0.5f ? false : true);
+                    (string personality, bool IsHigh) persona2 = (PersonalityValues[1].personality, PersonalityValues[1].power <= 0.5f ? false : true);
+
+                    title += (persona2.IsHigh == true ? personalityNames[persona2.personality].high1 : personalityNames[persona2.personality].low1) + " ";
+                    title += persona1.IsHigh == true ? personalityNames[persona1.personality].high2 : personalityNames[persona1.personality].low2;
+                }
+
+                rTitle = title;
             }
-            PersonalityValues = PersonalityValues.OrderBy(x => (float)Math.Abs(x.power - 0.5f)).ToList();
-
-            string title = "";
-
-            {
-                (string personality, bool IsHigh) persona1 = (PersonalityValues[0].personality, PersonalityValues[0].power <= 0.5f ? false : true);
-                (string personality, bool IsHigh) persona2 = (PersonalityValues[1].personality, PersonalityValues[1].power <= 0.5f ? false : true);
-
-                title += (persona2.IsHigh == true ? personalityNames[persona2.personality].high1 : personalityNames[persona2.personality].low1) + " ";
-                title += persona1.IsHigh == true ? personalityNames[persona1.personality].high2 : personalityNames[persona1.personality].low2;
-            }
-
-            return title;
+            return rTitle;
         }
         public Ruler()
         {

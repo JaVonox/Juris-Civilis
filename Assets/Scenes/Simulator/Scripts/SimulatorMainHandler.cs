@@ -6,7 +6,9 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement; //Scene switching data
 using WorldProperties;
 using Empires;
+using System.Linq;
 using Calendar;
+using Act;
 public class SimulatorMainHandler : MonoBehaviour
 {
     public Button exitButton;
@@ -139,7 +141,7 @@ public class SimulatorMainHandler : MonoBehaviour
             processing = true;
             
             //time events
-            if(day == 5)
+            if(day == 2)
             {
                 Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
 
@@ -149,13 +151,113 @@ public class SimulatorMainHandler : MonoBehaviour
                 }
             }
 
-            foreach(Empire tEmp in empires) //gets 
+            SpawnEmpire(); 
+
+            foreach (Empire tEmp in empires) //attempts to get an action for each empire 
             {
                 tEmp.PollForAction((day,month,year), ref cultures, ref empires);
             }
 
             processing = false;
             
+        }
+    }
+    private void SpawnEmpire()
+    {
+        int mMax = 100 + Math.Min(year, 500); //Spawning slows down over time
+        int rnTick = rnd.Next(0, mMax);
+
+        if (rnTick == rnd.Next(0,mMax))  //1/((100+y)*2) chance
+        {
+            int empCount = empires.Count(x => x._exists); //Number of empires in existance
+
+            if (empCount == 0) //If no empires exist
+            {
+                SpawnCase("ANYHIGHPOP"); //Spawn on a highpop location
+            }
+            else if(rnd.Next(0,Math.Min(15,empCount+2)) == 1)
+            {
+                Debug.Log("SECONDTICK");
+
+                if (rnTick > (int)Math.Floor((float)(mMax) / 3)) //2/3 chance
+                {
+                    SpawnCase("ANYPOPCULTURE"); //Spawn in any location in a populated culture group
+                }
+                else //1/3 chance
+                {
+                    SpawnCase("ANYPOPREGION"); //Spawn in any location in a populated culture group or high 
+                }
+            }
+        }
+    }
+    private void SpawnCase(string spawnCase) //Handles each empire spawning type
+    {
+        switch(spawnCase)
+        {
+            case "ANYHIGHPOP": //Any high population region
+                {
+                    List<ProvinceObject> applicableProvs = provinces.Where(x => x._population == Property.High && x._ownerEmpire == null && x._biome != 0).ToList();
+                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); }
+
+                    if (applicableProvs.Count > 0)
+                    {
+                        int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                    }
+                    else
+                    {
+                        SpawnCase("ANYPOPCULTURE"); 
+                    }
+                }
+                break;
+            case "ANYPOPREGION": //Any high population region or medium population region where there is a high pop nation in the area
+                {
+                    List<int> popAreas = provinces.Where(x => x._ownerEmpire != null).Select(x => x._cultureID).Distinct().ToList(); //Get all culture IDs with empires within the
+                    List<ProvinceObject> applicableProvs = provinces.Where(x => (x._population == Property.High || (x._population == Property.Medium && popAreas.Contains(x._cultureID))) && x._ownerEmpire == null && x._biome != 0).ToList();
+                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); } //Coastal regions get priority
+
+                    if (applicableProvs.Count > 0)
+                    {
+                        int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                    }
+                    else
+                    {
+                        SpawnCase("DEFAULT");
+                    }
+                }
+                break;
+            case "ANYPOPCULTURE":
+                {
+                    List<int> popAreas = provinces.Where(x => x._ownerEmpire != null).Select(x => x._cultureID).Distinct().ToList(); //Get all culture IDs with empires within the
+                    List<ProvinceObject> applicableProvs = provinces.Where(x => (x._population == Property.High || x._population == Property.Medium) && popAreas.Contains(x._cultureID) && x._ownerEmpire == null && x._biome != 0).ToList();
+                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); } //Coastal regions get priority
+
+                    if (applicableProvs.Count > 0)
+                    {
+                        int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                    }
+                    else
+                    {
+                        SpawnCase("DEFAULT");
+                    }
+                }
+                break;
+            default:
+                {
+                    List<ProvinceObject> applicableProvs = provinces.Where(x => x._ownerEmpire == null).ToList();
+                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); }
+
+                    if (applicableProvs.Count > 0)
+                    {
+                        int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                    }
+                    else
+                    { } //Since is the default, if there are no possibilities, then it must do nothing
+                }
+                break;
         }
     }
     void ToggleConsole()

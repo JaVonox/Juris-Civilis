@@ -10,6 +10,7 @@ namespace Act
 {
     public static class Actions //Contains all the actions that can be simulated
     {
+        private static System.Random actRand = new System.Random();
         public static void ToggleDebug(GameObject debugRef)
         {
             debugRef.SetActive(!debugRef.activeSelf);
@@ -20,7 +21,7 @@ namespace Act
             if(provs[provID]._biome == 0) { return false; } //Prevent ocean takeover
             if (provs[provID]._ownerEmpire == null)
             {
-                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID], ref cultures, ref empires));
+                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs));
                 return true;
             }
             else
@@ -128,6 +129,117 @@ namespace Act
             }
             return cost;
         }
+
+        public static (int attackerMaxCost, int defenderMaxCost, float attackerVicChance) BattleStats(ProvinceObject targetProv, Empire aggressorEmpire, List<ProvinceObject> provs)
+        {
+            //TODO add time concerns - i.e time of year
+            Empire defenderEmpire = targetProv._ownerEmpire;
+
+            if (aggressorEmpire.curMil == 0 || aggressorEmpire.maxMil == 0)
+            {
+                return (0, 0, 0);
+            }
+            else if (defenderEmpire.curMil == 0 || defenderEmpire.maxMil == 0)
+            {
+                return (0, 0, 1);
+            }
+
+            int fieldedAttacker = Convert.ToInt32(Math.Floor(aggressorEmpire.curMil / Math.Min(10, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < 1 ? aggressorEmpire.curMil : aggressorEmpire.curMil / Math.Min(10,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
+            int fieldedDefender = Convert.ToInt32(Math.Floor(aggressorEmpire.curMil / Math.Min(10, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < 1 ? defenderEmpire.curMil : defenderEmpire.curMil / Math.Min(10, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
+
+            float defenderModifier = 1.2f;
+            {
+                if(targetProv._elProp == Property.High || targetProv._elProp == Property.Medium) { defenderModifier+=1.5f; } //Height advantage
+                if(targetProv._isCoastal == true) { defenderModifier += 0.5f; } //Seige immunity
+                if(targetProv._tmpProp == Property.Low) { defenderModifier+=0.5f; }
+                else if(targetProv._tmpProp == Property.High && ((float)(aggressorEmpire._componentProvinceIDs.Count(x=>provs[x]._tmpProp == Property.High)) / 2.0f) < aggressorEmpire._componentProvinceIDs.Count())
+                {
+                    defenderModifier+=0.5f; //If the attacker is not prepared for high temperature wars
+                }
+            }
+            //Max mod = 4
+
+            float attackerModifier = 0.8f; //Attackers are always at a disadvantage and must choose their battles carefully
+            {
+                if(targetProv._floraProp == Property.High) { attackerModifier++; } //Food for soldiers
+                if (targetProv._elProp == Property.Low)
+                {
+                    attackerModifier += 0.2f;  //Flat terrain grants a small bonus to attackers
+                    if (aggressorEmpire._componentProvinceIDs.Where(x => provs[x]._adjacentProvIDs.Contains(targetProv._id)).Any(x => provs[x]._elProp == Property.Medium))
+                    {
+                        attackerModifier += 0.8f; //Attacking from hills grants another bonus
+                    }
+                }
+                if(targetProv._localReligion == null || aggressorEmpire.stateReligion == null || targetProv._localReligion != aggressorEmpire.stateReligion) { attackerModifier += 0.5f; } //Religious war bonus
+            }
+            //Max mod = 3.3 
+
+            //Reinforcement bonuses
+            {
+                float aggReinforcements = aggressorEmpire.ReturnAdjacentIDs(ref provs, false).Count(x => x == targetProv._id) - 1;
+                float defReinforcements = defenderEmpire._componentProvinceIDs.Where(x => provs[x]._adjacentProvIDs.Contains(targetProv._id) && x != targetProv._id).Count();
+
+                if (aggReinforcements > defReinforcements)
+                {
+                    attackerModifier += Math.Min(2.0f, (aggReinforcements / defReinforcements)/2.0f);
+                }
+                else if (defReinforcements > aggReinforcements)
+                {
+                    defenderModifier += Math.Min(2.0f, (defReinforcements / aggReinforcements)/2.0f);
+                }
+            }
+
+            float attackerPower = ((float)(fieldedAttacker)) * attackerModifier;
+            float defenderPower = ((float)(fieldedDefender)) * defenderModifier;
+
+            Debug.Log("ATT POWER: " + attackerPower);
+            Debug.Log("DEF POWER: " + defenderPower);
+
+            if (attackerPower + defenderPower == 0) { return (0, 0, 0); }
+            float attackerVicChance = Math.Min(0.95f,Math.Max(0.05f,attackerPower / (attackerPower + defenderPower)));
+            return (fieldedAttacker, fieldedDefender, attackerVicChance);
+        }
+
+        public static void CalculateLosses(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs, (int attField, int defField, float attChance) stats, bool attackerWon)
+        {
+            Empire defenderEmpire = targetProv._ownerEmpire;
+
+            float attRed = 0.0f;
+            float defRed = 0.0f;
+
+            float attOffset = 0;
+            float defOffset = 0;
+            if(attackerWon)
+            {
+                attOffset = Math.Max(0.1f,(0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble()))/10.0f),3)) - Math.Min(0.4f,Math.Max(0,0.5f-stats.attChance)));
+                defOffset = Math.Max(0,0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3));
+
+                Debug.Log("ATT OFFSET:" + (3 * attOffset));
+                Debug.Log("DEF OFFSET:" + (3 * defOffset));
+            }
+            else
+            {
+                attOffset = Math.Max(0,(0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)));
+                defOffset = Math.Max(0.1f,(0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)) - Math.Min(0.4f, Math.Max(0, stats.attChance-0.5f)));
+
+                Debug.Log("ATT OFFSET:" + (3*attOffset));
+                Debug.Log("DEF OFFSET:" + (3*defOffset));
+            }
+
+            attRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f))+(3*attOffset)); //attacker loss reduction multiplier
+            defRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(defenderEmpire.logTech)) / 50.0f) - 1.0f))+(3*defOffset)); //defender loss reduction multiplie
+
+            Debug.Log("ATT WON: " + attackerWon.ToString() + " ATT MOD: " + attRed + " DEF MOD: " + defRed);
+
+
+            float attackExactLosses = Math.Min((float)Math.Max(1.0f,attRed * stats.attField),stats.attField);
+            float defExactLosses = Math.Min((float)Math.Max(1.0f,defRed * stats.defField),stats.defField);
+
+            Debug.Log("ATK LOSS: " + attackExactLosses + " DEF LOSS: " + defExactLosses);
+
+            aggressorEmpire.TakeLoss(attackExactLosses);
+            defenderEmpire.TakeLoss(defExactLosses);
+        }
         public static bool CanConquer(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
         {
             //TODO add war requirement
@@ -139,16 +251,29 @@ namespace Act
         }
         public static bool ConquerLand(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
         {
-            if (CanConquer(targetProv, aggressorEmpire, ref provs)) //Double check. Colonize land call should be proceeded by a CanColonize already.
+            if (CanConquer(targetProv, aggressorEmpire, ref provs)) //Double check. Colonize land call should be proceeded by a CanConquer already.
             {
-                if (targetProv._ownerEmpire != null)
-                {
-                    targetProv._ownerEmpire._componentProvinceIDs.Remove(targetProv._id); //Remove province from set of owned provinces in previous owner
-                }
+                (int attField, int defField, float attChance) stats = BattleStats(targetProv, aggressorEmpire, provs);
+                Debug.Log(stats.ToString());
+                float battleScore = (float)(actRand.NextDouble()) + 0.001f;
 
-                targetProv._ownerEmpire = aggressorEmpire;
-                aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
-                return true;
+                if (battleScore < stats.attChance)
+                {
+                    CalculateLosses(targetProv, aggressorEmpire, ref provs, stats, true);
+                    if (targetProv._ownerEmpire != null)
+                    {
+                        targetProv._ownerEmpire._componentProvinceIDs.Remove(targetProv._id); //Remove province from set of owned provinces in previous owner
+                    }
+
+                    targetProv._ownerEmpire = aggressorEmpire;
+                    aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
+                    return true;
+                }
+                else
+                {
+                    CalculateLosses(targetProv, aggressorEmpire, ref provs, stats, false);
+                    return false;
+                }
             }
             else
             {
@@ -159,7 +284,8 @@ namespace Act
         public static bool IsAdjacent(ProvinceObject targetProv, Empire tEmpire, ref List<ProvinceObject> provs) //Checks if the selected province is adjacent to the empire
         {
             if(tEmpire._exists != true) { return false; }
-            return provs.Where(tP => tEmpire._componentProvinceIDs.Contains(tP._id)).SelectMany(p => p._adjacentProvIDs).Distinct().ToList().Contains(targetProv._id);
+            List<int> adjProvs = tEmpire.ReturnAdjacentIDs(ref provs, true);
+            return provs.Any(tP => adjProvs.Contains(targetProv._id));
         }
         public static bool UpdateCultures(ref List<Culture> cultures, ref List<ProvinceObject> provs, ref List<Empire> empires)
         {

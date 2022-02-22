@@ -64,7 +64,15 @@ public class EmpireViewer : MonoBehaviour
         empireName.text = target._empireName;
         empireFlag.color = target._empireCol;
         curMilScore.text = "Military Power: " + target.curMil.ToString() + "/" + target.maxMil.ToString();
-        projectedMilScore.text = "Projected Growth:" + target.ExpectedMilIncrease(ref provs).ToString();
+
+        if (target.leftoverMil >= 0)
+        {
+            projectedMilScore.text = "Projected Growth:" + target.ExpectedMilIncrease(ref provs).ToString();
+        }
+        else
+        {
+            projectedMilScore.text = "Projected Growth:" + target.ExpectedMilIncrease(ref provs).ToString() + " (Debt: " + Math.Round(Math.Abs(target.leftoverMil),2) + ")";
+        }
 
         milTech.text = "Military Tech: " + target.milTech;
         ecoTech.text = "Economic Tech: " + target.ecoTech;
