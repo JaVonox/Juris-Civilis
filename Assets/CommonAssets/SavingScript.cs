@@ -432,6 +432,10 @@ namespace SaveLoad
                 empData.WriteString(tEmpire.percentageEco.ToString());
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("UpdateTime");
+                empData.WriteString(tEmpire.timeUntilNextUpdate.ToString());
+                empData.WriteEndElement();
+
                 empData.WriteStartElement("Components"); //Component provs
                 foreach (int compProv in tEmpire._componentProvinceIDs)
                 {
@@ -540,6 +544,7 @@ namespace SaveLoad
                 loadedEmp.curMil = (float)(Convert.ToDouble(empNode["MilitarySize"].InnerText));
                 loadedEmp.maxMil = (float)(Convert.ToDouble(empNode["MaxMil"].InnerText));
                 loadedEmp.percentageEco = (float)Convert.ToDouble(empNode["PercentageEco"].InnerText);
+                loadedEmp.timeUntilNextUpdate = Convert.ToInt32(empNode["UpdateTime"].InnerText);
 
                 ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
 

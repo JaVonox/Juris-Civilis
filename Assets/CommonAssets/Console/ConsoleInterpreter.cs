@@ -28,6 +28,10 @@ namespace ConsoleInterpret
                         {
                             return String.Join(" ", commandSplit.GetRange(1, commandSplit.Count - 1));
                         }
+                    case "EMPCOUNT": //EMPCOUNT - counts living empires
+                        {
+                            return empires.Count(x => x._exists).ToString();
+                        }
                     case "SPAWN": //SPAWN (PROVID) - spawns empire at province
                         {
                             if (commandSplit.Count < 2) { return "Insufficient parameters"; }

@@ -153,7 +153,7 @@ namespace WorldProperties
     }
     public class Culture
     {
-        public static List<string> names = new List<string>(){ "Asian", "Colonial", "European", "Indian", "Muslim", "Latin", "Pacific"};
+        public static List<string> names = new List<string>() { "Asian", "Colonial", "European", "Indian", "Muslim", "Latin", "Pacific" };
         public string _id;
         public Color _cultureCol;
         public string _name;
@@ -178,11 +178,11 @@ namespace WorldProperties
             TextAsset namesFile = (TextAsset)Resources.Load("Naming/" + _nameType + "F"); //Load relevant file
             string[] namesSet = namesFile.text.Split('\n');
 
-            for(int i=0;i<count;i++)
+            for (int i = 0; i < count; i++)
             {
                 int copyName = rnd.Next(1, 5);
 
-                if(copyName == 3 && i > 5)
+                if (copyName == 3 && i > 5)
                 {
                     newNames.Add(newNames[rnd.Next(0, newNames.Count)]);
                 }
@@ -197,7 +197,6 @@ namespace WorldProperties
 
         public string LoadDynasty(ref List<Empire> empires, ref System.Random rnd)
         {
-            //TODO add copy dynasty from culture partner
             List<string> existingNames = empires.Where(t => t.curRuler.lName != "NULL" && t._exists == true).Select(p => p.curRuler.lName).ToList();
             TextAsset namesFile = (TextAsset)Resources.Load("Naming/" + _nameType + (_nameType != "Pacific" ? "L" : "F")); //Load relevant file. Pacific has no last names, so first names take their place.
 
@@ -228,6 +227,42 @@ namespace WorldProperties
             {
                 _economyScore = 0;
             }
+        }
+
+        public (int milTech, int ecoTech, int dipTech, int logTech, int culTech) CalculateMinTech(ref List<Empire> empires) //Returns the minimum technology for this culture
+        {
+            int myID = Convert.ToInt32(_id);
+            List<Empire> applicableEmpires = empires.Where(t => t._cultureID == myID && t._exists == true).ToList();
+
+            if (applicableEmpires.Count == 0) {return (1,1,1,1,1);}
+
+            (int milTech, int ecoTech, int dipTech, int logTech, int culTech) techMins = (1, 1, 1, 1, 1);
+
+            techMins.milTech = applicableEmpires.Min(x => x.milTech);
+            techMins.ecoTech = applicableEmpires.Min(x => x.ecoTech);
+            techMins.dipTech = applicableEmpires.Min(x => x.dipTech);
+            techMins.logTech = applicableEmpires.Min(x => x.logTech);
+            techMins.culTech = applicableEmpires.Min(x => x.culTech);
+
+            return techMins;
+        }
+
+        public (int milTech, int ecoTech, int dipTech, int logTech, int culTech) CalculateMaxTech(ref List<Empire> empires) //Returns the max technology for this culture
+        {
+            int myID = Convert.ToInt32(_id);
+            List<Empire> applicableEmpires = empires.Where(t => t._cultureID == myID && t._exists == true).ToList();
+
+            if (applicableEmpires.Count == 0) { return (1, 1, 1, 1, 1); }
+
+            (int milTech, int ecoTech, int dipTech, int logTech, int culTech) techMaxes = (1, 1, 1, 1, 1);
+
+            techMaxes.milTech = applicableEmpires.Max(x => x.milTech);
+            techMaxes.ecoTech = applicableEmpires.Max(x => x.ecoTech);
+            techMaxes.dipTech = applicableEmpires.Max(x => x.dipTech);
+            techMaxes.logTech = applicableEmpires.Max(x => x.logTech);
+            techMaxes.culTech = applicableEmpires.Max(x => x.culTech);
+
+            return techMaxes;
         }
     }
 

@@ -128,6 +128,7 @@ public class SimulatorMainHandler : MonoBehaviour
             //Add error handling here TODO
         }
     }
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.BackQuote) && consoleObject != null) { ToggleConsole(); } //on ` key press open console
@@ -151,20 +152,20 @@ public class SimulatorMainHandler : MonoBehaviour
                 }
             }
 
-            SpawnEmpire(); 
+            SpawnEmpire();
 
             foreach (Empire tEmp in empires) //attempts to get an action for each empire 
             {
-                tEmp.PollForAction((day,month,year), ref cultures, ref empires);
+                tEmp.PollForAction((day, month, year), ref cultures, ref empires, ref provinces, ref rnd);
             }
 
             processing = false;
-            
+
         }
     }
     private void SpawnEmpire()
     {
-        int mMax = 100 + Math.Min(year, 500); //Spawning slows down over time
+        int mMax = 200 + Math.Min(year, 500); //Spawning slows down over time
         int rnTick = rnd.Next(0, mMax);
 
         if (rnTick == rnd.Next(0,mMax))  //1/((100+y)*2) chance
@@ -177,15 +178,17 @@ public class SimulatorMainHandler : MonoBehaviour
             }
             else if(rnd.Next(0,Math.Min(15,empCount+2)) == 1)
             {
-                Debug.Log("SECONDTICK");
-
-                if (rnTick > (int)Math.Floor((float)(mMax) / 3)) //2/3 chance
+                if (year > 100 && rnTick < (int)Math.Floor((float)(mMax) / 7)) //1/7 chance
+                {
+                    SpawnCase("ANYUNPOPULATED"); //Spawn in any location with no population in the culture group and no
+                }
+                else if (rnTick > (int)Math.Floor((float)(mMax) / 3)) //2/3 chance
                 {
                     SpawnCase("ANYPOPCULTURE"); //Spawn in any location in a populated culture group
                 }
                 else //1/3 chance
                 {
-                    SpawnCase("ANYPOPREGION"); //Spawn in any location in a populated culture group or high 
+                    SpawnCase("ANYPOPREGION"); //Spawn in any location in a populated culture group or high pop area
                 }
             }
         }
@@ -210,11 +213,16 @@ public class SimulatorMainHandler : MonoBehaviour
                     }
                 }
                 break;
-            case "ANYPOPREGION": //Any high population region or medium population region where there is a high pop nation in the area
+            case "ANYPOPREGION": //(Any high population region) or (medium population region where there is a high pop nation in the area)
                 {
-                    List<int> popAreas = provinces.Where(x => x._ownerEmpire != null).Select(x => x._cultureID).Distinct().ToList(); //Get all culture IDs with empires within the
+                    List<int> popAreas = provinces.Where(x => x._ownerEmpire != null).Select(x => x._cultureID).Distinct().ToList(); //Cultures with nations within
                     List<ProvinceObject> applicableProvs = provinces.Where(x => (x._population == Property.High || (x._population == Property.Medium && popAreas.Contains(x._cultureID))) && x._ownerEmpire == null && x._biome != 0).ToList();
-                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); } //Coastal regions get priority
+                    if (applicableProvs.Count(x => x._isCoastal) > 0) {
+                        if (rnd.Next(0, 3) == 1)
+                        {
+                            applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList();
+                        }
+                    } //Coastal regions get priority
 
                     if (applicableProvs.Count > 0)
                     {
@@ -223,15 +231,47 @@ public class SimulatorMainHandler : MonoBehaviour
                     }
                     else
                     {
-                        SpawnCase("DEFAULT");
+                        SpawnCase("ANYUNPOPULATED"); //Default to an unpopulated region
                     }
                 }
                 break;
-            case "ANYPOPCULTURE":
+            case "ANYPOPCULTURE": //Anywhere med or high in a populated region
                 {
-                    List<int> popAreas = provinces.Where(x => x._ownerEmpire != null).Select(x => x._cultureID).Distinct().ToList(); //Get all culture IDs with empires within the
+                    List<int> popAreas = provinces.Where(x => x._ownerEmpire != null).Select(x => x._cultureID).Distinct().ToList(); //Cultures with nations within
                     List<ProvinceObject> applicableProvs = provinces.Where(x => (x._population == Property.High || x._population == Property.Medium) && popAreas.Contains(x._cultureID) && x._ownerEmpire == null && x._biome != 0).ToList();
-                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); } //Coastal regions get priority
+                    if (applicableProvs.Count(x => x._isCoastal) > 0)
+                    {
+                        if (rnd.Next(0, 3) == 1)
+                        {
+                            applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList();
+                        }
+                    } //Coastal regions get priority
+
+                    if (applicableProvs.Count > 0)
+                    {
+                        int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                    }
+                    else
+                    {
+                        SpawnCase("ANYUNPOPULATED"); //Default to an unpopulated region
+                    }
+                }
+                break;
+            case "ANYUNPOPULATED": //Any unpopulated region med or high
+                {
+                    List<int> unPopAreas = provinces.Where(x => x._ownerEmpire == null).Select(x => x._cultureID).Distinct().ToList(); //All unpopulated areas
+                    List<ProvinceObject> applicableProvs = provinces.Where(x => (x._population == Property.High || x._population == Property.Medium) && unPopAreas.Contains(x._cultureID) && x._ownerEmpire == null && x._biome != 0).ToList();
+                    if(applicableProvs.Any(x=>x._population == Property.High)) { applicableProvs = applicableProvs.Where(x => x._population == Property.High).ToList(); } //If there are high pop regions in the zone, these take priority
+                    
+                    if (applicableProvs.Count(x => x._isCoastal) > 0)
+                    {
+                        if (rnd.Next(0, 3) == 1)
+                        {
+                            applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList();
+                        }
+                    } //Coastal regions get priority
+
 
                     if (applicableProvs.Count > 0)
                     {
@@ -247,7 +287,14 @@ public class SimulatorMainHandler : MonoBehaviour
             default:
                 {
                     List<ProvinceObject> applicableProvs = provinces.Where(x => x._ownerEmpire == null).ToList();
-                    if (applicableProvs.Count(x => x._isCoastal) > 0) { applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList(); }
+                    if (applicableProvs.Count(x => x._isCoastal) > 0)
+                    {
+                        if (rnd.Next(0, 3) == 1)
+                        {
+                            applicableProvs = applicableProvs.Where(x => x._isCoastal).ToList();
+                        }
+                    } //Coastal regions get priority
+
 
                     if (applicableProvs.Count > 0)
                     {

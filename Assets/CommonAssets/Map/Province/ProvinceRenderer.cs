@@ -331,7 +331,7 @@ public class ProvinceRenderer : MonoBehaviour
                     unfocusedAlpha = 0.6f;
                     return localEco;
                 case "Tech":
-                    if (targetProv._ownerEmpire == null || empires.Count <= 0) { unfocusedAlpha = 0; return invVal; }
+                    if (targetProv._ownerEmpire == null || empires.Count <= 0) { unfocusedAlpha = 0.5f; return NAVal; }
                     float minTech = 4;
                     float maxTech = empires.Select(emp => emp.ReturnTechTotal()).ToList().Max();
                     float normalScoreTech = (((float)targetProv._ownerEmpire.ReturnTechTotal()) - minTech) / ((float)(maxTech - minTech) + 0.001f);
@@ -340,7 +340,7 @@ public class ProvinceRenderer : MonoBehaviour
                     unfocusedAlpha = 0.6f;
                     return techVal;
                 case "Religion":
-                    if(targetProv._localReligion == null) { unfocusedAlpha = 0; return invVal; }
+                    if(targetProv._localReligion == null) { unfocusedAlpha = 0.5f; return NAVal; }
                     Color locRel = targetProv._localReligion._col;
                     if (!isFocused) { locRel.a = 0.6f; } else { locRel.a = 0.9f; };
                     unfocusedAlpha = 0.6f;
@@ -363,7 +363,6 @@ public class ProvinceRenderer : MonoBehaviour
                     return milVal;
                 case "Language":
                     Color lCol = new Color(0, 0, 0, 1);
-                    //{ "Asian", "Colonial", "European", "Indian", "Muslim"};
                     string cultureLang = cultures[targetProv._cultureID]._nameType;
                     unfocusedAlpha = 0.6f;
                     if(targetProv._biome == 0) { unfocusedAlpha = 0; return invVal; }
@@ -399,10 +398,9 @@ public class ProvinceRenderer : MonoBehaviour
                     return lCol;
                 default:
                     unfocusedAlpha = 1;
-                    return new Color(0.85f, 0, 0.6f, 1);
+                    return new Color(0.85f, 0, 0.6f, 1); //Error Colour
 
             }
-            return new Color(0.85f, 0, 0.6f, 1); //Error Colour
         }
         catch (Exception ex)
         {
