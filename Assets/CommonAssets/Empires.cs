@@ -63,9 +63,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
             timeUntilNextUpdate = 30; //30 gives them a month before they can begin having updates occur
 
+            provs[_componentProvinceIDs[0]].updateText = "New Nation";
 
-            curRuler = new Ruler(null,this, ref cultures, ref empires); //Create new random ruler
+            curRuler = new Ruler(null,this, ref cultures, ref empires, ref provs); //Create new random ruler
             RecruitMil(ref cultures, ref provs);
+
         }
         public bool CheckForUpdate(ref System.Random rnd)
         {
@@ -188,7 +190,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         {
             if (_exists) //If this empire is active
             {
-                AgeMechanics(currentDate, ref cultures, ref empires);
+                AgeMechanics(currentDate, ref cultures, ref empires, ref provs);
 
                 if (CheckForUpdate(ref rnd))
                 {
@@ -201,7 +203,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 }
             }
         }
-        public void AgeMechanics((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires)
+        public void AgeMechanics((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
         {
             if (currentDate.day == curRuler.birthday.day && currentDate.month == curRuler.birthday.month) //On birthday
             {
@@ -211,7 +213,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             if ((currentDate.day >= curRuler.deathday.day && currentDate.month >= curRuler.deathday.month && curRuler.age == curRuler.deathday.age) || (curRuler.age > curRuler.deathday.age)) //on deathday
             {
                 //Replace ruler
-                Ruler tmpRuler = new Ruler(curRuler, this, ref cultures, ref empires);
+                Ruler tmpRuler = new Ruler(curRuler, this, ref cultures, ref empires, ref provs);
                 curRuler = tmpRuler;
             }
         }
@@ -240,6 +242,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                 int target = canColony.targets.Where(x => x.valueRisk >= maxValue).ToList()[0].targetID; //Get highest value/cost ratio province
 
                                 Actions.ColonizeLand(provs[target], this, ref provs);
+                                provs[target].updateText = "Colonised by " + _empireName;
                                 return;
                             }
                             break;
@@ -253,8 +256,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                 ref int t1 = ref TechStringToVar(techsDevelopable.tech1);
                                 ref int t2 = ref TechStringToVar(techsDevelopable.tech2);
 
-                                if (t1 >= t2) { t1++; }
-                                else { t2++; }
+                                if (t1 >= t2) { t1++; provs[_componentProvinceIDs[0]].updateText = "Developed " + techsDevelopable.tech1 + " level " + t1; }
+                                else { t2++; provs[_componentProvinceIDs[0]].updateText = "Developed " + techsDevelopable.tech2 + " level " + t2; }
                                 return;
                             }
                             else
@@ -266,20 +269,19 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         {
                             (int mMil, int mEco, int mDip, int mLog, int mCul) maxVals = MaxLearnableTechs(ref empires, ref cultures, provs); 
                             if (maxVals == (milTech, ecoTech, dipTech, logTech, culTech)) { break; } //If already max tech, move to next action.
-                            maxVals = (maxVals.mMil - 1, maxVals.mEco - 1, maxVals.mDip - 1, maxVals.mLog - 1, maxVals.mCul - 1); //Can only learn up to 1 less than max
-                            if (maxVals == (milTech, ecoTech, dipTech, logTech, culTech)) { break; } //If already have this tech, move to next action
 
                             Debug.Log(_id + " LEARNING TECH");
                             (string biggestDif, int dif) techWithDif = ("",-1);
 
-                            if(maxVals.mMil > milTech) { if ((milTech - maxVals.mMil) > techWithDif.dif) { techWithDif.biggestDif = "Military"; techWithDif.dif = (milTech - maxVals.mMil); } }
-                            if (maxVals.mEco > ecoTech) { if ((ecoTech - maxVals.mEco) > techWithDif.dif) { techWithDif.biggestDif = "Economic"; techWithDif.dif = (ecoTech - maxVals.mEco); } }
-                            if (maxVals.mDip > dipTech) { if ((dipTech - maxVals.mDip) > techWithDif.dif) { techWithDif.biggestDif = "Diplomacy"; techWithDif.dif = (dipTech - maxVals.mDip); } }
-                            if (maxVals.mLog > logTech) { if ((logTech - maxVals.mLog) > techWithDif.dif) { techWithDif.biggestDif = "Logistics"; techWithDif.dif = (logTech - maxVals.mLog); } }
-                            if (maxVals.mCul > culTech) { if ((culTech - maxVals.mCul) > techWithDif.dif) { techWithDif.biggestDif = "Culture"; techWithDif.dif = (culTech - maxVals.mCul); } }
+                            if(maxVals.mMil > milTech) { if ((maxVals.mMil-milTech) > techWithDif.dif) { techWithDif.biggestDif = "Military"; techWithDif.dif = (maxVals.mMil- milTech); } }
+                            if (maxVals.mEco > ecoTech) { if ((maxVals.mEco-ecoTech) > techWithDif.dif) { techWithDif.biggestDif = "Economic"; techWithDif.dif = (maxVals.mEco-ecoTech); } }
+                            if (maxVals.mDip > dipTech) { if ((maxVals.mDip-dipTech) > techWithDif.dif) { techWithDif.biggestDif = "Diplomacy"; techWithDif.dif = (maxVals.mDip-dipTech); } }
+                            if (maxVals.mLog > logTech) { if ((maxVals.mLog-logTech) > techWithDif.dif) { techWithDif.biggestDif = "Logistics"; techWithDif.dif = (maxVals.mLog-logTech); } }
+                            if (maxVals.mCul > culTech) { if ((maxVals.mCul-culTech) > techWithDif.dif) { techWithDif.biggestDif = "Culture"; techWithDif.dif = (maxVals.mCul-culTech); } }
 
                             if (Actions.UpdateTech(ref empires, _id, techWithDif.biggestDif)) //Attempt update
                             {
+                                provs[_componentProvinceIDs[0]].updateText = "Learned " + techWithDif.biggestDif + " level " + TechStringToVar(techWithDif.biggestDif);
                                 return;
                             }
                             else
@@ -408,7 +410,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
         //Tech focuses (0-5) Military, Economics, Diplomacy, Logistics, Culture
         public int[] techFocus = new int[2];
-        public Ruler(Ruler previousRuler, Empire ownedEmpire, ref List<Culture> cultures, ref List<Empire> empires)
+        public Ruler(Ruler previousRuler, Empire ownedEmpire, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
         {
             //TODO add names and make previous ruler details not apply if last name is changed
             bool newDyn = false;
@@ -509,6 +511,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             age = rulerRND.Next(18, 70);
 
             deathday.age = rulerRND.Next(age, 72 + Convert.ToInt32(Math.Floor((float)(ownedEmpire.ReturnTechTotal()) / 50)));
+
+            if(provs[ownedEmpire._componentProvinceIDs[0]].updateText == "")
+            {
+                provs[ownedEmpire._componentProvinceIDs[0]].updateText = "New Ruler";
+            }
         }
 
         public (string,string) ReturnTechFocuses()

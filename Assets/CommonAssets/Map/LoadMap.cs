@@ -21,6 +21,7 @@ public class LoadMap : MonoBehaviour
     private Sprite mapSprite;
     private Sprite maskSprite;
 
+
     //Gets the unit length of the sprite
     float spriteWidth;
     float spriteHeight;

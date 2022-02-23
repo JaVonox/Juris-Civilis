@@ -16,6 +16,8 @@ public class ProvinceRenderer : MonoBehaviour
     public ProvinceObject _myProvince; //Stores a reference to province
     private Action _clickActions;
     private Color currentColor;
+
+    private Dictionary<GameObject,float> midText = new Dictionary<GameObject, float>(); //gameobject for displaying text
     public int _meshSize; //Unity has a weird thing where it has to make an array copy every time it wants to check vertices length. Setting this once stops accessing taking up too much data
     public int _triSize;
 
@@ -51,6 +53,10 @@ public class ProvinceRenderer : MonoBehaviour
         return new Vector3(((float)point.x / (float)mapWidth) * spriteWidth, ((float)point.y / (float)mapHeight) * spriteHeight, -2);
     }
 
+    static float sWidth = -1;
+    static float sHeight = -1;
+    static int mWidth = -1;
+    static int mHeight = -1;
     public void RenderProvinceFromObject(ProvinceObject targetProv, float spriteWidth, float spriteHeight, int mapWidth, int mapHeight, string propType, ref List<Culture> cult, ref List<Religion> religions, ref List<ProvinceObject> provs, ref List<Empire> empires) //Renders based on chunk data.
     {
         SetCentreObject(ref targetProv, mapWidth, mapHeight);
@@ -61,6 +67,10 @@ public class ProvinceRenderer : MonoBehaviour
         List<int> triangles = new List<int>();
         Vector3[] verticesSet = new Vector3[targetProv._vertices.Count]; //storage for vertices
 
+        if (sWidth == -1) { sWidth = spriteWidth; }
+        if(sHeight == -1) { sHeight = spriteHeight; }
+        if(mWidth == -1) { mWidth = mapWidth;}
+        if(mHeight == -1) { mHeight = mapHeight; }
         verticesSet[0] = ChangeSpace(_centrePoint, spriteWidth, spriteHeight, mapWidth, mapHeight);
 
 
@@ -118,7 +128,26 @@ public class ProvinceRenderer : MonoBehaviour
 
         _provinceMesh.SetColors(colours);
     }
+    private void TextUpdate()
+    {
+        GameObject tmpGame = new GameObject();
+        TextMesh t = tmpGame.AddComponent<TextMesh>();
+        tmpGame.name = "Prov" + _myProvince._id + "TMESH";
+        tmpGame.transform.SetParent(this.transform);
+        t.text = _myProvince.updateText;
+        t.fontSize = 30;
+        t.color = Color.magenta;
+        t.fontStyle = FontStyle.Bold;
+        t.alignment = TextAlignment.Center;
+        t.anchor = TextAnchor.MiddleCenter;
 
+        tmpGame.transform.localPosition = new Vector3(0, 0, -9); //Display over ocean + selection
+        tmpGame.transform.localScale = new Vector3(0.2f, 0.2f);
+
+        midText.Add(tmpGame, 2);
+
+        _myProvince.updateText = "";
+    }
     private void AppendInOrder(ref List<int> triangles, ref Vector3[] vertices, ref int i)
     {
         //This should only use the last three vertices appended
@@ -438,6 +467,48 @@ public class ProvinceRenderer : MonoBehaviour
         _provinceMesh.SetColors(colours);
     }
 
+    void Update()
+    {
+
+        if (_myProvince.updateText != "")
+        {
+            TextUpdate(); //Add new text update
+        }
+
+        if (midText.Count > 0)
+        {
+            List<GameObject> midIDs = midText.Keys.ToList();
+            List<GameObject> destructables = new List<GameObject>();
+            int midTextCount = midText.Count;
+            float dTime = Time.deltaTime;
+
+            foreach (GameObject m in midIDs) 
+            {
+                midText[m] -= dTime;
+
+                if (midText[m] <= 0 && midText != null)
+                {
+                    destructables.Add(m);
+                }
+                else if (midText != null)
+                {
+                    m.transform.localPosition += new Vector3(0, -(0.5f * Time.deltaTime));
+                }
+
+                if (_myProvince.updateText != "")
+                {
+                    TextUpdate();
+                }
+            }
+
+            int dCount = destructables.Count;
+            for (int i = 0; i < dCount; i++)
+            {
+                midText.Remove(destructables[i]);
+                Destroy(destructables[i]);
+            }
+        }
+    }
     void OnMouseDown() //On click, process all the valid actions
     {
         if (!EventSystem.current.IsPointerOverGameObject()) //Stops clicks through the UI elements

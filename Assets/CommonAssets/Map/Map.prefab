@@ -107,6 +107,7 @@ MonoBehaviour:
   loadedObjectsLayer: {fileID: 3568302979015007970}
   provincePrefab: {fileID: 6896709405703632739, guid: 912f64eef9bddab44b983cf768a51d23, type: 3}
   selectorPrefab: {fileID: 6896709405703632739, guid: 7c7229178e9af704cbad23da07bbddd1, type: 3}
+  provTextPrefab: {fileID: 4236286180530485950, guid: d7b02403e2b900d43bfe1f36a3d10127, type: 3}
 --- !u!1 &3568302979015007970
 GameObject:
   m_ObjectHideFlags: 0

@@ -78,6 +78,7 @@ namespace WorldProperties
         public List<int> _adjacentProvIDs = new List<int>();
         public Religion _localReligion;
         public int _cultureID;
+        public string updateText = ""; //Text to display for province updates
 
         //Simulation variables
         public Empire _ownerEmpire;
