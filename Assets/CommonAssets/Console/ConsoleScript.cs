@@ -7,6 +7,7 @@ using WorldProperties;
 using BiomeData;
 using Empires;
 using System.Linq;
+using Calendar;
 public class ConsoleScript : MonoBehaviour
 {
     public InputField textInput;
@@ -23,6 +24,8 @@ public class ConsoleScript : MonoBehaviour
     private List<Religion> _religions;
     private GameObject _loadedMap;
 
+    private Date dateRef;
+
     private string LoggedText;
 
     // Start is called before the first frame update
@@ -33,7 +36,7 @@ public class ConsoleScript : MonoBehaviour
         ResetInput();
     }
     
-    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject map, ref List<Religion> religions)
+    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject map, ref List<Religion> religions, ref Date date)
     {
         refProvDetails = provDetails;
         _provinces = provs;
@@ -41,6 +44,7 @@ public class ConsoleScript : MonoBehaviour
         _empires = empires;
         _religions = religions;
         _loadedMap = map;
+        dateRef = date;
     }
     public void ResetInput()
     {
@@ -63,7 +67,7 @@ public class ConsoleScript : MonoBehaviour
             }
             else
             {
-                LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap, ref _religions) + "\n" + LoggedText;
+                LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap, ref _religions, ref dateRef) + "\n" + LoggedText;
                 //Submit, add to log and then remove the text
                 List<string> textLog = LoggedText.Split('\n').ToList();
                 if (textLog.Count() > 15)

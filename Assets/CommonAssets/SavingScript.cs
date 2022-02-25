@@ -469,6 +469,28 @@ namespace SaveLoad
 
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("Opinions");
+                foreach (Opinion opin in tEmpire.opinions)
+                {
+                    empData.WriteStartElement("Opinion");
+                    empData.WriteAttributeString("Target",opin.targetEmpireID.ToString());
+                    empData.WriteAttributeString("LastOpinion", opin.lastOpinion.ToString());
+
+                    empData.WriteStartElement("Modifiers"); //Opinion Modifiers
+                    foreach (Modifier mod in opin.modifiers)
+                    {
+                        empData.WriteStartElement("Modifier");
+                        string modDate = mod.timeOutDate.day + "," + mod.timeOutDate.month + "," + mod.timeOutDate.year;
+                        empData.WriteAttributeString("End", modDate);
+                        empData.WriteAttributeString("Modifier", mod.opinionModifier.ToString());
+                        empData.WriteEndElement();
+                    }
+                    empData.WriteEndElement();
+
+                    empData.WriteEndElement();
+                }
+                empData.WriteEndElement();
+
                 ///Ruler data
                 Ruler tRuler = tEmpire.curRuler;
                 empData.WriteStartElement("Ruler");
@@ -560,6 +582,23 @@ namespace SaveLoad
                 loadedEmp.dipTech = Convert.ToInt32(techNodes[2].InnerText);
                 loadedEmp.logTech = Convert.ToInt32(techNodes[3].InnerText);
                 loadedEmp.culTech = Convert.ToInt32(techNodes[4].InnerText);
+
+                foreach (XmlNode opinions in empNode["Opinions"].ChildNodes) //Add opinion data
+                {
+                    Opinion newOp = new Opinion();
+                    newOp.targetEmpireID = Convert.ToInt32(opinions.Attributes["Target"].Value.ToString());
+                    newOp.lastOpinion = (float)(Convert.ToDouble(opinions.Attributes["LastOpinion"].Value.ToString()));
+
+                    foreach (XmlNode modifiers in opinions["Modifiers"].ChildNodes)
+                    {
+                        Modifier tMod = new Modifier();
+                        string[] dateSplit = modifiers.Attributes["End"].Value.Split(',');
+                        tMod.timeOutDate = (Convert.ToInt32(dateSplit[0]), Convert.ToInt32(dateSplit[1]), Convert.ToInt32(dateSplit[2]));
+                        tMod.opinionModifier = (float)Convert.ToDouble(modifiers.Attributes["Modifier"].Value);
+                        newOp.modifiers.Add(tMod);
+                    }
+                    loadedEmp.opinions.Add(newOp);
+                }
 
                 //Loading ruler data
                 XmlNode rulNode = empNode.SelectSingleNode("Ruler");

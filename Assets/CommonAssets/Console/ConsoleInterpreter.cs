@@ -7,12 +7,13 @@ using WorldProperties;
 using BiomeData;
 using Empires;
 using System.Linq;
+using Calendar;
 
 namespace ConsoleInterpret
 { 
     public class ConsoleInterpreter
     {
-        public string InterpretCommand(string comm, GameObject provViewer, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject loadedMap, ref List<Religion> religions)
+        public string InterpretCommand(string comm, GameObject provViewer, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject loadedMap, ref List<Religion> religions, ref Date currentDate)
         {
             try
             {
@@ -99,49 +100,86 @@ namespace ConsoleInterpret
                             else { return "Failed to set state religion"; }
                         }
                     case "COLONY": //COLONY (PROVID) (EMPIREID)
-                        if (commandSplit.Count < 3) { return "Insufficient parameters"; }
-                        if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
-                        if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
-                        if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The target empire is dead"; }
-                        if (provs.Count < Convert.ToInt32(commandSplit[1]) || empires.Count < Convert.ToInt32(commandSplit[2])) { return "Unrecognised integer ID supplied"; }
+                        {
+                            if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                            if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The target empire is dead"; }
+                            if (provs.Count < Convert.ToInt32(commandSplit[1]) || empires.Count < Convert.ToInt32(commandSplit[2])) { return "Unrecognised integer ID supplied"; }
 
-                        (bool canColonize, int colonyCost) colonyApplicable = Act.Actions.CanColonize(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs);
-                        if (colonyApplicable.canColonize) {
-                            if (Act.Actions.ColonizeLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                            (bool canColonize, int colonyCost) colonyApplicable = Act.Actions.CanColonize(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs);
+                            if (colonyApplicable.canColonize)
                             {
-                                ForceUpdate(ref loadedMap);
-                                return "Colonized new land for mil score " + colonyApplicable.colonyCost;
+                                if (Act.Actions.ColonizeLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                                {
+                                    ForceUpdate(ref loadedMap);
+                                    return "Colonized new land for mil score " + colonyApplicable.colonyCost;
+                                }
+                                else
+                                {
+                                    return "Failed to Colonize";
+                                }
                             }
                             else
                             {
-                                return "Failed to Colonize";
+                                if (colonyApplicable.colonyCost == 0) { return "Could not colonize"; }
+                                else { return "Could not afford colony cost of " + colonyApplicable.colonyCost; }
                             }
-                        }
-                        else 
-                        {
-                            if(colonyApplicable.colonyCost == 0) { return "Could not colonize"; }
-                            else { return "Could not afford colony cost of " + colonyApplicable.colonyCost; }
                         }
                     case "ATTACK": //ATTACK (PROVID) (EMPIREID)
-                        if (commandSplit.Count < 3) { return "Insufficient parameters"; }
-                        if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
-                        if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
-                        if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The target empire is dead"; }
-                        if (provs.Count < Convert.ToInt32(commandSplit[1]) || empires.Count < Convert.ToInt32(commandSplit[2])) { return "Unrecognised integer ID supplied"; }
-
-                        if (Act.Actions.CanConquer(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
                         {
-                            if (Act.Actions.ConquerLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                            if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                            if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The target empire is dead"; }
+                            if (provs.Count < Convert.ToInt32(commandSplit[1]) || empires.Count < Convert.ToInt32(commandSplit[2])) { return "Unrecognised integer ID supplied"; }
+
+                            if (Act.Actions.CanConquer(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
                             {
-                                ForceUpdate(ref loadedMap);
-                                return "Successfully won battle";
+                                if (Act.Actions.ConquerLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                                {
+                                    ForceUpdate(ref loadedMap);
+                                    return "Successfully won battle";
+                                }
+                                else
+                                {
+                                    return "Attack Failed";
+                                }
                             }
-                            else
-                            {
-                                return "Attack Failed";
-                            }
+                            else { return "Could not attack"; }
                         }
-                        else { return "Could not attack"; }
+                    case "ADDMOD": //ADDMOD (RECVEMPIREID) (SENDEMPIREID) (DAYS) (OPINIONMOD)
+                        {
+                            if (commandSplit.Count < 5) { return "Insufficient parameters"; }
+                            if (!ValueLimiter(commandSplit[1], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (empires[Convert.ToInt32(commandSplit[1])]._exists == false) { return "The receiver empire is dead"; }
+                            if (empires[Convert.ToInt32(commandSplit[2])]._exists == false) { return "The sender empire is dead"; }
+                            int days = Convert.ToInt32(commandSplit[3]);
+                            int modifier = Convert.ToInt32(commandSplit[4]);
+
+                            if (Act.Actions.AddNewModifier(empires[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], days, modifier, (currentDate.day, currentDate.month, currentDate.year)))
+                            {
+                                return "Added new modifier";
+                            }
+                            else { return "Could not add modifier"; }
+                        }
+                    case "CHECKOP": //CHECKOP (EMPIREID) (EMPIREID)
+                        {
+                            if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                            int empOneID = Convert.ToInt32(commandSplit[1]);
+                            int empTwoID = Convert.ToInt32(commandSplit[2]);
+                            if (!ValueLimiter(commandSplit[1], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (!ValueLimiter(commandSplit[2], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (empires[empOneID]._exists == false) { return "An empire is dead"; }
+                            if (empires[empTwoID]._exists == false) { return "An empire is dead"; }
+
+                            if (!empires[empOneID].opinions.Any(x=>x.targetEmpireID == empTwoID)) { return "One empire has no opinion on another"; }
+                            if (!empires[empTwoID].opinions.Any(x => x.targetEmpireID == empOneID)) { return "One empire has no opinion on another"; }
+
+                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).lastOpinion + " --- " +
+                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).lastOpinion;
+                        }
                     default:
                         return "Invalid command";
                 }

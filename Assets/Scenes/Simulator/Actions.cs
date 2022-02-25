@@ -6,6 +6,8 @@ using WorldProperties;
 using BiomeData;
 using System;
 using System.Linq;
+using Calendar;
+
 namespace Act
 {
     public static class Actions //Contains all the actions that can be simulated
@@ -377,6 +379,24 @@ namespace Act
             {
                 return false;
             }
+        }
+
+        public static bool AddNewModifier(Empire recvEmpire, Empire sendEmpire, int days, int modifier, (int day, int month, int year) curDate)
+        {
+            if(!recvEmpire._exists || !sendEmpire._exists) { return false; }
+
+            if(recvEmpire.opinions.Any(x=>x.targetEmpireID == sendEmpire._id))
+            {
+                Date tmpDate = new Date();
+                tmpDate.day = curDate.day;
+                tmpDate.month = curDate.month;
+                tmpDate.year = curDate.year;
+
+                Modifier nMod = new Modifier(days, modifier, ref tmpDate);
+                recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Add(nMod);
+                return true;
+            }
+            return false;
         }
     }
 }

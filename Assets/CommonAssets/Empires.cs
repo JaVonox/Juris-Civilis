@@ -32,8 +32,10 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public Ruler curRuler;
         public Religion stateReligion;
 
+
         //Simulation properties
         public float percentageEco; //Percentage of the culture economy owned by this nation
+        public List<Opinion> opinions = new List<Opinion>(); //Opinion of other cultures
 
         public float maxMil;
         public float curMil;
@@ -190,11 +192,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             leftoverLosses = (float)Math.Round(leftoverLosses, 2);
             leftoverMil -= leftoverLosses; //Reduce leftover losses by
         }
-        public void PollForAction((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd)
+        public void PollForAction(ref Date currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd)
         {
             if (_exists) //If this empire is active
             {
-                AgeMechanics(currentDate, ref cultures, ref empires, ref provs);
+                AgeMechanics(ref currentDate, ref cultures, ref empires, ref provs);
 
                 if (CheckForUpdate(ref rnd))
                 {
@@ -207,7 +209,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 }
             }
         }
-        public void AgeMechanics((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
+        public void AgeMechanics(ref Date currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
         {
             if (currentDate.day == curRuler.birthday.day && currentDate.month == curRuler.birthday.month) //On birthday
             {
@@ -433,6 +435,44 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             }
 
             return pVals;
+        }
+
+        public void PollOpinions(ref Date curDate, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Culture> cultures)
+        {
+            List<Empire> targets = provs.Where(x => x._cultureID == _cultureID && x._ownerEmpire != null).Select(y => y._ownerEmpire).ToList(); //Get all empires in cultures
+            {
+                List<int> adjIds = ReturnAdjacentIDs(ref provs, true);
+
+                foreach(int i in adjIds)
+                {
+                    if(provs[i]._ownerEmpire != null)
+                    {
+                        if(!targets.Contains(provs[i]._ownerEmpire))
+                        {
+                            targets.Add(provs[i]._ownerEmpire); //If adjacent add to set of targets
+                        }
+                    }
+                }
+            }
+
+            targets = targets.Where(x => !opinions.Any(y => y.targetEmpireID == x._id) && x._id != _id).ToList(); //Remove empires with existing opinions and any potential targets to self
+
+            foreach(Empire x in targets)
+            {
+                opinions.Add(new Opinion(this, x)); //Add to set of opinions
+            }
+
+            foreach(Opinion op in opinions.ToArray())
+            {
+                if (op.IsOpinionValid(this, ref empires, ref provs))
+                {
+                    op.RecalculateOpinion(this, ref empires, ref curDate);
+                }
+                else
+                {
+                    opinions.Remove(op);
+                }
+            }
         }
     }
 
@@ -760,4 +800,99 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             return colonyTargets;
         }
     }
+
+    public class Opinion
+    {
+        public int targetEmpireID; //The empire target
+        public List<Modifier> modifiers = new List<Modifier>();
+        public float lastOpinion = 0;
+        public Opinion(Empire creatorEmpire, Empire targetEmpire)
+        {
+            targetEmpireID = targetEmpire._id;
+        }
+        public Opinion()
+        {
+
+        }
+        public bool IsOpinionValid(Empire myEmpire, ref List<Empire> empires, ref List<ProvinceObject> provs) //Checks if the opinion should still be listed
+        {
+            if(!myEmpire._exists || !empires[targetEmpireID]._exists) { return false; } //If either is dead, opinion should be removed
+            if(myEmpire._cultureID != empires[targetEmpireID]._cultureID) //If either are not in the same culture
+            {
+                List<int> myEmpireAdjs = myEmpire.ReturnAdjacentIDs(ref provs, true);
+                List<int> targetComponents = empires[targetEmpireID]._componentProvinceIDs.ToList();
+
+                if(!targetComponents.Any(x=>myEmpireAdjs.Contains(x))) //If no adjacent provinces
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                return true;
+            }
+        }
+        public float RecalculateOpinion(Empire myEmpire, ref List<Empire> empires, ref Date curDate)
+        {
+            float overallOpinion = 0;
+            Empire targetEmpire = empires[targetEmpireID];
+
+            float maxorminOpinion = 20 + ((myEmpire.dipTech) >= (targetEmpire.dipTech) ? targetEmpire.dipTech * 5 : myEmpire.dipTech * 5); //Choose the lowest diplomatic tech. min/max is (tech * 5) + 20
+
+            if(myEmpire.stateReligion == null || targetEmpire.stateReligion == null) { overallOpinion -= Math.Min(maxorminOpinion,50); } //Pagan opinion is negative
+            else if(myEmpire.stateReligion != targetEmpire.stateReligion) { overallOpinion -= Math.Min(maxorminOpinion, 25); ; } //different religions penalty 
+            else { overallOpinion += Math.Min(maxorminOpinion, 25); } //Same religion is positive opinion
+
+            if (myEmpire.curRuler.lName == targetEmpire.curRuler.lName) { overallOpinion += Math.Min(maxorminOpinion, 75); ; } //Same dynasty opinion
+            if(myEmpire._cultureID == targetEmpire._cultureID) { overallOpinion += Math.Min(maxorminOpinion, 10); }
+
+            foreach(Modifier x in modifiers.ToArray())
+            {
+                if (!x.IsValid(ref curDate)) { modifiers.Remove(x); } //If after cooldown date
+                else
+                {
+                    overallOpinion += x.opinionModifier; //Add opinion modifier to overall opinion
+                }
+            }
+
+            overallOpinion = Math.Max(-maxorminOpinion,Math.Min(maxorminOpinion, overallOpinion)); //Limit to opinion set
+            lastOpinion = overallOpinion;
+            return overallOpinion;
+        }
+    }
+    public class Modifier //Stores temporary modifications to opinions between empires
+    {
+        public (int day, int month, int year) timeOutDate; //When the modifier will end
+        public float opinionModifier;
+        public Modifier()
+        {
+
+        }
+        public Modifier((int,int,int) tDate,float opinionChange)
+        {
+            timeOutDate = tDate;
+            opinionModifier = opinionChange;
+        }
+        public Modifier(int days, float opinionChange, ref Date curDate)
+        {
+            Date tmpDate = Calendar.Calendar.ReturnDate(days, ref curDate);
+            timeOutDate = (tmpDate.day, tmpDate.month, tmpDate.year);
+            opinionModifier = opinionChange;
+        }
+        public bool IsValid(ref Date curDate)
+        {
+            Date tmpDate = new Date();
+            tmpDate.day = timeOutDate.day;
+            tmpDate.month = timeOutDate.month;
+            tmpDate.year = timeOutDate.year;
+ 
+            return !Calendar.Calendar.IsAfterDate(curDate, tmpDate);
+        }
+
+    }
+
 }

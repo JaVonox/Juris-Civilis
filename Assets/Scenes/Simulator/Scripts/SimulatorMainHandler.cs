@@ -23,9 +23,7 @@ public class SimulatorMainHandler : MonoBehaviour
 
     int mapWidth = 6000;
     int mapHeight = 4000;
-    int year = 0;
-    int month = 0;
-    int day = 0;
+    Date _date = new Date();
     string worldName = "";
 
     public GameObject startPrefab;
@@ -82,9 +80,9 @@ public class SimulatorMainHandler : MonoBehaviour
                 Dictionary<string, string> prop = SaveLoad.SavingScript.LoadBaseData(filePath);
                 mapWidth = Convert.ToInt32(prop["Width"]);
                 mapHeight = Convert.ToInt32(prop["Height"]);
-                year = Convert.ToInt32(prop["Year"]);
-                month = Convert.ToInt32(prop["Month"]);
-                day = Convert.ToInt32(prop["Day"]);
+                _date.year = Convert.ToInt32(prop["Year"]);
+                _date.month = Convert.ToInt32(prop["Month"]);
+                _date.day = Convert.ToInt32(prop["Day"]);
                 worldName = prop["Name"];
 
                 mapTexture = new Texture2D(mapWidth, mapHeight);
@@ -107,7 +105,7 @@ public class SimulatorMainHandler : MonoBehaviour
             panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
             provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
             consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
-            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap, ref religions);
+            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap, ref religions, ref _date);
             ToggleConsole();
 
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture, ref religions, ref empires);
@@ -119,7 +117,12 @@ public class SimulatorMainHandler : MonoBehaviour
             veryFast.onClick.AddListener(delegate { Calendar.Calendar.VeryFastTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
 
             Calendar.Calendar.PauseTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); //auto pause
-            currentDate.text = Calendar.Calendar.SetDate(0, ref year, ref month, ref day);
+            currentDate.text = Calendar.Calendar.SetDate(0, ref _date);
+
+            foreach (Empire tEmp in empires) //Reset opinions
+            {
+                tEmp.PollOpinions(ref _date, ref empires, ref provinces, ref cultures);
+            }
 
         }
         catch (Exception ex)
@@ -137,16 +140,23 @@ public class SimulatorMainHandler : MonoBehaviour
         if (simSpeed != Calendar.Calendar.timeSettings.Pause && processing == false && timePassed > Calendar.Calendar.runSpeed[simSpeed])
         {
             timePassed = 0;
-            currentDate.text = Calendar.Calendar.SetDate(1, ref year, ref month, ref day);
+            currentDate.text = Calendar.Calendar.SetDate(1, ref _date);
 
             processing = true;
 
             //time events
-            if (day == 2)
+            if(_date.day == 1)
+            {
+                foreach(Empire tEmp in empires)
+                {
+                    tEmp.PollOpinions(ref _date, ref empires, ref provinces, ref cultures);
+                }
+            }
+            else if (_date.day == 2)
             {
                 Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
 
-                if (month % 3 == 0)
+                if (_date.month % 3 == 0)
                 {
                     Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provinces);
                 }
@@ -161,7 +171,7 @@ public class SimulatorMainHandler : MonoBehaviour
 
             foreach (Empire tEmp in empires) //attempts to get an action for each empire 
             {
-                tEmp.PollForAction((day, month, year), ref cultures, ref empires, ref provinces, ref religions, ref rnd);
+                tEmp.PollForAction(ref _date, ref cultures, ref empires, ref provinces, ref religions, ref rnd);
             }
 
             processing = false;
@@ -170,7 +180,7 @@ public class SimulatorMainHandler : MonoBehaviour
     }
     private bool SpawnEmpire()
     {
-        int mMax = 200 + Math.Min(year, 500); //Spawning slows down over time
+        int mMax = 200 + Math.Min(_date.year, 500); //Spawning slows down over time
         int rnTick = rnd.Next(0, mMax);
 
         if (rnTick == rnd.Next(0,mMax))  //1/((100+y)*2) chance
@@ -208,7 +218,7 @@ public class SimulatorMainHandler : MonoBehaviour
     { 
         if (empires.Count() > 5)
         {
-            int mMax = 15000 + Math.Min(year, 500); 
+            int mMax = 15000 + Math.Min(_date.year, 500); 
             int rnTick = rnd.Next(0, mMax);
 
             if (rnTick == rnd.Next(0, mMax))  
@@ -435,7 +445,7 @@ public class SimulatorMainHandler : MonoBehaviour
         {
             SaveLoad.SavingScript.SaveEmpires(filePath, ref empires, ref provinces); //Save empire data
             SaveLoad.SavingScript.CreateCultures(filePath, ref cultures, true);
-            SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, true, filePath,day,month,year,worldName);
+            SaveLoad.SavingScript.CreateFile(mapWidth, mapHeight, true, filePath,_date.day,_date.month,_date.year,worldName);
         }
         SceneManager.LoadScene("Main Menu", LoadSceneMode.Single); //Opens the world generator scene in place of this scene
     }

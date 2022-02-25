@@ -55,17 +55,17 @@ namespace Calendar
             { timeSettings.Fast,0.03f },
             { timeSettings.VeryFast,0.005f }
         };
-    
-        public static string SetDate(int increment, ref int year, ref int month, ref int day)
+
+        public static string SetDate(int increment, ref Date date)
         {
             //Increment the year month and day where appropriate
             string newDate = "";
-            string monthStr = ((Months)month).ToString();
+            string monthStr = ((Months)date.month).ToString();
 
             int comparisonDate = monthSizes[monthStr]; //size of month to compare against
             if (comparisonDate == -1)
             {
-                if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) //leap year rules
+                if (date.year % 4 == 0 && (date.year % 100 != 0 || date.year % 400 == 0)) //leap year rules
                 {
                     comparisonDate = 29;
                 }
@@ -75,29 +75,63 @@ namespace Calendar
                 }
             }
 
-            if (day + increment > comparisonDate)
+            if (date.day + increment > comparisonDate)
             {
-                day = ((day+increment) - comparisonDate);
-                month++;
+                date.day = ((date.day + increment) - comparisonDate);
+                date.month++;
             }
             else
             {
-                day += increment;
+                date.day += increment;
             }
 
-            if (month > 12)
+            if (date.month > 12)
             {
-                month = 1;
-                year++;
+                date.month = 1;
+                date.year++;
             }
 
-            newDate += day.ToString() + "/";
-            newDate += ((Months)month).ToString() + "/";
-            newDate += year;
+            newDate += date.day.ToString() + "/";
+            newDate += ((Months)date.month).ToString() + "/";
+            newDate += date.year;
 
             return newDate;
         }
 
+        public static Date ReturnDate(int increment, ref Date r)
+        {
+            Date tmpDate = new Date();
+            tmpDate.day = r.day;
+            tmpDate.month = r.month;
+            tmpDate.year = r.year;
+
+            for (int i = 1; i <= increment; i++)
+            {
+                SetDate(1, ref tmpDate);
+            }
+            return tmpDate;
+        }
+        public static bool IsAfterDate(Date curDate, Date comparitorDate)
+        {
+            if(curDate.year > comparitorDate.year) { return true; }
+            if(curDate.year == comparitorDate.year)
+            {
+                if(curDate.month > comparitorDate.month) { return true; }
+                if(curDate.month == comparitorDate.month)
+                {
+                    if(curDate.day >= comparitorDate.day) { return true; }
+                    else { return false; }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
 
         public static void PauseTime(ref timeSettings simSpeed, ref Button pause, ref Button normal, ref Button fast, ref Button veryFast)
         {
@@ -132,5 +166,12 @@ namespace Calendar
             fast.interactable = true;
             veryFast.interactable = false;
         }
+    }
+
+    public class Date
+    {
+        public int day;
+        public int month;
+        public int year;
     }
 }
