@@ -134,15 +134,15 @@ public class SimulatorMainHandler : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.BackQuote) && consoleObject != null) { ToggleConsole(); } //on ` key press open console
 
         timePassed += Time.deltaTime;
-        if(simSpeed != Calendar.Calendar.timeSettings.Pause && processing == false && timePassed > Calendar.Calendar.runSpeed[simSpeed])
+        if (simSpeed != Calendar.Calendar.timeSettings.Pause && processing == false && timePassed > Calendar.Calendar.runSpeed[simSpeed])
         {
             timePassed = 0;
             currentDate.text = Calendar.Calendar.SetDate(1, ref year, ref month, ref day);
 
             processing = true;
-            
+
             //time events
-            if(day == 2)
+            if (day == 2)
             {
                 Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
 
@@ -152,18 +152,23 @@ public class SimulatorMainHandler : MonoBehaviour
                 }
             }
 
-            SpawnEmpire();
+            if (!SpawnEmpire()) //Attempt to spawn a new empire
+            {
+                SpawnReligion(); //If spawning a new empire fails, attempt to spawn a new religion
+            }
+
+            SpreadReligionNaturally(); //Spread religions if they exist
 
             foreach (Empire tEmp in empires) //attempts to get an action for each empire 
             {
-                tEmp.PollForAction((day, month, year), ref cultures, ref empires, ref provinces, ref rnd);
+                tEmp.PollForAction((day, month, year), ref cultures, ref empires, ref provinces, ref religions, ref rnd);
             }
 
             processing = false;
 
         }
     }
-    private void SpawnEmpire()
+    private bool SpawnEmpire()
     {
         int mMax = 200 + Math.Min(year, 500); //Spawning slows down over time
         int rnTick = rnd.Next(0, mMax);
@@ -175,20 +180,118 @@ public class SimulatorMainHandler : MonoBehaviour
             if (empCount == 0) //If no empires exist
             {
                 SpawnCase("ANYHIGHPOP"); //Spawn on a highpop location
+                return true;
             }
-            else if(rnd.Next(0,Math.Min(15,empCount+2)) == 1)
+            else if(rnd.Next(0,4) == 1)
             {
-                if (year > 100 && rnTick < (int)Math.Floor((float)(mMax) / 7)) //1/7 chance
+                if (rnTick < (int)Math.Floor((float)(mMax) / 7)) //1/7 chance
                 {
-                    SpawnCase("ANYUNPOPULATED"); //Spawn in any location with no population in the culture group and no
+                    SpawnCase("ANYUNPOPULATED"); //Spawn in any location with no population in the culture group and a medium
+                    return true;
                 }
                 else if (rnTick > (int)Math.Floor((float)(mMax) / 3)) //2/3 chance
                 {
                     SpawnCase("ANYPOPCULTURE"); //Spawn in any location in a populated culture group
+                    return true;
                 }
                 else //1/3 chance
                 {
                     SpawnCase("ANYPOPREGION"); //Spawn in any location in a populated culture group or high pop area
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+    private void SpawnReligion()
+    { 
+        if (empires.Count() > 5)
+        {
+            int mMax = 15000 + Math.Min(year, 500); 
+            int rnTick = rnd.Next(0, mMax);
+
+            if (rnTick == rnd.Next(0, mMax))  
+            {
+                List<Religion> existingRels = provinces.Where(x => x._localReligion != null).Select(t => t._localReligion).Distinct().ToList();
+                if(existingRels.Count() > 20) { return; }
+
+                List<ProvinceObject> applicableProvs = provinces.Where(x => (x._population == Property.Medium || x._population == Property.High) && x._localReligion == null && x._biome != 0).ToList();
+
+                if (applicableProvs.Count > 0)
+                {
+                    int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
+                    if(Act.Actions.NewReligion(ref provinces, ref religions, tID))
+                    {
+                        provinces[tID].updateText = provinces[tID]._localReligion._name + " Founded";
+                    }
+                    
+                }
+            }
+        }
+    }
+    private void SpreadReligionNaturally() //Non-empire spread religion
+    {
+        if (rnd.Next(0, 2000) == 55)
+        {
+            List<Religion> appReligions = provinces.Where(x=>x._localReligion!=null).Select(t => t._localReligion).Distinct().ToList();
+
+            if (appReligions.Count > 0)
+            {
+
+                int selCount = rnd.Next(0, appReligions.Count);
+                if(selCount == 0) { return; }
+
+                List<int> targetRels = new List<int>() { };
+                for (int i = 0; i < selCount; i++)
+                {
+                    int newR = rnd.Next(0, appReligions.Count);
+                    if(targetRels.Contains(newR))
+                    {
+                        i--;
+                    }
+                    else
+                    {
+                        targetRels.Add(newR);
+                    }
+                }
+
+                if(targetRels.Count <= 0) { return; }
+
+                foreach (Religion rel in appReligions)
+                {
+                    if (targetRels.Contains(appReligions.IndexOf(rel)))
+                    {
+                        List<ProvinceObject> applicableProvs = provinces.Where(x => x._localReligion == rel && x._adjacentProvIDs.Any(y=> provinces[y]._biome != 0 && provinces[y]._localReligion != rel)).ToList();
+
+                        if (applicableProvs.Count > 0)
+                        {
+                            int spreadCount;
+                            if (applicableProvs.Count > 9) { spreadCount = rnd.Next(1, Convert.ToInt32(Math.Floor((float)(applicableProvs.Count)/3.0f))); }
+                            else if(applicableProvs.Count > 3) { spreadCount = rnd.Next(1, applicableProvs.Count); }
+                            else { spreadCount = 1; }
+
+
+                            for (int i = 0; i < spreadCount; i++)
+                            {
+                                Debug.Log("SPREADING " + rel._id + ":" + rel._name);
+                                ProvinceObject tProv = applicableProvs[rnd.Next(0, applicableProvs.Count())];
+                                List<ProvinceObject> adjProvs = tProv._adjacentProvIDs.Where(y => provinces[y]._biome != 0 && provinces[y]._localReligion != rel).Select(x => provinces[x]).ToList();
+
+                                foreach (ProvinceObject aProv in adjProvs)
+                                {
+                                    if (rnd.Next(0, 2) == 1) //Last random chance
+                                    {
+                                        aProv._localReligion = rel; //Set new religion
+                                        aProv.updateText = aProv._localReligion._name + " adopted";
+                                    }
+                                }
+                                applicableProvs.Remove(tProv);
+
+
+                            }
+                        }
+                    }
                 }
             }
         }

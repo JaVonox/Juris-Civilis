@@ -158,7 +158,7 @@ namespace WorldProperties
         public string _id;
         public Color _cultureCol;
         public string _name;
-        public float _economyScore; //total of techs of all empires inside = economy score
+        public float _economyScore; //total of eco scores of all empires inside = economy score
         public string _nameType; //Asian, Colonial, European, Indian, Muslim
         public Culture(string id, ref System.Random rnd)
         {
@@ -217,11 +217,11 @@ namespace WorldProperties
             //Total of all techs
             if (applicableEmpires.Count != 0)
             {
-                _economyScore = applicableEmpires.Sum(l => l.ReturnEcoScore(ref provinces));
+                _economyScore = applicableEmpires.Sum(l => l.ReturnEcoScore(provinces));
 
                 foreach (Empire e in applicableEmpires)
                 {
-                    e.percentageEco = e.ReturnEcoScore(ref provinces) / _economyScore;
+                    e.percentageEco = e.ReturnEcoScore(provinces) / _economyScore;
                 }
             }
             else

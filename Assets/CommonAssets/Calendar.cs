@@ -52,8 +52,8 @@ namespace Calendar
         {
             { timeSettings.Pause,0 },
             { timeSettings.Normal,0.10f },
-            { timeSettings.Fast,0.07f },
-            { timeSettings.VeryFast,0.03f }
+            { timeSettings.Fast,0.03f },
+            { timeSettings.VeryFast,0.005f }
         };
     
         public static string SetDate(int increment, ref int year, ref int month, ref int day)

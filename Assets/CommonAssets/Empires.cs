@@ -75,7 +75,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
             if(timeUntilNextUpdate <= 0)
             {
-                timeUntilNextUpdate = rnd.Next(0, 8);
+                timeUntilNextUpdate = rnd.Next(3, 20);
                 return true;
             }
             else
@@ -98,29 +98,30 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         }
         public float ReturnProvsVal(List<ProvinceObject> provinces)
         {
-            return _componentProvinceIDs.Sum(x => ReturnIndProvVal(provinces[x]));
+            return _componentProvinceIDs.Sum(x => ReturnIndProvVal(provinces[x],provinces));
         }
 
-        public float ReturnIndProvVal(ProvinceObject tProv) //Economic value per province
+        public float ReturnIndProvVal(ProvinceObject tProv, List<ProvinceObject> provs) //Economic value per province
         {
             float score = 0;
             if(tProv._population == Property.High) { score += 1.0f; }
             else if(tProv._population == Property.Medium) { score += 0.5f; }
             else if(tProv._population == Property.Low) { score += 0.25f; }
 
-            if (tProv._isCoastal) { score += 0.5f; }
+            if (tProv._isCoastal) { score += 0.2f; }
+            score += 0.1f * (float)(tProv._adjacentProvIDs.Count(x=>provs[x]._ownerEmpire != null));
 
             return score;
         }
 
         public float ReturnProvPersonalVal(ProvinceObject tProv, List<ProvinceObject> provs) //Economic value + personal value
         {
-            float score = ReturnIndProvVal(tProv);
-            if(tProv._localReligion == stateReligion && stateReligion != null) { score += 0.1f; }
+            float score = ReturnIndProvVal(tProv,provs);
+            if(tProv._localReligion == stateReligion && stateReligion != null) { score += 0.3f; }
             if(tProv._biome == provs[_componentProvinceIDs[0]]._biome) { score += 0.1f; }
             score += (float)(_componentProvinceIDs.Count(x => tProv._adjacentProvIDs.Contains(x))) * 0.25f; //Adjacency bonus
             score += (tProv._adjacentProvIDs.Contains(_componentProvinceIDs[0])) ? 1f : 0;
-            if(tProv._cultureID == _cultureID) { score += 0.5f; }
+            if(tProv._cultureID == _cultureID) { score += 0.3f; }
             if(tProv._adjacentProvIDs.Count(x=>provs[x]._biome != 0 && _componentProvinceIDs.Contains(x)) == tProv._adjacentProvIDs.Count(x => provs[x]._biome != 0)) { score += 5.0f; } //If prov owns all adjacents, add a lot to score
             return score;
         }
@@ -128,24 +129,27 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         {
             return milTech + ecoTech + dipTech + logTech + culTech;
         }
-        public float ReturnEcoScore(ref List<ProvinceObject> provinces) //Get economics score for this empire
+        public float ReturnEcoScore(List<ProvinceObject> provinces) //Get economics score for this empire
         {
-            return ((float)(this.ReturnTechTotal())/5.0f)*(0.1f+
-                ((ReturnProvsVal(provinces))/20.0f)+((float)(ecoTech)/30.0f));
+            return ((float)(milTech + ecoTech + dipTech + logTech + culTech)/10.0f) + _componentProvinceIDs.Sum(x => ReturnIndividualEcoScore(provinces[x], provinces));
         }
-        public float ReturnIndividualEcoScore(ProvinceObject tProv) //Get economics score for a single province
+        public float ReturnIndividualEcoScore(ProvinceObject tProv, List<ProvinceObject> provs) //Get economics score for a single province
         {
-            return ((float)(this.ReturnTechTotal()) / 5.0f) * (0.1f +
-                ((ReturnIndProvVal(tProv)) / 20.0f) + ((float)(ecoTech) / 30.0f));
-        }
+            float multiplier = 1; //Higher economic output if it is the same religion as the empire in question
+            if(stateReligion == null) { multiplier = 0.8f; }
+            else if(stateReligion != null && tProv._localReligion != stateReligion) { multiplier = 0.9f; }
 
+            return (ReturnIndProvVal(tProv,provs) * (1.0f + ((float)(ecoTech)/5.0f))) * multiplier;
+        }
         public void RecalculateMilMax(List<ProvinceObject> provinces) //Finds the appropriate max military. Redone every time mil is recruited
         {
-            maxMil = ((25 + Math.Min(100000000,(float)Math.Floor(((float)(milTech) * (0.5f + (ReturnProvsVal(provinces)/10.0f)))))) * 10.0f) + (float)(Math.Floor(ReturnProvsVal(provinces) * 4.0f));
+            maxMil = Convert.ToInt32(Math.Floor(Math.Min(100000000,
+                (20.0f) + ((float)(milTech) * 20.0f) + (ReturnProvsVal(provinces) * 10.0f))));
         }
         public float ExpectedMilIncrease(ref List<ProvinceObject> provinces)
         {
-            return ((float)Math.Round(1.0f+(float)Math.Min(100000000,ReturnEcoScore(ref provinces)/2.0f),2)*5);
+            return ((float)Math.Round(1.0f+(float)Math.Min(100000000,
+                ReturnEcoScore(provinces)/2.0f),2));
         }
         public void RecruitMil(ref List<Culture> cultures, ref List<ProvinceObject> provinces) //Every month recalculate military gain
         {
@@ -186,7 +190,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             leftoverLosses = (float)Math.Round(leftoverLosses, 2);
             leftoverMil -= leftoverLosses; //Reduce leftover losses by
         }
-        public void PollForAction((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref System.Random rnd)
+        public void PollForAction((int day, int month, int year) currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd)
         {
             if (_exists) //If this empire is active
             {
@@ -195,10 +199,10 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 if (CheckForUpdate(ref rnd))
                 {
                     //Chance of ruler making an action
-                    float actChance = Math.Min(0.85f, ((float)(dipTech) / 500.0f));
+                    float actChance = Math.Min(0.85f, ((float)(dipTech) / 250.0f));
                     if (rnd.NextDouble() <= actChance)
                     {
-                        AI(curRuler.CalculateRandomActsOrder(), ref cultures, ref empires, ref provs, ref rnd);
+                        AI(curRuler.CalculateRandomActsOrder(), ref cultures, ref empires, ref provs, ref religions, ref rnd);
                     }
                 }
             }
@@ -224,7 +228,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             return pSet.Where(z => !_componentProvinceIDs.Contains(z)).ToList();
         }
 
-        private void AI(List<string> actBuffer, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref System.Random rnd)
+
+        private void AI(List<string> actBuffer, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd)
         {
             foreach (string newAct in actBuffer) //iterate through listed actions
             {
@@ -238,8 +243,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             if (canColony.canColonise)
                             {
                                 Debug.Log(_id + " COLONISING");
-                                float maxValue = canColony.targets.Max(x => x.valueRisk);
-                                int target = canColony.targets.Where(x => x.valueRisk >= maxValue).ToList()[0].targetID; //Get highest value/cost ratio province
+                                if(canColony.targets.Count <= 0) { break; }
+                                int target = canColony.targets.OrderByDescending(x => x.valueRisk).ToArray()[0].targetID; //Highest value target
 
                                 Actions.ColonizeLand(provs[target], this, ref provs);
                                 provs[target].updateText = "Colonised by " + _empireName;
@@ -249,15 +254,14 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         }
                     case "per_DevelopTech":
                         {
-                            if (rnd.Next(0, 4) == 1) //1/3 chance of successful development
+                            if (rnd.Next(0, 6-Math.Min(3,_componentProvinceIDs.Count)) == 1)
                             {
                                 Debug.Log(_id + " DEVELOPING TECH");
-                                (string tech1, string tech2) techsDevelopable = curRuler.ReturnTechFocuses();
-                                ref int t1 = ref TechStringToVar(techsDevelopable.tech1);
-                                ref int t2 = ref TechStringToVar(techsDevelopable.tech2);
+                                string devTech = curRuler.ReturnNextTech(this, ref rnd);
+                                ref int techVar = ref TechStringToVar(devTech);
 
-                                if (t1 >= t2) { t1++; provs[_componentProvinceIDs[0]].updateText = "Developed " + techsDevelopable.tech1 + " level " + t1; }
-                                else { t2++; provs[_componentProvinceIDs[0]].updateText = "Developed " + techsDevelopable.tech2 + " level " + t2; }
+                                techVar++;
+                                provs[_componentProvinceIDs[0]].updateText = "Developed " + devTech + " level " + techVar;
                                 return;
                             }
                             else
@@ -267,8 +271,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         }
                     case "per_LearnTech":
                         {
-                            (int mMil, int mEco, int mDip, int mLog, int mCul) maxVals = MaxLearnableTechs(ref empires, ref cultures, provs); 
-                            if (maxVals == (milTech, ecoTech, dipTech, logTech, culTech)) { break; } //If already max tech, move to next action.
+                            (int mMil, int mEco, int mDip, int mLog, int mCul) maxVals = LearnableTechs(ref empires, ref cultures, provs); 
+                            if (!IsLesser((milTech, ecoTech, dipTech, logTech, culTech),maxVals)) { break; } //If already max tech, move to next action.
 
                             Debug.Log(_id + " LEARNING TECH");
                             (string biggestDif, int dif) techWithDif = ("",-1);
@@ -289,6 +293,69 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                 break;
                             }
                         }
+                    case "per_SpreadReligion":
+                        {
+                            if (!curRuler.hasAdoptedRel) //If they have not changed the state religion in their lifetime, they may change the empire religion
+                            {
+                                List<Religion> relCounts = new List<Religion>() { };
+                                foreach (int x in _componentProvinceIDs)
+                                {
+                                    if (provs[x]._localReligion != null)
+                                    {
+                                        relCounts.Add(provs[x]._localReligion);
+                                    }
+                                }
+                                if (relCounts.Count <= 0) { break; }
+                                Religion majorityRel = relCounts.GroupBy(x => x).OrderByDescending(y => y.Count()).Select(z => z.Key).First(); //Select the most common rel in the set
+                                curRuler.hasAdoptedRel = true;
+                                if (majorityRel == stateReligion) { break; } //If the state religion has not changed, do not update state religion. 
+
+                                Act.Actions.SetStateReligion(ref provs, ref empires, ref religions, _id, majorityRel._id);
+                                provs[_componentProvinceIDs[0]].updateText = "Converted to " + majorityRel._name;
+                                provs[_componentProvinceIDs[0]]._localReligion = stateReligion;
+                                Debug.Log(_id + " ADOPTED RELIGION " + majorityRel._id);
+
+                                return;
+                            }
+                            else
+                            {
+                                if (stateReligion != null)
+                                {
+                                    Debug.Log("ATTEMPTED SPREAD REL");
+                                    bool relPolled = false; //Check if any religions were polled. If non were polled, choose next action
+                                    foreach (int x in _componentProvinceIDs)
+                                    {
+                                        if (provs[x]._localReligion != stateReligion)
+                                        {
+                                            relPolled = true;
+                                            int rndVal = rnd.Next(0, 100);
+
+                                            if (provs[x]._localReligion == null)
+                                            {
+                                                if (rndVal <= 33)//1/3 of changing a religion for a non-religious province
+                                                {
+                                                    Act.Actions.SetReligion(ref provs, ref religions, x, stateReligion._id);
+                                                    provs[x].updateText = "Adopted state religion";
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (rndVal <= 20)
+                                                { //1/5 of changing religion for religious province
+                                                    Act.Actions.SetReligion(ref provs, ref religions, x, stateReligion._id);
+                                                    provs[x].updateText = "Adopted state religion";
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (!relPolled) { break; }
+                                    else { return; }
+
+                                }
+                            }
+                        }
+                        break;
                     default: 
                         {
                             break;
@@ -296,6 +363,16 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 }
             }
         }
+        private bool IsLesser((int mMil, int mEco, int mDip, int mLog, int mCul) subject, (int mMil, int mEco, int mDip, int mLog, int mCul) comparitor) //Returns if subject is less than comparitor in any categories
+        {
+            if(subject.mMil < comparitor.mMil) { return true; }
+            if(subject.mEco < comparitor.mEco) { return true; }
+            if(subject.mDip < comparitor.mDip) { return true; }
+            if(subject.mLog < comparitor.mLog) { return true; }
+            if(subject.mCul < comparitor.mCul) { return true; }
+            return false;
+        }
+
         private ref int TechStringToVar(string techName)
         {
             switch (techName)
@@ -314,9 +391,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     return ref milTech;
             }
         }
-        private (int mMil, int mEco, int mDip, int mLog, int mCul) MaxLearnableTechs(ref List<Empire> empires, ref List<Culture> cultures, List<ProvinceObject> provs)
+        private (int mMil, int mEco, int mDip, int mLog, int mCul) LearnableTechs(ref List<Empire> empires, ref List<Culture> cultures, List<ProvinceObject> provs)
         {
-            (int mMil, int mEco, int mDip, int mLog, int mCul) mTechs = cultures[_cultureID].CalculateMaxTech(ref empires);
+            (int mMil, int mEco, int mDip, int mLog, int mCul) mTechs = (1, 1, 1, 1, 1);
             List<int> adjIds = ReturnAdjacentIDs(ref provs, true);
             List<ProvinceObject> adjacentProvsDiffEmp = provs.Where(x => adjIds.Contains(x._id) && x._ownerEmpire != null && x._ownerEmpire != this).ToList();
             List<Empire> adjEmpires = adjacentProvsDiffEmp.Select(x => x._ownerEmpire).Distinct().ToList();
@@ -369,6 +446,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public (int day, int month, int age) deathday;
         private List<string> nameBuffer = new List<string>() { };
         private string rTitle = "NULL";
+        public bool hasAdoptedRel; //If they have adopted a religion in their lifetime, they may not do so again.
 
         //Personality values
         public Dictionary<string, float> rulerPersona = new Dictionary<string, float>() {
@@ -414,6 +492,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         {
             //TODO add names and make previous ruler details not apply if last name is changed
             bool newDyn = false;
+            hasAdoptedRel = false;
 
             if(rulerRND.Next(0,10) == 2 || previousRuler == null) //Dynasty Replacement chance
             {
@@ -508,9 +587,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 maxDDay = 28;
             }
             deathday.day = rulerRND.Next(1, maxDDay + 1);
-            age = rulerRND.Next(18, 70);
+            age = rulerRND.Next(18, 50);
 
-            deathday.age = rulerRND.Next(age, 72 + Convert.ToInt32(Math.Floor((float)(ownedEmpire.ReturnTechTotal()) / 50)));
+            deathday.age = rulerRND.Next(age+5, 72 + Convert.ToInt32(Math.Floor((float)(ownedEmpire.ReturnTechTotal()) / 50)));
 
             if(provs[ownedEmpire._componentProvinceIDs[0]].updateText == "")
             {
@@ -521,6 +600,41 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public (string,string) ReturnTechFocuses()
         {
             return (techNames[techFocus[0]], techNames[techFocus[1]]);
+        }
+
+        public string ReturnNextTech(Empire ownedEmpire, ref System.Random rnd) //Return the next tech to develop
+        {
+            List<(string, int)> techVals = new List<(string, int)>()
+            {
+                {("Military", ownedEmpire.milTech) },
+                {("Economic", ownedEmpire.ecoTech) },
+                {("Diplomacy", ownedEmpire.dipTech) },
+                {("Logistics", ownedEmpire.logTech) },
+                {("Culture",ownedEmpire.culTech) }
+            };
+
+            for(int i=0;i<techVals.Count;i++) //Shuffle to remove bias to original order
+            {
+                (string, int) tVal = techVals[i];
+                int target = rnd.Next(0, 5);
+                techVals[i] = techVals[target];
+                techVals[target] = tVal;
+            }
+            techVals = techVals.OrderBy(x => x.Item2).Take(3).ToList(); //Ascending order
+
+            (string, string) focuses = ReturnTechFocuses();
+
+            //Return the lowest tech unless ruler focuses contains the other tech
+
+            for(int i=0;i<3;i++)
+            {
+                if(focuses.Item1 == techVals[i].Item1) { return focuses.Item1; }
+                if (focuses.Item2 == techVals[i].Item1) { return focuses.Item2; }
+            }
+
+            return techVals[0].Item1;
+
+
         }
         public string GetRulerPersonality()
         {
@@ -614,7 +728,6 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
         private float GetRulerMilitaryRisk(ref Empire thisEmpire) //Amount ruler is willing to risk per cost
         {
-            //TODO add economic value to calculation???
             float perCost = (thisEmpire.maxMil / 2.0f);
             return (perCost * Math.Min(1.0f,Math.Max(0.1f,rulerPersona["per_Risk"]))); //At max risk, willing to risk 50% of the max mil. at min risk, willing to risk 5% of the max mil.
         }

@@ -83,6 +83,7 @@ namespace Act
                 if(aggressorEmpire.curMil < 0) { aggressorEmpire.curMil = 0; }
                 targetProv._ownerEmpire = aggressorEmpire;
                 aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
+                if(aggressorEmpire.stateReligion != null && targetProv._localReligion == null) { targetProv._localReligion = aggressorEmpire.stateReligion; }
                 return true;
             }
             else
@@ -370,7 +371,7 @@ namespace Act
             if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion]) && empires[targetEmpire]._exists == true) //Check if religion exists on map
             {
                 empires[targetEmpire].stateReligion = religions[targetReligion]; //set religion
-                return true;
+                return SetReligion(ref provs, ref religions, empires[targetEmpire]._componentProvinceIDs[0], targetReligion);
             }
             else
             {

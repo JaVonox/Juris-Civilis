@@ -475,6 +475,7 @@ namespace SaveLoad
                 empData.WriteAttributeString("FirstName", tRuler.fName);
                 empData.WriteAttributeString("LastName", tRuler.lName);
                 empData.WriteAttributeString("Age", tRuler.age.ToString());
+                empData.WriteAttributeString("Converted", tRuler.hasAdoptedRel.ToString());
 
                 empData.WriteStartElement("Birthday");
                 empData.WriteString(tRuler.birthday.day.ToString() + "/" + tRuler.birthday.month.ToString());
@@ -574,6 +575,7 @@ namespace SaveLoad
                 tmpRuler.deathday.day = Convert.ToInt32(dDay[0]);
                 tmpRuler.deathday.month = Convert.ToInt32(dDay[1]);
                 tmpRuler.deathday.age = Convert.ToInt32(dDay[2]);
+                tmpRuler.hasAdoptedRel = Convert.ToBoolean(rulNode.Attributes["Converted"].Value);
 
                 XmlNode personalityNode = rulNode.SelectSingleNode("Personality");
                 foreach (XmlNode comps in personalityNode.ChildNodes)
