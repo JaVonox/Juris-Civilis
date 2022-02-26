@@ -18,12 +18,12 @@ namespace Act
             debugRef.SetActive(!debugRef.activeSelf);
         }
 
-        public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires, ref List<Culture> cultures)
+        public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires, ref List<Culture> cultures, ref System.Random rnd)
         {
             if(provs[provID]._biome == 0) { return false; } //Prevent ocean takeover
             if (provs[provID]._ownerEmpire == null)
             {
-                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs));
+                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs, ref rnd));
                 return true;
             }
             else
@@ -76,7 +76,7 @@ namespace Act
                 }
             }
         }
-        public static bool ColonizeLand(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
+        public static bool ColonizeLand(ProvinceObject targetProv, Empire aggressorEmpire, List<ProvinceObject> provs, ref List<Empire> empires, ref Date curDate)
         {
             (bool canColonize, int colonyCost) ColonyAbility = CanColonize(targetProv, aggressorEmpire, ref provs);
             if (ColonyAbility.canColonize == true) //Double check. Colonize land call should be proceeded by a CanColonize already.
@@ -86,12 +86,32 @@ namespace Act
                 targetProv._ownerEmpire = aggressorEmpire;
                 aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
                 if(aggressorEmpire.stateReligion != null && targetProv._localReligion == null) { targetProv._localReligion = aggressorEmpire.stateReligion; }
+
+                Dictionary<Empire, (int value, int time, string type)> colonyOPmods = ColonyOpinionMods(targetProv, aggressorEmpire, provs, empires);
+
+                foreach(KeyValuePair<Empire, (int value, int time, string type)> set in colonyOPmods) //Apply opinion modifiers
+                {
+                    AddNewModifier(set.Key, aggressorEmpire, set.Value.time, set.Value.value, (curDate.day, curDate.month, curDate.year), set.Value.type);
+                }
                 return true;
             }
             else
             {
                 return false;
             }
+        }
+        public static Dictionary<Empire, (int value, int time, string type)> ColonyOpinionMods(ProvinceObject targetProv, Empire aggressorEmpire, List<ProvinceObject> provs, List<Empire> empires)
+        {
+            //Opinion changes due to colony action
+            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.targetEmpireID == aggressorEmpire._id) && x.ReturnAdjacentIDs(ref provs, true).Contains(targetProv._id)).ToList();
+            Dictionary<Empire, (int value, int time, string type)> empireMods = new Dictionary<Empire, (int value, int time, string type)>() { };
+
+            foreach (Empire x in impactedEmpires)
+            {
+                empireMods.Add(x, (-5,7300,"COLONY"));
+            }
+
+            return empireMods;
         }
         public static int ColonyCost(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs) //Calculate cost for the colony to check if target empire can afford it
         {
@@ -283,7 +303,6 @@ namespace Act
                 return false;
             }
         }
-
         public static bool IsAdjacent(ProvinceObject targetProv, Empire tEmpire, ref List<ProvinceObject> provs) //Checks if the selected province is adjacent to the empire
         {
             if(tEmpire._exists != true) { return false; }
@@ -368,12 +387,24 @@ namespace Act
             }
         }
 
-        public static bool SetStateReligion(ref List<ProvinceObject> provs, ref List<Empire> empires, ref List<Religion> religions, int targetEmpire, int targetReligion)
+        public static bool SetStateReligion(ref List<ProvinceObject> provs, List<Empire> empires, ref List<Religion> religions, int targetEmpire, int targetReligion, ref Date curDate)
         {
             if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion]) && empires[targetEmpire]._exists == true) //Check if religion exists on map
             {
-                empires[targetEmpire].stateReligion = religions[targetReligion]; //set religion
-                return SetReligion(ref provs, ref religions, empires[targetEmpire]._componentProvinceIDs[0], targetReligion);
+                Empire tEmpire = empires[targetEmpire];
+                if (tEmpire.stateReligion != null)
+                {
+                    List<Empire> impactedEmpires = empires.Where(y => y.opinions.Any(z => z.targetEmpireID == tEmpire._id) && y.stateReligion == tEmpire.stateReligion).ToList();
+                    if (impactedEmpires.Count > 0)
+                    {
+                        foreach(Empire x in impactedEmpires)
+                        { 
+                            AddNewModifier(x, tEmpire, 10000, -20, (curDate.day, curDate.month, curDate.year), "RELIGIONSWITCH"); //Opinion penalty for switching religion
+                        }
+                    }
+                }
+                tEmpire.stateReligion = religions[targetReligion]; //set religion
+                return SetReligion(ref provs, ref religions, tEmpire._componentProvinceIDs[0], targetReligion);
             }
             else
             {
@@ -381,7 +412,7 @@ namespace Act
             }
         }
 
-        public static bool AddNewModifier(Empire recvEmpire, Empire sendEmpire, int days, int modifier, (int day, int month, int year) curDate)
+        public static bool AddNewModifier(Empire recvEmpire, Empire sendEmpire, int days, int modifier, (int day, int month, int year) curDate, string type)
         {
             if(!recvEmpire._exists || !sendEmpire._exists) { return false; }
 
@@ -392,11 +423,70 @@ namespace Act
                 tmpDate.month = curDate.month;
                 tmpDate.year = curDate.year;
 
-                Modifier nMod = new Modifier(days, modifier, ref tmpDate);
+                if (false) //Non-duplicate types
+                {
+                    if (recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Any(x => x.typestring == type))
+                    {
+                        Modifier x = recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Where(x => x.typestring == type).First();
+                        x.opinionModifier = modifier;
+                        Date tDate2 = Calendar.Calendar.ReturnDate(days, ref tmpDate);
+                        x.timeOutDate = (tDate2.day, tDate2.month, tDate2.year);
+                    } //No duplicate types
+                }
+
+                Modifier nMod = new Modifier(days, modifier, ref tmpDate, type);
                 recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Add(nMod);
                 return true;
             }
             return false;
+        }
+
+        public static bool DiplomaticEnvoy(Empire recvEmpire, Empire sendEmpire, (int day, int month, int year) curDate, ref System.Random rnd, ref List<Empire> empires)
+        {
+            if (!recvEmpire.opinions.Any(x => x.targetEmpireID == sendEmpire._id)) { return false; }
+            Opinion tOp = recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id);
+
+            Date tmpDate = new Date();
+            tmpDate.day = curDate.day;
+            tmpDate.month = curDate.month;
+            tmpDate.year = curDate.year;
+
+            int optionChange = rnd.Next(1, Math.Max(20,sendEmpire.dipTech)); //Strength of opinion modifier
+            int dateLasting = rnd.Next(1825, 3650); //How long it will last
+
+            if(AddNewModifier(recvEmpire, sendEmpire, dateLasting, optionChange, curDate, "ENVOY"))
+            {
+                Dictionary<Empire, (int value, int time, string type)> colonyOPmods = EnvoyMod(recvEmpire,empires); //Calculate diplomatic impacts of this action
+
+                foreach (KeyValuePair<Empire, (int value, int time, string type)> set in colonyOPmods) //Apply opinion modifiers
+                {
+                    AddNewModifier(set.Key, sendEmpire, set.Value.time, set.Value.value, (curDate.day, curDate.month, curDate.year), set.Value.type);
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        public static Dictionary<Empire, (int value, int time, string type)> EnvoyMod(Empire targetEmpire, List<Empire> empires)
+        {
+            //Opinion changes due to envoy action
+            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.targetEmpireID == targetEmpire._id && y.lastOpinion < 0)).ToList(); //All empires that dislike the target empire
+            Dictionary<Empire, (int value, int time, string type)> empireMods = new Dictionary<Empire, (int value, int time, string type)>() { };
+
+            foreach (Empire x in impactedEmpires)
+            {
+                int opMod = -5;
+                Opinion tOp = x.opinions.First(x => x.targetEmpireID == targetEmpire._id);
+
+                if (tOp._rival || tOp._fear) { opMod -= 5; }
+                
+                empireMods.Add(x, (opMod, 7300, "ENEMYENVOY")); //Opinion penalty for sending envoys to enemies
+
+            }
+
+            return empireMods;
         }
     }
 }

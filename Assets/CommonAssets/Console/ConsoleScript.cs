@@ -25,6 +25,7 @@ public class ConsoleScript : MonoBehaviour
     private GameObject _loadedMap;
 
     private Date dateRef;
+    private System.Random rnd;
 
     private string LoggedText;
 
@@ -36,7 +37,7 @@ public class ConsoleScript : MonoBehaviour
         ResetInput();
     }
     
-    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject map, ref List<Religion> religions, ref Date date)
+    public void LoadConsole(ref GameObject provDetails, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject map, ref List<Religion> religions, ref Date date, ref System.Random Srnd)
     {
         refProvDetails = provDetails;
         _provinces = provs;
@@ -45,6 +46,7 @@ public class ConsoleScript : MonoBehaviour
         _religions = religions;
         _loadedMap = map;
         dateRef = date;
+        rnd = Srnd;
     }
     public void ResetInput()
     {
@@ -67,7 +69,7 @@ public class ConsoleScript : MonoBehaviour
             }
             else
             {
-                LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap, ref _religions, ref dateRef) + "\n" + LoggedText;
+                LoggedText = interpreter.InterpretCommand(textInput.text, refProvDetails, ref _provinces, ref _cultures, ref _empires, ref _loadedMap, ref _religions, ref dateRef, ref rnd) + "\n" + LoggedText;
                 //Submit, add to log and then remove the text
                 List<string> textLog = LoggedText.Split('\n').ToList();
                 if (textLog.Count() > 15)

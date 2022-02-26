@@ -105,7 +105,7 @@ public class SimulatorMainHandler : MonoBehaviour
             panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
             provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
             consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
-            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap, ref religions, ref _date);
+            consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap, ref religions, ref _date, ref rnd);
             ToggleConsole();
 
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture, ref religions, ref empires);
@@ -318,7 +318,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
                     }
                     else
                     {
@@ -340,7 +340,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
                     }
                     else
                     {
@@ -363,7 +363,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
                     }
                     else
                     {
@@ -389,7 +389,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
                     }
                     else
                     {
@@ -412,7 +412,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
                     }
                     else
                     { } //Since is the default, if there are no possibilities, then it must do nothing

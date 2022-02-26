@@ -13,7 +13,7 @@ namespace ConsoleInterpret
 { 
     public class ConsoleInterpreter
     {
-        public string InterpretCommand(string comm, GameObject provViewer, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject loadedMap, ref List<Religion> religions, ref Date currentDate)
+        public string InterpretCommand(string comm, GameObject provViewer, ref List<ProvinceObject> provs, ref List<Culture> cultures, ref List<Empire> empires, ref GameObject loadedMap, ref List<Religion> religions, ref Date currentDate, ref System.Random rnd)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace ConsoleInterpret
                             if (provs.Count < Convert.ToInt32(commandSplit[1])) { return "Unrecognised integer ID supplied"; }
                             if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
 
-                            if (Act.Actions.SpawnEmpire(ref provs, Convert.ToInt32(commandSplit[1]), ref empires, ref cultures)) { ForceUpdate(ref loadedMap); return "Spawned new empire"; }
+                            if (Act.Actions.SpawnEmpire(ref provs, Convert.ToInt32(commandSplit[1]), ref empires, ref cultures, ref rnd)) { ForceUpdate(ref loadedMap); return "Spawned new empire"; }
                             else { return "Could not spawn an empire"; }
                         }
                     case "ADD": //ADD (PROVID) (EMPIREID) - adds to empire without cost or restrictions
@@ -95,7 +95,7 @@ namespace ConsoleInterpret
                             if (!ValueLimiter(commandSplit[2], 0, religions.Count() - 1)) { return "Invalid ID parameters"; }
                             if (empires[Convert.ToInt32(commandSplit[1])]._exists == false) { return "The target empire is dead"; }
 
-                            if (Act.Actions.SetStateReligion(ref provs, ref empires, ref religions, Convert.ToInt32(commandSplit[1]), Convert.ToInt32(commandSplit[2])))
+                            if (Act.Actions.SetStateReligion(ref provs, empires, ref religions, Convert.ToInt32(commandSplit[1]), Convert.ToInt32(commandSplit[2]),ref currentDate))
                             { return "Set state Religion"; }
                             else { return "Failed to set state religion"; }
                         }
@@ -110,7 +110,7 @@ namespace ConsoleInterpret
                             (bool canColonize, int colonyCost) colonyApplicable = Act.Actions.CanColonize(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs);
                             if (colonyApplicable.canColonize)
                             {
-                                if (Act.Actions.ColonizeLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], ref provs))
+                                if (Act.Actions.ColonizeLand(provs[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], provs,ref empires, ref currentDate))
                                 {
                                     ForceUpdate(ref loadedMap);
                                     return "Colonized new land for mil score " + colonyApplicable.colonyCost;
@@ -158,7 +158,7 @@ namespace ConsoleInterpret
                             int days = Convert.ToInt32(commandSplit[3]);
                             int modifier = Convert.ToInt32(commandSplit[4]);
 
-                            if (Act.Actions.AddNewModifier(empires[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], days, modifier, (currentDate.day, currentDate.month, currentDate.year)))
+                            if (Act.Actions.AddNewModifier(empires[Convert.ToInt32(commandSplit[1])], empires[Convert.ToInt32(commandSplit[2])], days, modifier, (currentDate.day, currentDate.month, currentDate.year),"MAGIC"))
                             {
                                 return "Added new modifier";
                             }
@@ -177,8 +177,9 @@ namespace ConsoleInterpret
                             if (!empires[empOneID].opinions.Any(x=>x.targetEmpireID == empTwoID)) { return "One empire has no opinion on another"; }
                             if (!empires[empTwoID].opinions.Any(x => x.targetEmpireID == empOneID)) { return "One empire has no opinion on another"; }
 
-                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).lastOpinion + " --- " +
-                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).lastOpinion;
+                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).lastOpinion + "/" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).ReturnMaxOpinion(empires[empOneID],empires[empTwoID]) +
+                                " --- " +
+                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).lastOpinion + "/" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).ReturnMaxOpinion(empires[empTwoID], empires[empOneID]);
                         }
                     default:
                         return "Invalid command";

@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using WorldProperties;
 using ProvViewEnums;
+using Empires;
 
 public class NationalHandler : MonoBehaviour
 {
@@ -18,13 +19,15 @@ public class NationalHandler : MonoBehaviour
     private ProvinceObject newSelec;
     private List<Culture> cultSet;
     private List<ProvinceObject> provSet;
-    public void NationalInfo(ref ProvinceObject newSelection, ref List<Culture> culturesSet, ref List<ProvinceObject> provs)
+    private List<Empire> empSet;
+    public void NationalInfo(ref ProvinceObject newSelection, ref List<Culture> culturesSet, ref List<ProvinceObject> provs, ref List<Empire> empires)
     {
         newSelec = newSelection;
         cultSet = culturesSet;
         provSet = provs;
+        empSet = empires;
 
-        if(newSelection._ownerEmpire == null)
+        if (newSelection._ownerEmpire == null)
         {
             EmpireName.text = "Unowned Land";
             detailsBtn.interactable = false;
@@ -44,11 +47,11 @@ public class NationalHandler : MonoBehaviour
         {
             loadedMoreDetails = Instantiate(detailsPrefab);
             loadedMoreDetails.name = "EmpireViewer";
-            loadedMoreDetails.GetComponent<EmpireViewer>().UpdateData(ref newSelec._ownerEmpire, ref cultSet, ref provSet);
+            loadedMoreDetails.GetComponent<EmpireViewer>().UpdateData(newSelec._ownerEmpire, ref cultSet, ref provSet, empSet);
         }
         else
         {
-            GameObject.Find("EmpireViewer").GetComponent<EmpireViewer>().UpdateData(ref newSelec._ownerEmpire, ref cultSet, ref provSet);
+            GameObject.Find("EmpireViewer").GetComponent<EmpireViewer>().UpdateData( newSelec._ownerEmpire, ref cultSet, ref provSet,  empSet);
         }
     }
 }

@@ -8,6 +8,7 @@ using Empires;
 using WorldProperties;
 using SaveLoad;
 using Calendar;
+using System.Linq;
 public class EmpireViewer : MonoBehaviour
 {
     public Button exitButton;
@@ -36,11 +37,18 @@ public class EmpireViewer : MonoBehaviour
     public Text rulerPersona;
     public Text stateReligion;
 
+    //Relations
+    public Text positiveOpinions;
+    public Text feared;
+    public Text rivals;
+    public Text knownEmpires;
+
     public float updateCounter;
 
     private Empire lastEmpire;
     private List<Culture> lastCults;
     private List<ProvinceObject> lastProvs;
+    private List<Empire> lastEmpires;
     private bool isActive = false;
 
     private enum Suffix
@@ -50,12 +58,14 @@ public class EmpireViewer : MonoBehaviour
         nd=2,
         rd=3,
     }
-    public void UpdateData(ref Empire target, ref List<Culture> cults, ref List<ProvinceObject> provs)
+    public void UpdateData(Empire target, ref List<Culture> cults, ref List<ProvinceObject> provs, List<Empire> empires)
     {
         updateCounter = 0;
         lastEmpire = target;
         lastCults = cults;
         lastProvs = provs;
+        lastEmpires = empires;
+
         if(isActive != true)
         {
             exitButton.onClick.AddListener(KillSelf);
@@ -106,6 +116,43 @@ public class EmpireViewer : MonoBehaviour
         rulerAge.text = "Age: " + tRuler.age + " (Birthday " + ((Calendar.Calendar.Months)tRuler.birthday.month).ToString() + " " + tRuler.birthday.day + suffix + ")";
         stateReligion.text = "State Religion: " + (target.stateReligion == null ? "No Religion" : target.stateReligion._name);
         rulerPersona.text = "Personality: " + tRuler.GetRulerPersonality();
+
+        //Opinion texts
+        {
+            List<Opinion> posOps = target.opinions.Where(x => x.lastOpinion > x.ReturnMaxOpinion(target,empires[x.targetEmpireID]) && !x._fear && !x._rival).ToList();
+            if (posOps.Count == 0) { positiveOpinions.text = "No Friends"; }
+            else
+            {
+                positiveOpinions.text = "Friends: " + posOps.Count;
+            }
+        }
+
+        {
+            List<Opinion> fearOps = target.opinions.Where(x => x._fear).ToList();
+            if (fearOps.Count == 0) { feared.text = "No Feared Nations"; }
+            else
+            {
+                feared.text = "Feared: " + fearOps.Count;
+            }
+        }
+
+        {
+            List<Opinion> rivalOps = target.opinions.Where(x => x._rival).ToList();
+            if (rivalOps.Count == 0) { rivals.text = "No Rivals"; }
+            else
+            {
+                rivals.text = "Rivals: " + rivalOps.Count;
+            }
+        }
+
+        {
+            if(target.opinions.Count == 0) { knownEmpires.text = "No Known Empires"; }
+            else if(target.opinions.Count == 1) { knownEmpires.text = "1 Known Empire"; }
+            else
+            {
+                knownEmpires.text = target.opinions.Count + " Known Empires";
+            }
+        }
     }
     private void KillViewer()
     {
@@ -125,7 +172,7 @@ public class EmpireViewer : MonoBehaviour
 
                 if (updateCounter >= 0.5f)
                 {
-                    UpdateData(ref lastEmpire, ref lastCults, ref lastProvs);
+                    UpdateData(lastEmpire, ref lastCults, ref lastProvs, lastEmpires);
                     updateCounter = 0;
                 }
             }
