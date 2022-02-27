@@ -476,6 +476,10 @@ namespace SaveLoad
                     empData.WriteAttributeString("Target",opin.targetEmpireID.ToString());
                     empData.WriteAttributeString("LastOpinion", opin.lastOpinion.ToString());
 
+                    empData.WriteAttributeString("Fear", opin._fear.ToString());
+                    empData.WriteAttributeString("Rival", opin._rival.ToString());
+                    empData.WriteAttributeString("Ally", opin._ally.ToString());
+
                     empData.WriteStartElement("Modifiers"); //Opinion Modifiers
                     foreach (Modifier mod in opin.modifiers)
                     {
@@ -588,6 +592,9 @@ namespace SaveLoad
                     Opinion newOp = new Opinion();
                     newOp.targetEmpireID = Convert.ToInt32(opinions.Attributes["Target"].Value.ToString());
                     newOp.lastOpinion = (float)(Convert.ToDouble(opinions.Attributes["LastOpinion"].Value.ToString()));
+                    newOp._fear = (Convert.ToBoolean(opinions.Attributes["Fear"].Value.ToString()));
+                    newOp._rival = (Convert.ToBoolean(opinions.Attributes["Rival"].Value.ToString()));
+                    newOp._ally = (Convert.ToBoolean(opinions.Attributes["Ally"].Value.ToString()));
 
                     foreach (XmlNode modifiers in opinions["Modifiers"].ChildNodes)
                     {

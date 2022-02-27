@@ -95,7 +95,7 @@ namespace ConsoleInterpret
                             if (!ValueLimiter(commandSplit[2], 0, religions.Count() - 1)) { return "Invalid ID parameters"; }
                             if (empires[Convert.ToInt32(commandSplit[1])]._exists == false) { return "The target empire is dead"; }
 
-                            if (Act.Actions.SetStateReligion(ref provs, empires, ref religions, Convert.ToInt32(commandSplit[1]), Convert.ToInt32(commandSplit[2]),ref currentDate))
+                            if (Act.Actions.SetStateReligion(ref provs, empires, religions, Convert.ToInt32(commandSplit[1]), Convert.ToInt32(commandSplit[2]),ref currentDate))
                             { return "Set state Religion"; }
                             else { return "Failed to set state religion"; }
                         }
@@ -177,9 +177,9 @@ namespace ConsoleInterpret
                             if (!empires[empOneID].opinions.Any(x=>x.targetEmpireID == empTwoID)) { return "One empire has no opinion on another"; }
                             if (!empires[empTwoID].opinions.Any(x => x.targetEmpireID == empOneID)) { return "One empire has no opinion on another"; }
 
-                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).lastOpinion + "/" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).ReturnMaxOpinion(empires[empOneID],empires[empTwoID]) +
+                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).lastOpinion + "/" + 150.0f +
                                 " --- " +
-                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).lastOpinion + "/" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).ReturnMaxOpinion(empires[empTwoID], empires[empOneID]);
+                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).lastOpinion + "/" + 150.0f;
                         }
                     default:
                         return "Invalid command";

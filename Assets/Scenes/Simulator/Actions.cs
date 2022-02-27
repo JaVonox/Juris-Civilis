@@ -108,7 +108,12 @@ namespace Act
 
             foreach (Empire x in impactedEmpires)
             {
-                empireMods.Add(x, (-5,7300,"COLONY"));
+                int valueMod = -5;
+                if(x.opinions.First(y=>y.targetEmpireID == aggressorEmpire._id)._rival || x.ReturnProvPersonalVal(targetProv,provs) >= aggressorEmpire.ReturnProvPersonalVal(targetProv,provs))
+                {
+                    valueMod -= 10; //Increased negative modifier if rival or the impacted empire has a greater personal value on the province than the aggressor
+                }
+                empireMods.Add(x, (valueMod, 1825,"COLONY")); //Making new colonies gives a (-5 to -15) 5 year penalty. This can stack per colony.
             }
 
             return empireMods;
@@ -387,19 +392,23 @@ namespace Act
             }
         }
 
-        public static bool SetStateReligion(ref List<ProvinceObject> provs, List<Empire> empires, ref List<Religion> religions, int targetEmpire, int targetReligion, ref Date curDate)
+        public static bool SetStateReligion(ref List<ProvinceObject> provs, List<Empire> empires, List<Religion> religions, int targetEmpire, int targetReligion, ref Date curDate)
         {
+            //this is conducted *before* state religion is changed
             if (provs.Select(t => t._localReligion).Distinct().ToList().Contains(religions[targetReligion]) && empires[targetEmpire]._exists == true) //Check if religion exists on map
             {
                 Empire tEmpire = empires[targetEmpire];
                 if (tEmpire.stateReligion != null)
                 {
-                    List<Empire> impactedEmpires = empires.Where(y => y.opinions.Any(z => z.targetEmpireID == tEmpire._id) && y.stateReligion == tEmpire.stateReligion).ToList();
+                    List<Empire> impactedEmpires = empires.Where(y => y.opinions.Any(z => z.targetEmpireID == tEmpire._id) && (y.stateReligion == tEmpire.stateReligion || y.stateReligion == religions[targetReligion])).ToList();
                     if (impactedEmpires.Count > 0)
                     {
                         foreach(Empire x in impactedEmpires)
-                        { 
-                            AddNewModifier(x, tEmpire, 10000, -20, (curDate.day, curDate.month, curDate.year), "RELIGIONSWITCH"); //Opinion penalty for switching religion
+                        {
+                            int mod = 0;
+                            if(x.stateReligion == tEmpire.stateReligion) { mod = -20; }
+                            else if(x.stateReligion == religions[targetReligion]) { mod = 10; }
+                            AddNewModifier(x, tEmpire, 10000, mod, (curDate.day, curDate.month, curDate.year), "RELIGIONSWITCH"); //Opinion penalty for switching religion
                         }
                     }
                 }
@@ -423,19 +432,21 @@ namespace Act
                 tmpDate.month = curDate.month;
                 tmpDate.year = curDate.year;
 
-                if (false) //Non-duplicate types
+                if (type == "LEARNED" || type == "DIPTECH" || type == "CULTECH" || type == "RELIGIONSWITCH") //Non-duplicate types
                 {
                     if (recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Any(x => x.typestring == type))
                     {
                         Modifier x = recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Where(x => x.typestring == type).First();
-                        x.opinionModifier = modifier;
+                        if(x.opinionModifier < modifier) { x.opinionModifier = modifier; }
                         Date tDate2 = Calendar.Calendar.ReturnDate(days, ref tmpDate);
                         x.timeOutDate = (tDate2.day, tDate2.month, tDate2.year);
-                    } //No duplicate types
+                        return true;
+                    }
                 }
 
                 Modifier nMod = new Modifier(days, modifier, ref tmpDate, type);
                 recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Add(nMod);
+
                 return true;
             }
             return false;
@@ -451,11 +462,13 @@ namespace Act
             tmpDate.month = curDate.month;
             tmpDate.year = curDate.year;
 
-            int optionChange = rnd.Next(1, Math.Max(20,sendEmpire.dipTech)); //Strength of opinion modifier
-            int dateLasting = rnd.Next(1825, 3650); //How long it will last
+            int optionChange = rnd.Next(20, Math.Min(40,25 + Convert.ToInt32(Math.Round((float)(sendEmpire.dipTech)/2.0f)))); //Strength of opinion modifier
+            int dateLasting = 3650; //How long it will last
 
             if(AddNewModifier(recvEmpire, sendEmpire, dateLasting, optionChange, curDate, "ENVOY"))
             {
+                AddNewModifier(sendEmpire, recvEmpire, dateLasting, optionChange, curDate, "ENVOY"); //Bonuses apply both ways
+
                 Dictionary<Empire, (int value, int time, string type)> colonyOPmods = EnvoyMod(recvEmpire,empires); //Calculate diplomatic impacts of this action
 
                 foreach (KeyValuePair<Empire, (int value, int time, string type)> set in colonyOPmods) //Apply opinion modifiers
@@ -472,17 +485,21 @@ namespace Act
         public static Dictionary<Empire, (int value, int time, string type)> EnvoyMod(Empire targetEmpire, List<Empire> empires)
         {
             //Opinion changes due to envoy action
-            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.targetEmpireID == targetEmpire._id && y.lastOpinion < 0)).ToList(); //All empires that dislike the target empire
+            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.targetEmpireID == targetEmpire._id)).ToList(); //All empires with opinions of this nation
             Dictionary<Empire, (int value, int time, string type)> empireMods = new Dictionary<Empire, (int value, int time, string type)>() { };
 
-            foreach (Empire x in impactedEmpires)
+            foreach (Empire x in impactedEmpires) //For all empires that have opinions on the target
             {
-                int opMod = -5;
-                Opinion tOp = x.opinions.First(x => x.targetEmpireID == targetEmpire._id);
+                int opMod = 0; 
+                Opinion? tOp = x.opinions.FirstOrDefault(x => x.targetEmpireID == targetEmpire._id);
 
-                if (tOp._rival || tOp._fear) { opMod -= 5; }
-                
-                empireMods.Add(x, (opMod, 7300, "ENEMYENVOY")); //Opinion penalty for sending envoys to enemies
+                if (tOp != null)
+                {
+                    if (tOp._rival || tOp._fear) { opMod -= 10; } //Decrease in opinion if the empire fears or rivals the target 
+                    else if (tOp._ally) { opMod += 15; } //Increase in opinion if the empire is allied
+
+                    empireMods.Add(x, (opMod, 3650, "ADJACENTENVOY")); //Opinion change for sending envoys to others
+                }
 
             }
 

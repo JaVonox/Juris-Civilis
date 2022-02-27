@@ -256,7 +256,6 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                         provs[t].updateText = "Colonised by " + _empireName;
                                         return;
                                     }
-                                    Debug.Log("CHANGED COLONY TARGET DUE TO FEAR");
                                 }
                                 break;
                             }
@@ -269,8 +268,29 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                 Debug.Log(_id + " DEVELOPING TECH");
                                 string devTech = curRuler.ReturnNextTech(this, ref rnd);
                                 ref int techVar = ref TechStringToVar(devTech);
-
                                 techVar++;
+
+                                if(devTech == "Diplomacy") //Diplomacy tech boosts grants a bonus to all nations with opinions of this nation
+                                {
+                                    List<int> opEmpires = opinions.Select(x => x.targetEmpireID).ToList();
+                                    List<Empire> empMods = empires.Where(x => opEmpires.Contains(x._id)).Where(y => y.opinions.FirstOrDefault(z=>z.targetEmpireID == _id) != null).ToList();
+                                    
+                                    foreach(Empire e in empMods)
+                                    {
+                                        Actions.AddNewModifier(e, this, 1000, 10, (date.day, date.month, date.year), "DIPTECH");
+                                    }
+                                }
+                                else if(devTech == "Culture") //Culture tech devs grant a bonus to all nations with shared culture
+                                {
+                                    List<int> opEmpires = opinions.Select(x => x.targetEmpireID).ToList();
+                                    List<Empire> empMods = empires.Where(x => opEmpires.Contains(x._id) && x._cultureID == _cultureID).Where(y => y.opinions.FirstOrDefault(z => z.targetEmpireID == _id) != null).ToList();
+
+                                    foreach (Empire e in empMods)
+                                    {
+                                        Actions.AddNewModifier(e, this, 1000, 5, (date.day, date.month, date.year), "CULTECH");
+                                    }
+                                }
+
                                 provs[_componentProvinceIDs[0]].updateText = "Developed " + devTech + " level " + techVar;
                                 return;
                             }
@@ -281,10 +301,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         }
                     case "per_LearnTech":
                         {
-                            (int mMil, int mEco, int mDip, int mLog, int mCul) maxVals = LearnableTechs(ref empires, ref cultures, provs); 
-                            if (!IsLesser((milTech, ecoTech, dipTech, logTech, culTech),maxVals)) { break; } //If already max tech, move to next action.
+                            (int mMil, int mEco, int mDip, int mLog, int mCul, Empire? hTech) maxVals = LearnableTechs(ref empires, ref cultures, provs); //Learn from any non-rival non-fearful adjacents
+                            if (!IsLesser((milTech, ecoTech, dipTech, logTech, culTech),(maxVals.mMil,maxVals.mEco,maxVals.mDip,maxVals.mLog,maxVals.mCul))) { break; } //If already max tech, move to next action.
 
-                            Debug.Log(_id + " LEARNING TECH");
                             (string biggestDif, int dif) techWithDif = ("",-1);
 
                             if(maxVals.mMil > milTech) { if ((maxVals.mMil-milTech) > techWithDif.dif) { techWithDif.biggestDif = "Military"; techWithDif.dif = (maxVals.mMil- milTech); } }
@@ -293,9 +312,14 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             if (maxVals.mLog > logTech) { if ((maxVals.mLog-logTech) > techWithDif.dif) { techWithDif.biggestDif = "Logistics"; techWithDif.dif = (maxVals.mLog-logTech); } }
                             if (maxVals.mCul > culTech) { if ((maxVals.mCul-culTech) > techWithDif.dif) { techWithDif.biggestDif = "Culture"; techWithDif.dif = (maxVals.mCul-culTech); } }
 
-                            if (Actions.UpdateTech(ref empires, _id, techWithDif.biggestDif)) //Attempt update
+                            if (Actions.UpdateTech(ref empires, _id, techWithDif.biggestDif)) //Attempt update (add 1 to tech)
                             {
                                 provs[_componentProvinceIDs[0]].updateText = "Learned " + techWithDif.biggestDif + " level " + TechStringToVar(techWithDif.biggestDif);
+
+                                if(maxVals.hTech != null)
+                                {
+                                    Act.Actions.AddNewModifier(this, maxVals.hTech, 1825, 10, (date.day, date.month, date.year), "LEARNED");
+                                }
                                 return;
                             }
                             else
@@ -320,7 +344,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                 curRuler.hasAdoptedRel = true;
                                 if (majorityRel == stateReligion) { break; } //If the state religion has not changed, do not update state religion. 
 
-                                Act.Actions.SetStateReligion(ref provs, empires, ref religions, _id, majorityRel._id,ref date);
+                                Act.Actions.SetStateReligion(ref provs, empires, religions, _id, majorityRel._id,ref date);
                                 provs[_componentProvinceIDs[0]].updateText = "Converted to " + majorityRel._name;
                                 provs[_componentProvinceIDs[0]]._localReligion = stateReligion;
                                 Debug.Log(_id + " ADOPTED RELIGION " + majorityRel._id);
@@ -370,20 +394,25 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         {
                             if (opinions.Count > 0)
                             {
-                                List<int> targetEmpireIDs = opinions.Select(x => x.targetEmpireID).ToList();
+                                int[] targetEmpireIDs = opinions.Where(y=>!y._rival && y._isRelevant).Select(x => x.targetEmpireID).ToArray();
+                                int tCount = targetEmpireIDs.Count();
 
-                                List<int> tEmpires = targetEmpireIDs.OrderBy(x => Math.Abs(empires[x].opinions.First(y => y.targetEmpireID == _id).lastOpinion)).ToList(); //Sort by most neutral opinion
+                                for (int i = 0; i < tCount; i++) //Shuffle set
+                                {
+                                    int tStore = targetEmpireIDs[i];
+                                    int target = rnd.Next(0, tCount);
+                                    targetEmpireIDs[i] = targetEmpireIDs[target];
+                                    targetEmpireIDs[target] = tStore;
+                                }
 
-                                foreach (int t in tEmpires)
+                                foreach (int t in targetEmpireIDs)
                                 {
                                     if (DiplomaticConsiderations((Func<Dictionary<Empire, (int value, int time, string type)>>)delegate { return Act.Actions.EnvoyMod(empires[t],empires); })) //Check all diplomatic considerations
                                     {
-                                        Debug.Log(_id + " SENT ENVOY TO " + empires[t]._id);
                                         Act.Actions.DiplomaticEnvoy(empires[t], this, (date.day, date.month, date.year), ref rnd, ref empires);
                                         
                                         return;
                                     }
-                                    Debug.Log("CHANGED ENVOY TARGET DUE TO FEAR");
                                 }
                             }
                         }
@@ -399,8 +428,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         private bool DiplomaticConsiderations(Func<Dictionary<Empire, (int value, int time, string type)>> compAction) //Checks if the ruler is willing to take this action depending on its opinion stats
         {
             Dictionary<Empire, (int value, int time, string type)> impactedNations = compAction(); //invoke the specified method
-            float impactOfFear = 0;
-            float impactOfRival = 0;
+            float negOpinion = 0;
+            float posOpinion = 0;
 
             if(impactedNations.Count <= 0) { return true; }
 
@@ -410,24 +439,22 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
                 if(op != null)
                 {
-
-                    if (imp.Value.value < 0)
+                    int weightVal = Math.Abs(imp.Value.value);
+                    if (imp.Value.value < 0) //If this would give a negative opinion penalty for a target
                     {
-                        if (op._fear) { impactOfFear += (1 - curRuler.rulerPersona["per_Risk"]); }
-                        if (op._rival) { impactOfRival += (1 - curRuler.rulerPersona["per_Insult"]); }
+                        if (op._fear) { negOpinion += (weightVal * (1-curRuler.rulerPersona["per_Risk"])); }
+                        else if (op._rival) { posOpinion += (weightVal * curRuler.rulerPersona["per_Insult"]); }
+                        else if (op._ally) { posOpinion += (weightVal * 0.2f); } //Stepping on allies toes has a minimal impact
                     }
                     else if(imp.Value.value > 0)
                     {
-
-                    }
-                    else
-                    {
-                        
+                        if (op._ally) { posOpinion += weightVal * curRuler.rulerPersona["per_IncreaseOpinion"]; }
+                        else if(op._fear) { posOpinion += weightVal * (1 - curRuler.rulerPersona["per_Risk"]); } //If this would satisfy a feared empire, less risky nations will attempt to please their feared nation.
                     }
                 }
             }
 
-            if(impactOfFear > impactOfRival) { return false; }
+            if(negOpinion < posOpinion) { return false; }
             else { return true; }
         }
         private bool IsLesser((int mMil, int mEco, int mDip, int mLog, int mCul) subject, (int mMil, int mEco, int mDip, int mLog, int mCul) comparitor) //Returns if subject is less than comparitor in any categories
@@ -458,21 +485,35 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     return ref milTech;
             }
         }
-        private (int mMil, int mEco, int mDip, int mLog, int mCul) LearnableTechs(ref List<Empire> empires, ref List<Culture> cultures, List<ProvinceObject> provs)
+        private (int mMil, int mEco, int mDip, int mLog, int mCul, Empire? hTechTotal) LearnableTechs(ref List<Empire> empires, ref List<Culture> cultures, List<ProvinceObject> provs)
         {
-            (int mMil, int mEco, int mDip, int mLog, int mCul) mTechs = (1, 1, 1, 1, 1);
+            (int mMil, int mEco, int mDip, int mLog, int mCul, Empire? hTechTotal) mTechs = (1, 1, 1, 1, 1,null);
             List<int> adjIds = ReturnAdjacentIDs(ref provs, true);
             List<ProvinceObject> adjacentProvsDiffEmp = provs.Where(x => adjIds.Contains(x._id) && x._ownerEmpire != null && x._ownerEmpire != this).ToList();
             List<Empire> adjEmpires = adjacentProvsDiffEmp.Select(x => x._ownerEmpire).Distinct().ToList();
 
+            int prevTechTotal = -1;
+
             foreach (Empire x in adjEmpires)
             {
-                if(x.milTech > mTechs.mMil) { mTechs.mMil = x.milTech; }
-                if (x.ecoTech > mTechs.mEco) { mTechs.mEco = x.ecoTech; }
-                if (x.dipTech > mTechs.mDip) { mTechs.mDip = x.dipTech; }
-                if (x.logTech > mTechs.mLog) { mTechs.mLog = x.logTech; }
-                if (x.culTech > mTechs.mCul) { mTechs.mCul = x.culTech; }
+                Opinion? tOp = x.opinions.FirstOrDefault(y => y.targetEmpireID == _id);
+
+                if (tOp != null) //Must have an opinion
+                {
+                    if (x.milTech > mTechs.mMil) { mTechs.mMil = x.milTech; }
+                    if (x.ecoTech > mTechs.mEco) { mTechs.mEco = x.ecoTech; }
+                    if (x.dipTech > mTechs.mDip) { mTechs.mDip = x.dipTech; }
+                    if (x.logTech > mTechs.mLog) { mTechs.mLog = x.logTech; }
+                    if (x.culTech > mTechs.mCul) { mTechs.mCul = x.culTech; }
+
+                    if(x.ReturnTechTotal() > prevTechTotal)
+                    {
+                        mTechs.hTechTotal = x;
+                        prevTechTotal = x.ReturnTechTotal();
+                    }
+                }
             }
+
 
             return mTechs;
         }
@@ -618,10 +659,16 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 if (previousRuler != null)
                 {
                     if(ownedEmpire._componentProvinceIDs.Count > 0) { provs[ownedEmpire._componentProvinceIDs[0]].updateText = "New Dynasty"; }
-                    List<string> applicableDyn = empires.Where(t => t._cultureID == ownedEmpire._cultureID && t.curRuler.lName != previousRuler.lName && t._id != ownedEmpire._id).Select(l=> l.curRuler.lName).ToList(); //Get all other dynasties in the same culture group
+
+                    List<string> applicableDyn = empires.Where(t => t.opinions.FirstOrDefault(x => x.targetEmpireID == ownedEmpire._id) != null 
+                    && t._cultureID == ownedEmpire._cultureID && (t.stateReligion == ownedEmpire.stateReligion)
+                    && t.curRuler.lName != previousRuler.lName && t._id != ownedEmpire._id
+                    && t.opinions.First(x => x.targetEmpireID == ownedEmpire._id).lastOpinion > 20).Select(l=> l.curRuler.lName).ToList();
+                    //Get possible married dynasties in culture group
+
                     if (applicableDyn.Count > 0)
                     {
-                        if (rnd.Next(0, 10 - Math.Min((int)Math.Floor(((float)(ownedEmpire.dipTech) / 100)), 5)) == 1) //Take dynasty from within culture group
+                        if (rnd.Next(0, 25) == 1) //Take dynasty from within culture group
                         {
                             lName = applicableDyn[rnd.Next(0, applicableDyn.Count)]; //Get dynasty from other nation
                         }
@@ -876,7 +923,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public float lastOpinion = 0;
 
         public bool _fear = false;
+        public bool _ally = false;
         public bool _rival = false;
+        public bool _isRelevant = true;
         public Opinion(Empire creatorEmpire, Empire targetEmpire)
         {
             targetEmpireID = targetEmpire._id;
@@ -907,26 +956,25 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 return true;
             }
         }
-
-        public float ReturnMaxOpinion(Empire myEmpire, Empire targetEmpire)
-        { 
-            return 20 + ((myEmpire.dipTech) >= (targetEmpire.dipTech) ? targetEmpire.dipTech * 5 : myEmpire.dipTech * 5); //Choose the lowest diplomatic tech. min/max is (tech * 5) + 20
-        }
         public float RecalculateOpinion(Empire myEmpire, ref List<Empire> empires, ref Date curDate, ref List<ProvinceObject> provs)
         {
             float overallOpinion = 0;
             Empire targetEmpire = empires[targetEmpireID];
 
-            float maxorminOpinion = ReturnMaxOpinion(myEmpire, targetEmpire);
+            float maxorminOpinion = 150; //-150 to 150
 
             if (myEmpire.stateReligion == null && targetEmpire.stateReligion == null) { overallOpinion -= Math.Min(maxorminOpinion,5); } //Pagan opinion is negative
             else if(myEmpire.stateReligion != targetEmpire.stateReligion) { overallOpinion -= Math.Min(maxorminOpinion, 25); ; } //different religions penalty 
-            else { overallOpinion += Math.Min(maxorminOpinion, 25); } //Same religion is positive opinion
+            else { overallOpinion += Math.Min(maxorminOpinion, 15); } //Same religion is positive opinion
 
             if (myEmpire.curRuler.lName == targetEmpire.curRuler.lName) { overallOpinion += Math.Min(maxorminOpinion, 75); ; } //Same dynasty opinion
             if(myEmpire._cultureID == targetEmpire._cultureID) { overallOpinion += Math.Min(maxorminOpinion, 10); }
 
-            foreach(Modifier x in modifiers.ToArray())
+            //Former opinion modifiers
+            if (_ally) { overallOpinion += Math.Min(maxorminOpinion, 50);}
+            if (_rival) { overallOpinion -= Math.Min(maxorminOpinion, 25); }
+
+            foreach (Modifier x in modifiers.ToArray())
             {
                 if (!x.IsValid(ref curDate)) { modifiers.Remove(x); } //If after cooldown date
                 else
@@ -938,35 +986,115 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             overallOpinion = Math.Max(-maxorminOpinion,Math.Min(maxorminOpinion, overallOpinion)); //Limit to opinion set
             lastOpinion = overallOpinion;
 
+            _isRelevant = IsRelevant(ref empires, myEmpire, ref provs);
+            _ally = DoesAlly(ref empires, myEmpire, ref provs);
             _fear = DoesFear(ref empires, myEmpire, ref provs);
             _rival = DoesRival(ref empires, myEmpire, ref provs);
             return overallOpinion;
         }
         public bool DoesFear(ref List<Empire> empires, Empire myEmpire, ref List<ProvinceObject> provs) //Returns if the current empire is afraid of the target empire. They will attempt to not act against an empire they fear
         {
+            if (_ally) { return false; } //allies are not feared
             Empire target = empires[targetEmpireID];
             if(!target.opinions.Any(x=>x.targetEmpireID == myEmpire._id)) { return false; }
-            Opinion targetOpinion = target.opinions.First(x => x.targetEmpireID == myEmpire._id);
-            if (targetOpinion.lastOpinion / 2.0f > targetOpinion.ReturnMaxOpinion(target, myEmpire)) { return false; } //A nation with >50% favour in the opponents opinion will never fear the other
+            Opinion targetOpinion = target.opinions.FirstOrDefault(x => x.targetEmpireID == myEmpire._id);
+            if (targetOpinion == null) { return false; }
+            if (targetOpinion._ally) { return false; }
+            if (targetOpinion.lastOpinion > 50) { return false; } //A nation with >50% favour in the opponents opinion will never fear the other
             if(myEmpire.ExpectedMilIncrease(ref provs) < target.ExpectedMilIncrease(ref provs) / 2.0f || myEmpire.curMil < target.curMil / 2.0f || myEmpire.maxMil < target.maxMil / 2.0f) { return true; } //Large military advantages will scare an empire
             return false;
         }
 
         public bool DoesRival(ref List<Empire> empires, Empire myEmpire, ref List<ProvinceObject> provs) //Returns if the current empire considers the other empire a rival. they will act against eachother if true
         {
+            if(_fear || _ally) { return false; } //feared nations and allies are not rivals
             Empire target = empires[targetEmpireID];
             if (!target.opinions.Any(x => x.targetEmpireID == myEmpire._id)) { return false; }
-            Opinion targetOpinion = target.opinions.First(x => x.targetEmpireID == myEmpire._id);
-            if (DoesFear(ref empires, myEmpire, ref provs)) { return false; } //Being a rival and fearful are mutually exclusive
-            if(targetOpinion.lastOpinion > (targetOpinion.ReturnMaxOpinion(target, myEmpire) / 2.0f) && lastOpinion > (ReturnMaxOpinion(target, myEmpire) / 2.0f)) { return false; } //Both must have less than half of max opinions to be rivals
+            Opinion targetOpinion = target.opinions.FirstOrDefault(x => x.targetEmpireID == myEmpire._id);
+            if (targetOpinion == null) { return false; }
+            if (targetOpinion._ally) { return false; }
+            if (targetOpinion.lastOpinion > 50 && lastOpinion > 50) { return false; } //Both must have low opinion to be rivals
+            if(lastOpinion < -70) { return true; } //Always rivals if very low opinion
 
             int rivalScore = 0;
-            if(target._cultureID == myEmpire._cultureID && target.percentageEco > myEmpire.percentageEco * 0.9 && target.percentageEco < target.percentageEco * 1.1) { rivalScore++; } //If within 10% of economy score in the same economy
-            if(Math.Abs(target.ReturnTechTotal() - myEmpire.ReturnTechTotal()) > 5) { rivalScore--; } //If the difference in tech is high, reduce rival score
+            {
+                //If economic rivalry
+                if (target._cultureID == myEmpire._cultureID)
+                {
+                    List<Empire> eByEconomy = empires.Where(x => x._cultureID == myEmpire._cultureID).OrderBy(y => y.percentageEco).ToList();
+
+                    if(eByEconomy.Count >= 5)
+                    {
+                        int indexOfSelf = eByEconomy.IndexOf(myEmpire);
+                        int indexOfEnemy = eByEconomy.IndexOf(target);
+
+                        if(indexOfSelf - 1 == indexOfEnemy || indexOfSelf + 1 == indexOfEnemy) { rivalScore++; }
+                    }
+                }
+            }
+            if (Math.Abs(target.ReturnTechTotal() - myEmpire.ReturnTechTotal()) > 5) { rivalScore--; } //If the difference in tech is high, reduce rival score
             if(myEmpire.ReturnAdjacentIDs(ref provs, true).Count(x => target._componentProvinceIDs.Contains(x)) >= Math.Min(myEmpire._componentProvinceIDs.Count(),5)) { rivalScore++; } //If too many adjacents
 
             if (rivalScore > 0) { return true; }
             else { return false; }
+        }
+        public bool DoesAlly(ref List<Empire> empires, Empire myEmpire, ref List<ProvinceObject> provs) //Returns if the current empire considers the other an ally
+        {
+            if (!_isRelevant) { return false; }
+            Empire target = empires[targetEmpireID];
+            Opinion targetOpinion = target.opinions.FirstOrDefault(x => x.targetEmpireID == myEmpire._id);
+            if (targetOpinion == null) { return false; }
+            if (targetOpinion.lastOpinion > 100 || lastOpinion > 100) { return true; } //Very high opinion bonuses give automatic ally status
+
+            if (targetOpinion.lastOpinion < 50 || lastOpinion < 50) { return false; }
+            int allyScore = 0;
+            if (_ally || targetOpinion._ally) { allyScore += 3; }
+            {
+                List<int> myOps = myEmpire.opinions.Where(x => (x._fear || x._rival) && x.targetEmpireID != targetEmpireID).Select(y => y.targetEmpireID).ToList();
+
+                foreach (int x in myOps) //For each overlapping fear/rival or countered ally. The enemy of my enemy is my friend.
+                {
+                    Opinion? tOp = target.opinions.FirstOrDefault(y => y.targetEmpireID == x);
+
+                    if (tOp != null)
+                    {
+                        if (tOp._ally) { allyScore--; }
+                        if (tOp._fear || tOp._rival) { allyScore++; }
+                    }
+                }
+            }
+
+            if (target.maxMil < myEmpire.maxMil * 0.75f) { allyScore -= 2; }
+            if (target._cultureID == myEmpire._cultureID) { allyScore++; }
+
+
+            if (allyScore > 0) { return true; } //If high opinion and high reason to ally
+            return false;
+        }
+
+        public bool IsRelevant(ref List<Empire> empires, Empire myEmpire, ref List<ProvinceObject> provs) //If the empire considers this empire relevant in anyway
+        {
+            if(_fear || _ally || _rival) { return true; }
+            Empire target = empires[targetEmpireID];
+            if(target.maxMil > myEmpire.curMil * 0.75f) { return true; } //If military advantage at this current time
+            if(lastOpinion > 50) { return true; }
+
+            if (target._cultureID == myEmpire._cultureID)
+            {
+                List<Empire> eByEconomy = empires.Where(x => x._cultureID == myEmpire._cultureID).OrderBy(y => y.percentageEco).ToList();
+
+                if (eByEconomy.Count >= 5)
+                {
+                    int indexOfSelf = eByEconomy.IndexOf(myEmpire);
+                    int indexOfEnemy = eByEconomy.IndexOf(target);
+
+                    if (indexOfSelf - 2 <= indexOfEnemy) { return true; } //Relevant economically
+                }
+            }
+
+            if(myEmpire.curRuler.lName == target.curRuler.lName) { return true; }
+            if(myEmpire.ReturnTechTotal() < target.ReturnTechTotal() - 5) { return true; } //If large enough technology difference
+            return false;
         }
 
     }

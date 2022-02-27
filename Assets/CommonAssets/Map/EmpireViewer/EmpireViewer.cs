@@ -119,17 +119,19 @@ public class EmpireViewer : MonoBehaviour
 
         //Opinion texts
         {
-            List<Opinion> posOps = target.opinions.Where(x => x.lastOpinion > x.ReturnMaxOpinion(target,empires[x.targetEmpireID]) && !x._fear && !x._rival).ToList();
-            if (posOps.Count == 0) { positiveOpinions.text = "No Friends"; }
+            List<Opinion> posOps = target.opinions.Where(x => x._ally).ToList();
+            if (posOps.Count == 0) { positiveOpinions.text = "No Allies"; }
+            else if (posOps.Count == 1) { positiveOpinions.text = "Allies: " + empires[target.opinions.First(x => x._ally).targetEmpireID]._empireName; }
             else
             {
-                positiveOpinions.text = "Friends: " + posOps.Count;
+                positiveOpinions.text = "Allies: " + posOps.Count;
             }
         }
 
         {
             List<Opinion> fearOps = target.opinions.Where(x => x._fear).ToList();
             if (fearOps.Count == 0) { feared.text = "No Feared Nations"; }
+            else if (fearOps.Count == 1) { feared.text = "Feared: " + empires[target.opinions.First(x => x._fear).targetEmpireID]._empireName; }
             else
             {
                 feared.text = "Feared: " + fearOps.Count;
@@ -139,6 +141,7 @@ public class EmpireViewer : MonoBehaviour
         {
             List<Opinion> rivalOps = target.opinions.Where(x => x._rival).ToList();
             if (rivalOps.Count == 0) { rivals.text = "No Rivals"; }
+            else if (rivalOps.Count == 1) { rivals.text = "Rivals: " + empires[target.opinions.First(x=>x._rival).targetEmpireID]._empireName; }
             else
             {
                 rivals.text = "Rivals: " + rivalOps.Count;
@@ -146,11 +149,11 @@ public class EmpireViewer : MonoBehaviour
         }
 
         {
-            if(target.opinions.Count == 0) { knownEmpires.text = "No Known Empires"; }
-            else if(target.opinions.Count == 1) { knownEmpires.text = "1 Known Empire"; }
+            if(target.opinions.Count == 0) { knownEmpires.text = "No Peers"; }
+            else if(target.opinions.Count == 1) { knownEmpires.text = "1 Peer"; }
             else
             {
-                knownEmpires.text = target.opinions.Count + " Known Empires";
+                knownEmpires.text = target.opinions.Count + " Peers";
             }
         }
     }
