@@ -103,13 +103,13 @@ namespace Act
         public static Dictionary<Empire, (int value, int time, string type)> ColonyOpinionMods(ProvinceObject targetProv, Empire aggressorEmpire, List<ProvinceObject> provs, List<Empire> empires)
         {
             //Opinion changes due to colony action
-            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.targetEmpireID == aggressorEmpire._id) && x.ReturnAdjacentIDs(ref provs, true).Contains(targetProv._id)).ToList();
+            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.Value.targetEmpireID == aggressorEmpire._id) && x.ReturnAdjacentIDs(ref provs, true).Contains(targetProv._id)).ToList();
             Dictionary<Empire, (int value, int time, string type)> empireMods = new Dictionary<Empire, (int value, int time, string type)>() { };
 
             foreach (Empire x in impactedEmpires)
             {
                 int valueMod = -5;
-                if(x.opinions.First(y=>y.targetEmpireID == aggressorEmpire._id)._rival || x.ReturnProvPersonalVal(targetProv,provs) >= aggressorEmpire.ReturnProvPersonalVal(targetProv,provs))
+                if(x.opinions[aggressorEmpire._id]._rival || x.ReturnProvPersonalVal(targetProv,provs) >= aggressorEmpire.ReturnProvPersonalVal(targetProv,provs))
                 {
                     valueMod -= 10; //Increased negative modifier if rival or the impacted empire has a greater personal value on the province than the aggressor
                 }
@@ -158,6 +158,39 @@ namespace Act
             return cost;
         }
 
+        public static Dictionary<Empire, (int value, int time, string type)> WarOpinionMods(ProvinceObject targetProv, Empire aggressorEmpire, List<ProvinceObject> provs, List<Empire> empires) //TargetProv is used to get the enemy
+        {
+            Empire defenderEmpire = targetProv._ownerEmpire;
+            //Opinion changes due to colony action
+            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.Value.targetEmpireID == aggressorEmpire._id)).ToList();
+            Dictionary<Empire, (int value, int time, string type)> empireMods = new Dictionary<Empire, (int value, int time, string type)>() { };
+
+            foreach (Empire x in impactedEmpires)
+            {
+                if (x.opinions.ContainsKey(aggressorEmpire._id))
+                {
+                    int valueMod = -5; //For the most part, other nations dont care about wars that dont impact them
+
+                    if (x.opinions.ContainsKey(defenderEmpire._id))
+                    {
+                        if (x.opinions[defenderEmpire._id]._ally)
+                        {
+                            valueMod -= 15; //If allied, bonus negative impact
+                        }
+                        else if (x.opinions[defenderEmpire._id]._fear && !x.opinions[aggressorEmpire._id]._rival)
+                        {
+                            valueMod += 15; //If they fear the defender empire, reduce negative impact.
+                        }
+
+                    }
+
+                    empireMods.Add(x, (valueMod, 3650, "WARSTARTER")); //War declaration gives a large negative value 
+                }
+            }
+
+            return empireMods;
+        }
+
         public static (int attackerMaxCost, int defenderMaxCost, float attackerVicChance) BattleStats(ProvinceObject targetProv, Empire aggressorEmpire, List<ProvinceObject> provs)
         {
             //TODO add time concerns - i.e time of year
@@ -172,8 +205,8 @@ namespace Act
                 return (0, 0, 1);
             }
 
-            int fieldedAttacker = Convert.ToInt32(Math.Floor(aggressorEmpire.curMil / Math.Min(10, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < 1 ? aggressorEmpire.curMil : aggressorEmpire.curMil / Math.Min(10,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
-            int fieldedDefender = Convert.ToInt32(Math.Floor(aggressorEmpire.curMil / Math.Min(10, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < 1 ? defenderEmpire.curMil : defenderEmpire.curMil / Math.Min(10, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
+            int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.curMil / (float)Math.Min(4,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
+            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < defenderEmpire.curMil ? defenderEmpire.curMil : 10.0f + defenderEmpire.curMil / (float)Math.Min(4, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
 
             float defenderModifier = 1.2f;
             {
@@ -220,9 +253,6 @@ namespace Act
             float attackerPower = ((float)(fieldedAttacker)) * attackerModifier;
             float defenderPower = ((float)(fieldedDefender)) * defenderModifier;
 
-            Debug.Log("ATT POWER: " + attackerPower);
-            Debug.Log("DEF POWER: " + defenderPower);
-
             if (attackerPower + defenderPower == 0) { return (0, 0, 0); }
             float attackerVicChance = Math.Min(0.95f,Math.Max(0.05f,attackerPower / (attackerPower + defenderPower)));
             return (fieldedAttacker, fieldedDefender, attackerVicChance);
@@ -242,23 +272,16 @@ namespace Act
                 attOffset = Math.Max(0.1f,(0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble()))/10.0f),3)) - Math.Min(0.4f,Math.Max(0,0.5f-stats.attChance)));
                 defOffset = Math.Max(0,0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3));
 
-                Debug.Log("ATT OFFSET:" + (3 * attOffset));
-                Debug.Log("DEF OFFSET:" + (3 * defOffset));
             }
             else
             {
                 attOffset = Math.Max(0,(0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)));
                 defOffset = Math.Max(0.1f,(0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)) - Math.Min(0.4f, Math.Max(0, stats.attChance-0.5f)));
 
-                Debug.Log("ATT OFFSET:" + (3*attOffset));
-                Debug.Log("DEF OFFSET:" + (3*defOffset));
             }
 
             attRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f))+(3*attOffset)); //attacker loss reduction multiplier
             defRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(defenderEmpire.logTech)) / 50.0f) - 1.0f))+(3*defOffset)); //defender loss reduction multiplie
-
-            Debug.Log("ATT WON: " + attackerWon.ToString() + " ATT MOD: " + attRed + " DEF MOD: " + defRed);
-
 
             float attackExactLosses = Math.Min((float)Math.Max(1.0f,attRed * stats.attField),stats.attField);
             float defExactLosses = Math.Min((float)Math.Max(1.0f,defRed * stats.defField),stats.defField);
@@ -270,19 +293,22 @@ namespace Act
         }
         public static bool CanConquer(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
         {
-            //TODO add war requirement
             if (!IsAdjacent(targetProv, aggressorEmpire, ref provs) || targetProv._ownerEmpire == null || targetProv._biome == 0) { return false; }
             else
             {
-                return true;
+                if (aggressorEmpire.opinions.ContainsKey(targetProv._ownerEmpire._id))
+                {
+                    if(aggressorEmpire.opinions[targetProv._ownerEmpire._id]._isWar == true) { return true; }
+                }
             }
+
+            return false;
         }
         public static bool ConquerLand(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
         {
             if (CanConquer(targetProv, aggressorEmpire, ref provs)) //Double check. Colonize land call should be proceeded by a CanConquer already.
             {
                 (int attField, int defField, float attChance) stats = BattleStats(targetProv, aggressorEmpire, provs);
-                Debug.Log(stats.ToString());
                 float battleScore = (float)(actRand.NextDouble()) + 0.001f;
 
                 if (battleScore < stats.attChance)
@@ -400,7 +426,7 @@ namespace Act
                 Empire tEmpire = empires[targetEmpire];
                 if (tEmpire.stateReligion != null)
                 {
-                    List<Empire> impactedEmpires = empires.Where(y => y.opinions.Any(z => z.targetEmpireID == tEmpire._id) && (y.stateReligion == tEmpire.stateReligion || y.stateReligion == religions[targetReligion])).ToList();
+                    List<Empire> impactedEmpires = empires.Where(y => y.opinions.Any(z => z.Value.targetEmpireID == tEmpire._id) && (y.stateReligion == tEmpire.stateReligion || y.stateReligion == religions[targetReligion])).ToList();
                     if (impactedEmpires.Count > 0)
                     {
                         foreach(Empire x in impactedEmpires)
@@ -425,7 +451,7 @@ namespace Act
         {
             if(!recvEmpire._exists || !sendEmpire._exists) { return false; }
 
-            if(recvEmpire.opinions.Any(x=>x.targetEmpireID == sendEmpire._id))
+            if(recvEmpire.opinions.ContainsKey(sendEmpire._id))
             {
                 Date tmpDate = new Date();
                 tmpDate.day = curDate.day;
@@ -434,9 +460,9 @@ namespace Act
 
                 if (type == "LEARNED" || type == "DIPTECH" || type == "CULTECH" || type == "RELIGIONSWITCH") //Non-duplicate types
                 {
-                    if (recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Any(x => x.typestring == type))
+                    if (recvEmpire.opinions[sendEmpire._id].modifiers.Any(x => x.typestring == type))
                     {
-                        Modifier x = recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Where(x => x.typestring == type).First();
+                        Modifier x = recvEmpire.opinions[sendEmpire._id].modifiers.Where(x => x.typestring == type).First();
                         if(x.opinionModifier < modifier) { x.opinionModifier = modifier; }
                         Date tDate2 = Calendar.Calendar.ReturnDate(days, ref tmpDate);
                         x.timeOutDate = (tDate2.day, tDate2.month, tDate2.year);
@@ -445,7 +471,7 @@ namespace Act
                 }
 
                 Modifier nMod = new Modifier(days, modifier, ref tmpDate, type);
-                recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id).modifiers.Add(nMod);
+                recvEmpire.opinions[sendEmpire._id].modifiers.Add(nMod);
 
                 return true;
             }
@@ -454,8 +480,8 @@ namespace Act
 
         public static bool DiplomaticEnvoy(Empire recvEmpire, Empire sendEmpire, (int day, int month, int year) curDate, ref System.Random rnd, ref List<Empire> empires)
         {
-            if (!recvEmpire.opinions.Any(x => x.targetEmpireID == sendEmpire._id)) { return false; }
-            Opinion tOp = recvEmpire.opinions.First(x => x.targetEmpireID == sendEmpire._id);
+            if (!recvEmpire.opinions.ContainsKey(sendEmpire._id)) { return false; }
+            Opinion tOp = recvEmpire.opinions[sendEmpire._id];
 
             Date tmpDate = new Date();
             tmpDate.day = curDate.day;
@@ -485,16 +511,16 @@ namespace Act
         public static Dictionary<Empire, (int value, int time, string type)> EnvoyMod(Empire targetEmpire, List<Empire> empires)
         {
             //Opinion changes due to envoy action
-            List<Empire> impactedEmpires = empires.Where(x => x.opinions.Any(y => y.targetEmpireID == targetEmpire._id)).ToList(); //All empires with opinions of this nation
+            List<Empire> impactedEmpires = empires.Where(x => x.opinions.ContainsKey(targetEmpire._id)).ToList(); //All empires with opinions of this nation
             Dictionary<Empire, (int value, int time, string type)> empireMods = new Dictionary<Empire, (int value, int time, string type)>() { };
 
             foreach (Empire x in impactedEmpires) //For all empires that have opinions on the target
             {
                 int opMod = 0; 
-                Opinion? tOp = x.opinions.FirstOrDefault(x => x.targetEmpireID == targetEmpire._id);
 
-                if (tOp != null)
+                if (x.opinions.ContainsKey(targetEmpire._id))
                 {
+                    Opinion tOp = x.opinions[targetEmpire._id];
                     if (tOp._rival || tOp._fear) { opMod -= 10; } //Decrease in opinion if the empire fears or rivals the target 
                     else if (tOp._ally) { opMod += 15; } //Increase in opinion if the empire is allied
 

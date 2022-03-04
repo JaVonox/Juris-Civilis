@@ -436,6 +436,10 @@ namespace SaveLoad
                 empData.WriteString(tEmpire.timeUntilNextUpdate.ToString());
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("OccupationCooldown");
+                empData.WriteString(tEmpire.occupationCooldown.ToString());
+                empData.WriteEndElement();
+
                 empData.WriteStartElement("Components"); //Component provs
                 foreach (int compProv in tEmpire._componentProvinceIDs)
                 {
@@ -470,7 +474,7 @@ namespace SaveLoad
                 empData.WriteEndElement();
 
                 empData.WriteStartElement("Opinions");
-                foreach (Opinion opin in tEmpire.opinions)
+                foreach (Opinion opin in tEmpire.opinions.Values)
                 {
                     empData.WriteStartElement("Opinion");
                     empData.WriteAttributeString("Target",opin.targetEmpireID.ToString());
@@ -479,6 +483,7 @@ namespace SaveLoad
                     empData.WriteAttributeString("Fear", opin._fear.ToString());
                     empData.WriteAttributeString("Rival", opin._rival.ToString());
                     empData.WriteAttributeString("Ally", opin._ally.ToString());
+                    empData.WriteAttributeString("War", opin._isWar.ToString());
 
                     empData.WriteStartElement("Modifiers"); //Opinion Modifiers
                     foreach (Modifier mod in opin.modifiers)
@@ -572,6 +577,7 @@ namespace SaveLoad
                 loadedEmp.maxMil = (float)(Convert.ToDouble(empNode["MaxMil"].InnerText));
                 loadedEmp.percentageEco = (float)Convert.ToDouble(empNode["PercentageEco"].InnerText);
                 loadedEmp.timeUntilNextUpdate = Convert.ToInt32(empNode["UpdateTime"].InnerText);
+                loadedEmp.occupationCooldown = Convert.ToInt32(empNode["OccupationCooldown"].InnerText);
 
                 ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
 
@@ -595,6 +601,7 @@ namespace SaveLoad
                     newOp._fear = (Convert.ToBoolean(opinions.Attributes["Fear"].Value.ToString()));
                     newOp._rival = (Convert.ToBoolean(opinions.Attributes["Rival"].Value.ToString()));
                     newOp._ally = (Convert.ToBoolean(opinions.Attributes["Ally"].Value.ToString()));
+                    newOp._isWar = (Convert.ToBoolean(opinions.Attributes["War"].Value.ToString()));
 
                     foreach (XmlNode modifiers in opinions["Modifiers"].ChildNodes)
                     {
@@ -604,7 +611,7 @@ namespace SaveLoad
                         tMod.opinionModifier = (float)Convert.ToDouble(modifiers.Attributes["Modifier"].Value);
                         newOp.modifiers.Add(tMod);
                     }
-                    loadedEmp.opinions.Add(newOp);
+                    loadedEmp.opinions.Add(newOp.targetEmpireID,newOp);
                 }
 
                 //Loading ruler data

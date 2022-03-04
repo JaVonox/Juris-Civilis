@@ -12,6 +12,12 @@ public class UIBehaviour : MonoBehaviour
 
     private AssetBundle sceneAssets;
     private string[] paths;
+    void Awake()
+    {
+        QualitySettings.vSyncCount = 0; 
+        Application.targetFrameRate = 90; //Limit to 90FPS to reduce stuttering issues
+    }
+
     void Start() //Initialisation
     {
         //Button starts

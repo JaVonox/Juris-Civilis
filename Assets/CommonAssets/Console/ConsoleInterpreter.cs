@@ -174,12 +174,12 @@ namespace ConsoleInterpret
                             if (empires[empOneID]._exists == false) { return "An empire is dead"; }
                             if (empires[empTwoID]._exists == false) { return "An empire is dead"; }
 
-                            if (!empires[empOneID].opinions.Any(x=>x.targetEmpireID == empTwoID)) { return "One empire has no opinion on another"; }
-                            if (!empires[empTwoID].opinions.Any(x => x.targetEmpireID == empOneID)) { return "One empire has no opinion on another"; }
+                            if (!empires[empOneID].opinions.Any(x=>x.Value.targetEmpireID == empTwoID)) { return "One empire has no opinion on another"; }
+                            if (!empires[empTwoID].opinions.Any(x => x.Value.targetEmpireID == empOneID)) { return "One empire has no opinion on another"; }
 
-                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions.First(x => x.targetEmpireID == empTwoID).lastOpinion + "/" + 150.0f +
+                            return commandSplit[1] + "->" + commandSplit[2] + "=" + empires[empOneID].opinions[empTwoID].lastOpinion + "/" + 150.0f +
                                 " --- " +
-                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions.First(x => x.targetEmpireID == empOneID).lastOpinion + "/" + 150.0f;
+                                commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions[empOneID].lastOpinion + "/" + 150.0f;
                         }
                     default:
                         return "Invalid command";

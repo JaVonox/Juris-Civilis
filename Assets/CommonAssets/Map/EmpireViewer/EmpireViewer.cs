@@ -43,6 +43,9 @@ public class EmpireViewer : MonoBehaviour
     public Text rivals;
     public Text knownEmpires;
 
+    //Politics
+    public Text politicsWar;
+
     public float updateCounter;
 
     private Empire lastEmpire;
@@ -119,9 +122,9 @@ public class EmpireViewer : MonoBehaviour
 
         //Opinion texts
         {
-            List<Opinion> posOps = target.opinions.Where(x => x._ally).ToList();
+            List<Opinion> posOps = target.opinions.Where(x => x.Value._ally).Select(y=>y.Value).ToList();
             if (posOps.Count == 0) { positiveOpinions.text = "No Allies"; }
-            else if (posOps.Count == 1) { positiveOpinions.text = "Allies: " + empires[target.opinions.First(x => x._ally).targetEmpireID]._empireName; }
+            else if (posOps.Count == 1) { positiveOpinions.text = "Allies: " + empires[target.opinions.First(x => x.Value._ally).Value.targetEmpireID]._empireName; }
             else
             {
                 positiveOpinions.text = "Allies: " + posOps.Count;
@@ -129,9 +132,9 @@ public class EmpireViewer : MonoBehaviour
         }
 
         {
-            List<Opinion> fearOps = target.opinions.Where(x => x._fear).ToList();
+            List<Opinion> fearOps = target.opinions.Where(x => x.Value._fear).Select(y => y.Value).ToList();
             if (fearOps.Count == 0) { feared.text = "No Feared Nations"; }
-            else if (fearOps.Count == 1) { feared.text = "Feared: " + empires[target.opinions.First(x => x._fear).targetEmpireID]._empireName; }
+            else if (fearOps.Count == 1) { feared.text = "Feared: " + empires[target.opinions.First(x => x.Value._fear).Value.targetEmpireID]._empireName; }
             else
             {
                 feared.text = "Feared: " + fearOps.Count;
@@ -139,9 +142,9 @@ public class EmpireViewer : MonoBehaviour
         }
 
         {
-            List<Opinion> rivalOps = target.opinions.Where(x => x._rival).ToList();
+            List<Opinion> rivalOps = target.opinions.Where(x => x.Value._rival).Select(y=>y.Value).ToList();
             if (rivalOps.Count == 0) { rivals.text = "No Rivals"; }
-            else if (rivalOps.Count == 1) { rivals.text = "Rivals: " + empires[target.opinions.First(x=>x._rival).targetEmpireID]._empireName; }
+            else if (rivalOps.Count == 1) { rivals.text = "Rivals: " + empires[target.opinions.First(x=>x.Value._rival).Value.targetEmpireID]._empireName; }
             else
             {
                 rivals.text = "Rivals: " + rivalOps.Count;
@@ -154,6 +157,21 @@ public class EmpireViewer : MonoBehaviour
             else
             {
                 knownEmpires.text = target.opinions.Count + " Peers";
+            }
+        }
+
+        {
+            List<Opinion> warOps = target.opinions.Where(x => x.Value._isWar).Select(y => y.Value).ToList();
+            if (warOps.Count == 0) { politicsWar.text = "At Peace"; }
+            else if (warOps.Count < 3) 
+            {
+                List<string> warNames = warOps.Select(x=>empires[x.targetEmpireID]._empireName).ToList();
+                string warText = String.Join(", ", warNames);
+                politicsWar.text = "Wars: " + warText; 
+            }
+            else
+            {
+                politicsWar.text = "Wars: " + warOps.Count;
             }
         }
     }
