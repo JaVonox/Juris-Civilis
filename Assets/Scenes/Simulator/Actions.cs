@@ -109,7 +109,7 @@ namespace Act
             foreach (Empire x in impactedEmpires)
             {
                 int valueMod = -5;
-                if(x.opinions[aggressorEmpire._id]._rival || x.ReturnProvPersonalVal(targetProv,provs) >= aggressorEmpire.ReturnProvPersonalVal(targetProv,provs))
+                if(x.opinions[aggressorEmpire._id]._rival || x.ReturnProvPersonalVal(targetProv,provs,true) >= aggressorEmpire.ReturnProvPersonalVal(targetProv,provs,true))
                 {
                     valueMod -= 10; //Increased negative modifier if rival or the impacted empire has a greater personal value on the province than the aggressor
                 }
@@ -148,9 +148,9 @@ namespace Act
                 //Reduced cost if all provinces adjacent are owned by the aggressor
                 if(adjacentProvs.Count > 0) 
                 {
-                    if(adjacentProvs.All(x=>x._ownerEmpire == aggressorEmpire))
+                    if(adjacentProvs.All(x=>x._ownerEmpire == aggressorEmpire || x._biome == 0))
                     {
-                        int reducedCost = Math.Max(5,Convert.ToInt32(Math.Min(Math.Floor((aggressorEmpire.ExpectedMilIncrease(ref provs) * 6.0f) * modifier), Math.Max(1, aggressorEmpire.maxMil / 2.0f))));
+                        int reducedCost = Math.Max(1,Convert.ToInt32(Math.Floor(aggressorEmpire.ExpectedMilIncrease(ref provs))));
                         return (reducedCost < cost ? reducedCost : cost);
                     }
                 }
@@ -271,13 +271,13 @@ namespace Act
             {
                 attOffset = Math.Max(0.1f,(0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble()))/10.0f),3)) - Math.Min(0.4f,Math.Max(0,0.5f-stats.attChance)));
                 defOffset = Math.Max(0,0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3));
-
+                attOffset = Math.Min(attOffset, defOffset * 1.5f); //Winner cannot have more than 1.5x the loss of the loser
             }
             else
             {
                 attOffset = Math.Max(0,(0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)));
                 defOffset = Math.Max(0.1f,(0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)) - Math.Min(0.4f, Math.Max(0, stats.attChance-0.5f)));
-
+                defOffset = Math.Min(defOffset, attOffset * 1.5f);//Winner cannot have more than 1.5x the loss of the loser
             }
 
             attRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f))+(3*attOffset)); //attacker loss reduction multiplier
@@ -288,8 +288,8 @@ namespace Act
 
             Debug.Log("ATK LOSS: " + attackExactLosses + " DEF LOSS: " + defExactLosses);
 
-            aggressorEmpire.TakeLoss(attackExactLosses);
-            defenderEmpire.TakeLoss(defExactLosses);
+            aggressorEmpire.TakeLoss(attackExactLosses,attackerWon,true,ref defenderEmpire,targetProv, ref provs);
+            defenderEmpire.TakeLoss(defExactLosses,!attackerWon,false,ref aggressorEmpire, targetProv, ref provs);
         }
         public static bool CanConquer(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
         {

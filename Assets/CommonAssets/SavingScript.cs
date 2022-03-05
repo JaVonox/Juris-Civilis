@@ -440,6 +440,10 @@ namespace SaveLoad
                 empData.WriteString(tEmpire.occupationCooldown.ToString());
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("Exhaustion");
+                empData.WriteString(tEmpire.warExhaustion.ToString());
+                empData.WriteEndElement();
+
                 empData.WriteStartElement("Components"); //Component provs
                 foreach (int compProv in tEmpire._componentProvinceIDs)
                 {
@@ -471,6 +475,10 @@ namespace SaveLoad
                 empData.WriteString(tEmpire.culTech.ToString());
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("TechPoints");
+                empData.WriteString(tEmpire.techPoints.ToString());
+                empData.WriteEndElement();
+
                 empData.WriteEndElement();
 
                 empData.WriteStartElement("Opinions");
@@ -484,6 +492,9 @@ namespace SaveLoad
                     empData.WriteAttributeString("Rival", opin._rival.ToString());
                     empData.WriteAttributeString("Ally", opin._ally.ToString());
                     empData.WriteAttributeString("War", opin._isWar.ToString());
+
+                    empData.WriteAttributeString("ExhaustCap", opin._maxWarExhaustion.ToString());
+                    empData.WriteAttributeString("Disputes", opin._capturedProvinces.ToString());
 
                     empData.WriteStartElement("Modifiers"); //Opinion Modifiers
                     foreach (Modifier mod in opin.modifiers)
@@ -578,6 +589,7 @@ namespace SaveLoad
                 loadedEmp.percentageEco = (float)Convert.ToDouble(empNode["PercentageEco"].InnerText);
                 loadedEmp.timeUntilNextUpdate = Convert.ToInt32(empNode["UpdateTime"].InnerText);
                 loadedEmp.occupationCooldown = Convert.ToInt32(empNode["OccupationCooldown"].InnerText);
+                loadedEmp.warExhaustion = (float)Convert.ToDouble(empNode["Exhaustion"].InnerText);
 
                 ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
 
@@ -592,6 +604,7 @@ namespace SaveLoad
                 loadedEmp.dipTech = Convert.ToInt32(techNodes[2].InnerText);
                 loadedEmp.logTech = Convert.ToInt32(techNodes[3].InnerText);
                 loadedEmp.culTech = Convert.ToInt32(techNodes[4].InnerText);
+                loadedEmp.techPoints = Convert.ToInt32(techNodes[5].InnerText); //Tech points
 
                 foreach (XmlNode opinions in empNode["Opinions"].ChildNodes) //Add opinion data
                 {
@@ -602,6 +615,9 @@ namespace SaveLoad
                     newOp._rival = (Convert.ToBoolean(opinions.Attributes["Rival"].Value.ToString()));
                     newOp._ally = (Convert.ToBoolean(opinions.Attributes["Ally"].Value.ToString()));
                     newOp._isWar = (Convert.ToBoolean(opinions.Attributes["War"].Value.ToString()));
+
+                    newOp._maxWarExhaustion = (float)(Convert.ToDouble(opinions.Attributes["ExhaustCap"].Value.ToString()));
+                    newOp._capturedProvinces = (float)(Convert.ToDouble(opinions.Attributes["Disputes"].Value.ToString()));
 
                     foreach (XmlNode modifiers in opinions["Modifiers"].ChildNodes)
                     {

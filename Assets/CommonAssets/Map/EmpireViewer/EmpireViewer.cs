@@ -45,6 +45,7 @@ public class EmpireViewer : MonoBehaviour
 
     //Politics
     public Text politicsWar;
+    public Text politicsTruces;
 
     public float updateCounter;
 
@@ -172,6 +173,22 @@ public class EmpireViewer : MonoBehaviour
             else
             {
                 politicsWar.text = "Wars: " + warOps.Count;
+            }
+        }
+
+
+        {
+            List<Opinion> truceOps = target.opinions.Where(x => x.Value.modifiers.Any(y=>y.typestring == "TREATY")).Select(y => y.Value).ToList();
+            if (truceOps.Count == 0) { politicsTruces.text = "No Truces"; }
+            else if (truceOps.Count < 2)
+            {
+                List<string> truceNames = truceOps.Select(x => empires[x.targetEmpireID]._empireName).ToList();
+                string trucename = String.Join(", ", truceNames);
+                politicsTruces.text = "Truces: " + trucename;
+            }
+            else
+            {
+                politicsTruces.text = "Truces: " + truceOps.Count;
             }
         }
     }
