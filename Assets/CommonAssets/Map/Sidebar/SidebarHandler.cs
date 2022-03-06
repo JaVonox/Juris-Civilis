@@ -29,6 +29,8 @@ public class SidebarHandler : MonoBehaviour
         StateReligion = 13,
         Military = 14,
         Language = 15,
+        Rebels = 16,
+        ActiveRevolts=17,
     }
 
     //Interactables

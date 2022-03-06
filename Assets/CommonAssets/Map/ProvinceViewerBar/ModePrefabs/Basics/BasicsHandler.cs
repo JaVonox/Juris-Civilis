@@ -14,6 +14,7 @@ public class BasicsHandler : MonoBehaviour
     public Text cultureVal;
     public Text popVal;
     public Text religion;
+    public Text unrest;
 
     public void BasicsInfo(ProvinceObject newSelection, List<Culture> culturesSet)
     {
@@ -23,5 +24,6 @@ public class BasicsHandler : MonoBehaviour
         geoDetailsVal.text = ((CoastalEnum)(Convert.ToInt32(newSelection._isCoastal))).ToString() + "/" + ((HeightEnum)((int)newSelection._elProp)).ToString() + "/" + ((TempEnum)((int)newSelection._tmpProp)).ToString() + "/" + ((RainEnum)((int)newSelection._rainProp)).ToString() + "/" + ((FloraEnum)((int)newSelection._floraProp)).ToString();
         cultureVal.text = "Culture: " + culturesSet[newSelection._cultureID]._name;
         religion.text = "Religion: " + (newSelection._localReligion == null ? "Local Beliefs" : newSelection._localReligion._name);
+        unrest.text = "Unrest: " + Math.Round(newSelection._unrest, 1).ToString();
     }
 }

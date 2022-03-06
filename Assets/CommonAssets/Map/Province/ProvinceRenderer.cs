@@ -225,6 +225,13 @@ public class ProvinceRenderer : MonoBehaviour
                         if (targetProv._ownerEmpire != null)
                         {
                             nationalCol = targetProv._ownerEmpire._empireCol;
+                            if(targetProv._ownerEmpire.rebels.Count > 0)
+                            {
+                                if(targetProv._ownerEmpire.rebels.Any(x=>x.IsContained(targetProv._id))) //If this province is currently rebelling
+                                {
+                                    nationalCol = new Color(targetProv._ownerEmpire._empireCol.r * 0.25f, targetProv._ownerEmpire._empireCol.g * 0.25f, targetProv._ownerEmpire._empireCol.b * 0.25f, 0.85f); //Make darker to show province is rebelling
+                                }    
+                            }
                             if (!isFocused) { nationalCol.a = 0.85f; } else { nationalCol.a = 0.9f; };
                             unfocusedAlpha = 0.85f;
                         }
@@ -460,6 +467,67 @@ public class ProvinceRenderer : MonoBehaviour
                         if (!isFocused) { lCol.a = 0.6f; } else { lCol.a = 0.9f; };
                         unfocusedAlpha = 0.6f;
                         return lCol;
+                    }
+                case "Rebels":
+                    {
+                        if (targetProv._ownerEmpire == null) { unfocusedAlpha = 0.5f; return NAVal; }
+                        if (targetProv._unrest <= 0)
+                        {
+                            Color lowUnrest = highVal;
+                            if (!isFocused) { lowUnrest.a = 0.6f; } else { lowUnrest.a = 0.9f; };
+                            unfocusedAlpha = 0.6f;
+                            return lowUnrest;
+                        }
+                        float minUnrest = 0;
+                        float maxUnrest = targetProv._ownerEmpire.GetUnrestCap();
+                        if(targetProv._unrest > maxUnrest)
+                        {
+                            Color highUnrest = lowVal;
+                            if (!isFocused) { highUnrest.a = 0.6f; } else { highUnrest.a = 0.9f; };
+                            unfocusedAlpha = 0.6f;
+                            return highUnrest;
+                        }
+                        if((maxUnrest-minUnrest) + 0.001f == 0) { maxUnrest += 0.001f; }
+                        float normalScoreUnrest = (((float)targetProv._unrest) - minUnrest) / ((float)(maxUnrest - minUnrest) + 0.001f);
+                        Color rebVal = Color.Lerp(highVal, lowVal, Math.Max(0, Math.Min(1, normalScoreUnrest)));
+                        if (!isFocused) { rebVal.a = 0.6f; } else { rebVal.a = 0.9f; };
+                        unfocusedAlpha = 0.6f;
+                        return rebVal;
+                    }
+                case "ActiveRevolts":
+                    {
+                        if (targetProv._ownerEmpire == null) { unfocusedAlpha = 0.5f; return NAVal; }
+                        if (targetProv._ownerEmpire.rebels.Count == 0) { unfocusedAlpha = 0.5f; return NAVal; }
+
+                        Rebellion? activeRebellion = targetProv._ownerEmpire.rebels.FirstOrDefault(x => x.IsContained(targetProv._id));
+                        if(activeRebellion == null) { unfocusedAlpha = 0.5f; return NAVal; }
+                        else
+                        {
+                            Color rCol = new Color(0, 0, 0, 1);
+                            string cultureLang = activeRebellion._type.ToString();
+                            unfocusedAlpha = 0.6f;
+                            switch (cultureLang)
+                            {
+                                case "Culture":
+                                    rCol = cultures[Convert.ToInt32(activeRebellion.targetType)]._cultureCol;
+                                    break;
+                                case "Religion":
+                                    rCol = religions[Convert.ToInt32(activeRebellion.targetType)]._col;
+                                    break;
+                                case "Revolution":
+                                    rCol = lowVal;
+                                    break;
+                                case "Separatist":
+                                    rCol = medVal;
+                                    break;
+                                default:
+                                    rCol = new Color(0.85f, 0, 0.6f, 0.6f);
+                                    break;
+                            }
+                            if (!isFocused) { rCol.a = 0.6f; } else { rCol.a = 0.9f; };
+                            unfocusedAlpha = 0.6f;
+                            return rCol;
+                        }
                     }
                 default:
                     unfocusedAlpha = 1;

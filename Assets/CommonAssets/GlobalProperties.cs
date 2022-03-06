@@ -79,6 +79,7 @@ namespace WorldProperties
         public Religion _localReligion;
         public int _cultureID;
         public string updateText = ""; //Text to display for province updates
+        public float _unrest; //How likely a province is to rebel
 
         //Simulation variables
         public Empire _ownerEmpire;
@@ -97,6 +98,7 @@ namespace WorldProperties
             _cultureID = 0;
             _isCoastal = false;
             _localReligion = null;
+            _unrest = 0;
 
             foreach (Chunk compChunk in tProv._componentChunks.Values)
             {
@@ -214,20 +216,34 @@ namespace WorldProperties
             int myID = Convert.ToInt32(_id);
             List<Empire> applicableEmpires = empires.Where(t => t._cultureID == myID && t._exists == true).ToList();
 
-            //Total of all techs
+            //Total of all eco scores
             if (applicableEmpires.Count != 0)
             {
-                _economyScore = applicableEmpires.Sum(l => l.ReturnEcoScore(provinces));
+                _economyScore = applicableEmpires.Sum(l => l.ReturnEcoScore(provinces,true));
 
-                foreach (Empire e in applicableEmpires)
-                {
-                    e.percentageEco = e.ReturnEcoScore(provinces) / _economyScore;
-                }
             }
             else
             {
                 _economyScore = 0;
             }
+
+            //Add reduced bonus from nations with provinces within territory. This does not contribute to their eco score but does lower the 
+
+            List<Empire> nonCultureComponents = empires.Where(t => t._cultureID != myID && t._componentProvinceIDs.Any(x=>provinces[x]._cultureID == myID)).ToList();
+
+            if (nonCultureComponents.Count != 0)
+            {
+                foreach (Empire e in nonCultureComponents)
+                {
+                    _economyScore += e._componentProvinceIDs.Where(x => provinces[x]._cultureID == myID).Sum(y => e.ReturnIndividualEcoScore(provinces[y], provinces,true) / 2.0f); //Add half the eco score from non-culture owned provinces.
+                }
+            }
+
+            foreach (Empire e in applicableEmpires)
+            {
+                e.percentageEco = e.ReturnEcoScore(provinces,true) / _economyScore;
+            }
+
         }
 
         public (int milTech, int ecoTech, int dipTech, int logTech, int culTech) CalculateMinTech(ref List<Empire> empires) //Returns the minimum technology for this culture

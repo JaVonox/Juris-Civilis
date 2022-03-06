@@ -68,7 +68,7 @@ namespace ConsoleInterpret
                         }
                     case "SPAWNMIL": //SPAWNMIL - spawn military units
                         {
-                            Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provs);
+                            Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provs, ref rnd);
                             return "Spawned new military units";
                         }
                     case "SPAWNREL": //SPAWNREL (PROVID) - spawns new religion

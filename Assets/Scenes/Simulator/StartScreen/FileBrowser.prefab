@@ -309,8 +309,8 @@ MonoBehaviour:
     m_Alignment: 4
     m_AlignByGeometry: 0
     m_RichText: 1
-    m_HorizontalOverflow: 0
-    m_VerticalOverflow: 0
+    m_HorizontalOverflow: 1
+    m_VerticalOverflow: 1
     m_LineSpacing: 1
   m_Text: 'Choose a file:'
 --- !u!1 &2213889251728694734
@@ -1498,6 +1498,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00def0022cf1d0148b729d9933b70cad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  worldName: {fileID: 0}
   startGen: {fileID: 2559779252342956851}
 --- !u!114 &7422495443519687640
 MonoBehaviour:

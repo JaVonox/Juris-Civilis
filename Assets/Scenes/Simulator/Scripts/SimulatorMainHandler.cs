@@ -147,10 +147,13 @@ public class SimulatorMainHandler : MonoBehaviour
             //time events
             if(_date.day == 1)
             {
+                bool isYearStart = _date.month == 1;
                 foreach(Empire tEmp in empires)
                 {
                     tEmp.PollOpinions(ref _date, ref empires, ref provinces, ref cultures);
+                    if (isYearStart && tEmp._exists) { tEmp.ReduceUnrest(provinces, ref rnd); } //Reduce the unrest of the nation
                 }
+
             }
             else if (_date.day == 2)
             {
@@ -158,7 +161,7 @@ public class SimulatorMainHandler : MonoBehaviour
 
                 if (_date.month % 3 == 0)
                 {
-                    Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provinces);
+                    Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provinces, ref rnd);
                 }
             }
 

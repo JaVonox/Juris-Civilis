@@ -206,7 +206,7 @@ namespace Act
             }
 
             int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.curMil / (float)Math.Min(4,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
-            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < defenderEmpire.curMil ? defenderEmpire.curMil : 10.0f + defenderEmpire.curMil / (float)Math.Min(4, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
+            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + defenderEmpire.curMil / (float)Math.Min(4, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())) < defenderEmpire.curMil ? defenderEmpire.curMil : 10.0f + defenderEmpire.curMil / (float)Math.Min(4, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
 
             float defenderModifier = 1.2f;
             {
@@ -257,7 +257,61 @@ namespace Act
             float attackerVicChance = Math.Min(0.95f,Math.Max(0.05f,attackerPower / (attackerPower + defenderPower)));
             return (fieldedAttacker, fieldedDefender, attackerVicChance);
         }
+        
+        public static bool RevolutionaryRebelsAttack(Empire defenderEmpire, Rebellion rebelGroup, ref List<ProvinceObject> provs, ref System.Random rnd)
+        {
+            int fieldedAttacker = Convert.ToInt32(Math.Floor(rebelGroup.rebelStrength));
+            int fieldedDefender = Convert.ToInt32(Math.Floor(defenderEmpire.curMil));
+            ProvinceObject targetProv = provs[defenderEmpire._componentProvinceIDs[0]];
 
+
+            float defenderModifier = 1.2f;
+            {
+                if (targetProv._elProp == Property.High || targetProv._elProp == Property.Medium) { defenderModifier += 1.5f; } //Height advantage
+                if (targetProv._isCoastal == true) { defenderModifier += 0.5f; } //Seige immunity
+                if (targetProv._tmpProp == Property.Low) { defenderModifier += 0.5f; }
+            }
+
+            float attackerModifier = 0.8f; //Attackers are always at a disadvantage and must choose their battles carefully
+            {
+                if (targetProv._floraProp == Property.High) { attackerModifier++; } //Food for soldiers
+                if (targetProv._elProp == Property.Low)
+                {
+                    attackerModifier += 0.2f;  //Flat terrain grants a small bonus to attackers
+                }
+            }
+
+            float attackerPower = ((float)(fieldedAttacker)) * attackerModifier;
+            float defenderPower = ((float)(fieldedDefender)) * defenderModifier;
+
+            float rebelVicChance = Math.Min(0.95f, Math.Max(0.05f, attackerPower / (attackerPower + defenderPower)));
+
+            bool won = rnd.NextDouble() < rebelVicChance;
+
+            float defRed = 0.0f;
+
+            float attOffset = 0;
+            float defOffset = 0;
+
+            if (won)
+            {
+                defOffset = Math.Max(0, 0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3));
+            }
+            else
+            {
+                attOffset = Math.Max(0, (0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)));
+                defOffset = Math.Max(0.1f, (0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)) - Math.Min(0.4f, Math.Max(0, rebelVicChance - 0.5f)));
+                defOffset = Math.Min(defOffset, attOffset * 1.5f);//Winner cannot have more than 1.5x the loss of the loser
+            }
+
+            defRed = 1.0f - Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(defenderEmpire.logTech)) / 50.0f) - 1.0f)) + (3 * defOffset)); //defender loss reduction multiplie
+
+            float defExactLosses = Math.Min((float)Math.Max(1.0f, defRed * defenderPower), defenderPower) * 0.5f;
+
+            defenderEmpire.TakeLoss(defExactLosses, !won, false, null, targetProv, ref provs);
+
+            return won;
+        }
         public static void CalculateLosses(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs, (int attField, int defField, float attChance) stats, bool attackerWon)
         {
             Empire defenderEmpire = targetProv._ownerEmpire;
@@ -288,8 +342,8 @@ namespace Act
 
             Debug.Log("ATK LOSS: " + attackExactLosses + " DEF LOSS: " + defExactLosses);
 
-            aggressorEmpire.TakeLoss(attackExactLosses,attackerWon,true,ref defenderEmpire,targetProv, ref provs);
-            defenderEmpire.TakeLoss(defExactLosses,!attackerWon,false,ref aggressorEmpire, targetProv, ref provs);
+            aggressorEmpire.TakeLoss(attackExactLosses,attackerWon,true, defenderEmpire,targetProv, ref provs);
+            defenderEmpire.TakeLoss(defExactLosses,!attackerWon,false, aggressorEmpire, targetProv, ref provs);
         }
         public static bool CanConquer(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs)
         {
@@ -311,13 +365,15 @@ namespace Act
                 (int attField, int defField, float attChance) stats = BattleStats(targetProv, aggressorEmpire, provs);
                 float battleScore = (float)(actRand.NextDouble()) + 0.001f;
 
-                if (battleScore < stats.attChance)
+                if (battleScore < stats.attChance) //If won battle
                 {
                     CalculateLosses(targetProv, aggressorEmpire, ref provs, stats, true);
                     if (targetProv._ownerEmpire != null)
                     {
                         targetProv._ownerEmpire._componentProvinceIDs.Remove(targetProv._id); //Remove province from set of owned provinces in previous owner
                     }
+
+                    Actions.IncreaseUnrest("occupied", aggressorEmpire, provs, new List<int>() { targetProv._id }); //Increase unrest for changing nation
 
                     targetProv._ownerEmpire = aggressorEmpire;
                     aggressorEmpire._componentProvinceIDs.Add(targetProv._id);
@@ -350,12 +406,22 @@ namespace Act
             return true;
         }
 
-        public static bool UpdateMilitary(ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs)
+        public static bool UpdateMilitary(ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref System.Random rnd)
         {
             List<Empire> appEmpires = empires.Where(t => t._exists == true).ToList();
             foreach (Empire x in appEmpires)
             {
                 x.RecruitMil(ref cultures, ref provs);
+
+                if(x.rebels.Count > 0)
+                {
+                    foreach(Rebellion r in x.rebels)
+                    {
+                        r.rebelStrength += x.RebelMilIncrease(r,provs) * (float)(rnd.NextDouble()); //Add military strength to rebels
+                        if(r.rebelStrength >= x.maxMil) { r.rebelStrength = x.maxMil; } //TODO add random element to max mil
+                        Debug.Log(x._id + " REBEL = " + r.rebelStrength);
+                    }
+                }
             }
 
             return true;
@@ -530,6 +596,141 @@ namespace Act
             }
 
             return empireMods;
+        }
+
+        public static void IncreaseUnrest(string conditionType, Empire myEmpire, List<ProvinceObject> provs, List<int>? impactedIDs) //increase unrest in provinces
+        {
+            float multiplier = 1.0f;
+
+            //Multipliers for various negative impacts
+            if (myEmpire._componentProvinceIDs.Count > Math.Max(5, myEmpire.culTech)) { multiplier += .25f; }
+            if(myEmpire._componentProvinceIDs.Any(x=>provs[x]._unrest > myEmpire.GetUnrestCap() && (myEmpire.rebels.Count == 0 || !myEmpire.rebels.Any(y => y.IsContained(x))))){ multiplier += .25f; }
+            if(myEmpire.rebels.Count > 0) { multiplier += .1f; }
+            //TODO add for increasing unrest when declaring war on empire of non-primary culture
+
+            if (!myEmpire._exists) { return; }
+            switch (conditionType) //Increment 
+            {
+                case "religionSwitch": //If the ruler switches religion, increment unrest for each religious non-primary item.
+                    {
+                        List<ProvinceObject> impactedProvinces = myEmpire._componentProvinceIDs.Select(x => provs[x]).Where(y => y._localReligion != null && y._localReligion != myEmpire.stateReligion).ToList(); //All provinces with non-primary religion
+                        foreach (ProvinceObject t in impactedProvinces)
+                        {
+                            t._unrest += 1.0f * multiplier;
+                        }
+                        return;
+                    }
+                case "forcedConvert": //If a province is forcibly converted by a ruler. uses impactedIDs
+                    {
+                        if(impactedIDs == null) { IncreaseUnrest("default", myEmpire, provs, impactedIDs); return; } //If no listed impactedIDs, then just increase all unrest. This is a bug
+                        List<ProvinceObject> impactedProvinces = impactedIDs.Select(x => provs[x]).ToList(); //All provinces with non-primary religion
+                        foreach (ProvinceObject t in impactedProvinces)
+                        {
+                            t._unrest += 1.0f * multiplier;
+                        }
+                        return;
+                    }
+                case "cultureSwitch": //When primary culture changes
+                    {
+                        List<ProvinceObject> impactedProvinces = myEmpire._componentProvinceIDs.Select(x => provs[x]).Where(y => y._cultureID != myEmpire._cultureID).ToList(); //All provinces with non-primary culture
+                        foreach (ProvinceObject t in impactedProvinces)
+                        {
+                            t._unrest += 0.5f * multiplier;
+                        }
+                        return;
+                    }
+                case "newRuler": //When new ruler takes power
+                    {
+                        foreach (int provID in myEmpire._componentProvinceIDs)
+                        {
+                            provs[provID]._unrest += 0.5f * multiplier;
+                        }
+                        return;
+                    }
+                case "newDynasty": //When new dynasty takes power
+                    {
+                        foreach (int provID in myEmpire._componentProvinceIDs)
+                        {
+                            provs[provID]._unrest += 1.0f * multiplier;
+                        }
+                        return;
+                    }
+                case "occupied": //When occupied by a foreign power (non-colony)
+                    {
+                        provs[impactedIDs[0]]._unrest += 0.5f * multiplier;
+                        return;
+                    }
+                case "lostWar": //When lost more provinces in a war than taken
+                    {
+                        foreach (int provID in myEmpire._componentProvinceIDs)
+                        {
+                            provs[provID]._unrest += 0.5f * multiplier;
+                        }
+                        return;
+                    }
+                case "capitalChanged": //When the capital is changed
+                    {
+                        foreach (int provID in myEmpire._componentProvinceIDs)
+                        {
+                            provs[provID]._unrest += 2.0f * multiplier;
+                        }
+                        return;
+                    }
+                case "localPolitics": //When the ruler aggrivates provinces or unrest is stirred
+                    {
+                        foreach (int provID in impactedIDs)
+                        {
+                            provs[provID]._unrest += (1 + (myEmpire.curRuler.rulerPersona["per_SpawnRebellion"] - myEmpire.curRuler.rulerPersona["per_Calm"])) * multiplier;
+                        }
+                        return;
+                    }
+                case "colony": //When a colony is made 
+                    {
+                        foreach (int provID in impactedIDs)
+                        {
+                            float modifier = myEmpire.ReturnPopScore(provs[provID], provs) - 0.25f;
+                            modifier = myEmpire._cultureID != provs[provID]._cultureID ? modifier + 1 : modifier - 0.5f;
+
+                            modifier = Math.Max(0.25f, modifier);
+                            provs[provID]._unrest += modifier * multiplier;
+                        }
+                        return;
+                    }
+                case "cultureTech": //When a new culture tech is created
+                    {
+                        foreach (int t in myEmpire._componentProvinceIDs)
+                        {
+                            if(provs[t]._cultureID == myEmpire._cultureID) { provs[t]._unrest -= 0.2f; }
+                            else { provs[t]._unrest -= 0.05f; }
+                        }
+                        return;
+                    }
+                case "warWeary": //Increases over time when a nation is over their war exhaustion cap
+                    {
+                        foreach (int t in myEmpire._componentProvinceIDs)
+                        {
+                            provs[t]._unrest += 0.1f * multiplier;
+                        }
+                        return;
+                    }
+                case "spreading": //Added unrest from active rebels
+                    {
+                        foreach (int t in impactedIDs)
+                        {
+                            provs[t]._unrest += 0.1f;
+                        }
+                        return;
+                    }
+                default:
+                    {
+                        Debug.Log("UNKNOWN UNREST " + conditionType);
+                        foreach (int provID in myEmpire._componentProvinceIDs)
+                        {
+                            provs[provID]._unrest += 0.1f * multiplier;
+                        }
+                        return;
+                    }
+            }
         }
     }
 }

@@ -241,6 +241,10 @@ namespace SaveLoad
                 xmlWriter.WriteString(tProv._floraProp.ToString());
                 xmlWriter.WriteEndElement();
 
+                xmlWriter.WriteStartElement("Unrest");
+                xmlWriter.WriteString(tProv._unrest.ToString());
+                xmlWriter.WriteEndElement();
+
                 xmlWriter.WriteStartElement("Owner");
                 if (tProv._ownerEmpire != null)
                 {
@@ -300,8 +304,9 @@ namespace SaveLoad
                 loadedProv._tmpProp = (Property)Enum.Parse(typeof(Property), provNode["Temperature"].InnerText);
                 loadedProv._rainProp = (Property)Enum.Parse(typeof(Property), provNode["Rainfall"].InnerText);
                 loadedProv._floraProp = (Property)Enum.Parse(typeof(Property), provNode["Flora"].InnerText);
+                loadedProv._unrest = (float)Convert.ToDouble(provNode["Unrest"].InnerText);
 
-                if(provNode["Owner"].InnerText != "")
+                if (provNode["Owner"].InnerText != "")
                 {
                     loadedProv._ownerEmpire = empires[Convert.ToInt32(provNode["Owner"].InnerText)];
                 }
@@ -444,6 +449,14 @@ namespace SaveLoad
                 empData.WriteString(tEmpire.warExhaustion.ToString());
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("NeedsUpdate");
+                empData.WriteString(tEmpire.updateComponents.ToString());
+                empData.WriteEndElement();
+
+                empData.WriteStartElement("LastCapital");
+                empData.WriteString(tEmpire.lastCapital.ToString());
+                empData.WriteEndElement();
+
                 empData.WriteStartElement("Components"); //Component provs
                 foreach (int compProv in tEmpire._componentProvinceIDs)
                 {
@@ -511,6 +524,28 @@ namespace SaveLoad
                 }
                 empData.WriteEndElement();
 
+                empData.WriteStartElement("Revolts");
+                foreach (Rebellion reb in tEmpire.rebels)
+                {
+                    empData.WriteStartElement("Rebel");
+                    empData.WriteAttributeString("Type", reb._type.ToString());
+                    empData.WriteAttributeString("TargetType", reb.targetType == null ? "NULL" : reb.targetType.ToString());
+                    empData.WriteAttributeString("Strength", reb.rebelStrength.ToString());
+                    empData.WriteAttributeString("Cooldown", reb.pollCooldown.ToString());
+
+                    empData.WriteStartElement("Provinces"); 
+                    foreach (int id in reb._provinceIDs)
+                    {
+                        empData.WriteStartElement("Province");
+                        empData.WriteAttributeString("ID", id.ToString());
+                        empData.WriteEndElement();
+                    }
+                    empData.WriteEndElement();
+
+                    empData.WriteEndElement();
+                }
+                empData.WriteEndElement();
+
                 ///Ruler data
                 Ruler tRuler = tEmpire.curRuler;
                 empData.WriteStartElement("Ruler");
@@ -557,6 +592,7 @@ namespace SaveLoad
             {
                 XmlNode provNode = provFile.SelectSingleNode("/Provinces/Province[@ID='" + tProv._id.ToString() + "']"); //Get the node with the appropriate ID
                 provNode["Owner"].InnerText = tProv._ownerEmpire == null ? "" : tProv._ownerEmpire._id.ToString();
+                provNode["Unrest"].InnerText = tProv._ownerEmpire == null ? "0" : tProv._unrest.ToString();
                 provNode.Attributes["ReligionID"].Value = tProv._localReligion == null ? "NULL" : tProv._localReligion._id.ToString();
             }
 
@@ -590,6 +626,9 @@ namespace SaveLoad
                 loadedEmp.timeUntilNextUpdate = Convert.ToInt32(empNode["UpdateTime"].InnerText);
                 loadedEmp.occupationCooldown = Convert.ToInt32(empNode["OccupationCooldown"].InnerText);
                 loadedEmp.warExhaustion = (float)Convert.ToDouble(empNode["Exhaustion"].InnerText);
+
+                loadedEmp.updateComponents = Convert.ToBoolean(empNode["NeedsUpdate"].InnerText);
+                loadedEmp.lastCapital = empNode["LastCapital"].InnerText;
 
                 ColorUtility.TryParseHtmlString("#" + empNode["Colour"].InnerText, out loadedEmp._empireCol); //Sets colour via hex code
 
@@ -629,6 +668,23 @@ namespace SaveLoad
                     }
                     loadedEmp.opinions.Add(newOp.targetEmpireID,newOp);
                 }
+
+                foreach (XmlNode rebellion in empNode["Revolts"].ChildNodes) 
+                {
+                    Rebellion newReb = new Rebellion();
+                    newReb._type = (RebelType)Enum.Parse(typeof(RebelType), rebellion.Attributes["Type"].Value.ToString());
+                    newReb.targetType = rebellion.Attributes["TargetType"].Value.ToString() == "NULL" ? null : rebellion.Attributes["targetType"].Value.ToString();
+                    newReb.rebelStrength = (float)Convert.ToDouble(rebellion.Attributes["Strength"].Value.ToString());
+                    newReb.pollCooldown = Convert.ToInt32(rebellion.Attributes["Cooldown"].Value.ToString());
+                    newReb._provinceIDs = new List<int>();
+
+                    foreach (XmlNode provs in rebellion["Provinces"].ChildNodes)
+                    {
+                        newReb._provinceIDs.Add(Convert.ToInt32(provs.Attributes["ID"].Value.ToString()));
+                    }
+                    loadedEmp.rebels.Add(newReb);
+                }
+
 
                 //Loading ruler data
                 XmlNode rulNode = empNode.SelectSingleNode("Ruler");
