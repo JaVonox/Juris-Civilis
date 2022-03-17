@@ -23,7 +23,16 @@ namespace Act
             if(provs[provID]._biome == 0) { return false; } //Prevent ocean takeover
             if (provs[provID]._ownerEmpire == null)
             {
-                empires.Add(new Empire(empires.Count, provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs, ref rnd));
+                Empire newEmp = new Empire(provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs, ref rnd);
+
+                if(empires.Count() - 1 < newEmp._id)
+                {
+                    empires.Add(newEmp);
+                }
+                else
+                {
+                    empires[newEmp._id] = newEmp;
+                }
                 return true;
             }
             else
@@ -205,8 +214,8 @@ namespace Act
                 return (0, 0, 1);
             }
 
-            int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) < aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.curMil / (float)Math.Min(4,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
-            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + defenderEmpire.curMil / (float)Math.Min(4, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())) < defenderEmpire.curMil ? defenderEmpire.curMil : 10.0f + defenderEmpire.curMil / (float)Math.Min(4, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
+            int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.maxMil / (float)Math.Min(6, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) > aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.maxMil / (float)Math.Min(6,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
+            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + defenderEmpire.maxMil / (float)Math.Min(6, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())) > defenderEmpire.maxMil ? defenderEmpire.curMil : 10.0f + defenderEmpire.maxMil / (float)Math.Min(6, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
 
             float defenderModifier = 1.2f;
             {
@@ -237,8 +246,8 @@ namespace Act
 
             //Reinforcement bonuses
             {
-                float aggReinforcements = aggressorEmpire.ReturnAdjacentIDs(ref provs, false).Count(x => x == targetProv._id) - 1;
-                float defReinforcements = defenderEmpire._componentProvinceIDs.Where(x => provs[x]._adjacentProvIDs.Contains(targetProv._id) && x != targetProv._id).Count();
+                float aggReinforcements = aggressorEmpire.ReturnAdjacentIDs(ref provs, false).Where(y=>provs[y]._ownerEmpire == aggressorEmpire).Count(x => x == targetProv._id) - 1;
+                float defReinforcements = defenderEmpire._componentProvinceIDs.Where(x => provs[x]._adjacentProvIDs.Contains(targetProv._id) && x != targetProv._id && provs[x]._ownerEmpire == defenderEmpire).Count();
 
                 if (aggReinforcements > defReinforcements)
                 {
@@ -312,6 +321,84 @@ namespace Act
 
             return won;
         }
+
+        public static bool SupressRebels(Empire aggressorEmpire, Rebellion rebelGroup, List<ProvinceObject> provs, ref System.Random rnd, int targetProvID)
+        {
+            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + rebelGroup.GetRebelMaxArmy(provs,aggressorEmpire) / (float)Math.Min(6, Math.Max(2, rebelGroup._provinceIDs.Count())) > rebelGroup.rebelStrength ? rebelGroup.rebelStrength : 10.0f + rebelGroup.GetRebelMaxArmy(provs, aggressorEmpire) / (float)Math.Min(6, Math.Max(2, rebelGroup._provinceIDs.Count())))); //Attacker army size
+            int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.maxMil / (float)Math.Min(6, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) > aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size
+            fieldedAttacker = Convert.ToInt32(Math.Floor(Math.Min(fieldedDefender * 1.5f, fieldedAttacker))); 
+            ProvinceObject targetProv = provs[targetProvID];
+
+
+            float defenderModifier = 0.6f; //Defender has a high disadvantage but fields all their strength rather than just a proportion 
+            {
+                if (targetProv._elProp == Property.High || targetProv._elProp == Property.Medium) { defenderModifier += 1.5f; } //Height advantage
+                if (targetProv._isCoastal == true) { defenderModifier += 0.5f; } //Seige immunity
+                if (targetProv._tmpProp == Property.Low) { defenderModifier += 0.5f; }
+            }
+
+            float attackerModifier = 1.0f; //As this is rebel supression, attacker has the advantage 
+            {
+                if (targetProv._floraProp == Property.High) { attackerModifier++; } //Food for soldiers
+                if (targetProv._elProp == Property.Low)
+                {
+                    attackerModifier += 0.2f;  //Flat terrain grants a small bonus to attackers
+                }
+            }
+
+            float attackerPower = ((float)(fieldedAttacker)) * attackerModifier;
+            float defenderPower = ((float)(fieldedDefender)) * defenderModifier;
+
+            //Reinforcement bonuses
+            {
+                float aggReinforcements = aggressorEmpire.ReturnAdjacentIDs(ref provs, false).Where(y => provs[y]._ownerEmpire == aggressorEmpire && !rebelGroup._provinceIDs.Contains(y)).Count(x => x == targetProv._id) - 1;
+                float defReinforcements = rebelGroup._provinceIDs.Where(x => provs[x]._adjacentProvIDs.Contains(targetProv._id) && x != targetProv._id && rebelGroup._provinceIDs.Contains(x)).Count();
+
+                if (aggReinforcements > defReinforcements)
+                {
+                    attackerModifier += Math.Min(2.0f, (aggReinforcements / defReinforcements) / 2.0f);
+                }
+                else if (defReinforcements > aggReinforcements)
+                {
+                    defenderModifier += Math.Min(2.0f, (defReinforcements / aggReinforcements) / 2.0f);
+                }
+            }
+
+            float rebelSupressChance = Math.Min(0.95f, Math.Max(0.05f, attackerPower / (attackerPower + defenderPower)));
+
+            bool won = rnd.NextDouble() < rebelSupressChance;
+
+            float attRed = 0.0f;
+            float defRed = 0.0f;
+
+            float attOffset = 0;
+            float defOffset = 0;
+
+            if (won)
+            {
+                attOffset = Math.Max(0.1f, (0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)) - Math.Min(0.4f, Math.Max(0, 0.5f - rebelSupressChance)));
+                defOffset = Math.Max(0, 0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3));
+                attOffset = Math.Min(attOffset, defOffset * 1.5f); //Winner cannot have more than 1.5x the loss of the loser
+            }
+            else
+            {
+                attOffset = Math.Max(0, (0 + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)));
+                defOffset = Math.Max(0.1f, (0.1f + (float)Math.Round((((float)(actRand.NextDouble()) - (float)(actRand.NextDouble())) / 10.0f), 3)) - Math.Min(0.4f, Math.Max(0, rebelSupressChance - 0.5f)));
+                defOffset = Math.Min(defOffset, attOffset * 1.5f);//Winner cannot have more than 1.5x the loss of the loser
+            }
+
+            attRed = 1.0f - Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f)) + (3 * attOffset)); //attacker loss reduction multiplier
+            defRed = 1.0f - Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f)) + (3 * defOffset)); //defender loss reduction multiplie
+
+            float attackExactLosses = Math.Min((float)Math.Max(1.0f, attRed * (float)(fieldedAttacker)), (float)(fieldedAttacker));
+            float defExactLosses = Math.Min((float)Math.Max(1.0f, defRed * (float)(fieldedDefender)), (float)(fieldedDefender));
+
+            aggressorEmpire.TakeLoss(attackExactLosses, won, true, null, targetProv, ref provs);
+            rebelGroup.TakeRebelLoss(provs, defExactLosses, rebelSupressChance, targetProvID, !won,aggressorEmpire);
+            aggressorEmpire.AttemptFinishRebels(rebelGroup); //Check if rebels still exist
+
+            return won;
+        }
         public static void CalculateLosses(ProvinceObject targetProv, Empire aggressorEmpire, ref List<ProvinceObject> provs, (int attField, int defField, float attChance) stats, bool attackerWon)
         {
             Empire defenderEmpire = targetProv._ownerEmpire;
@@ -339,8 +426,6 @@ namespace Act
 
             float attackExactLosses = Math.Min((float)Math.Max(1.0f,attRed * stats.attField),stats.attField);
             float defExactLosses = Math.Min((float)Math.Max(1.0f,defRed * stats.defField),stats.defField);
-
-            Debug.Log("ATK LOSS: " + attackExactLosses + " DEF LOSS: " + defExactLosses);
 
             aggressorEmpire.TakeLoss(attackExactLosses,attackerWon,true, defenderEmpire,targetProv, ref provs);
             defenderEmpire.TakeLoss(defExactLosses,!attackerWon,false, aggressorEmpire, targetProv, ref provs);
@@ -417,9 +502,7 @@ namespace Act
                 {
                     foreach(Rebellion r in x.rebels)
                     {
-                        r.rebelStrength += x.RebelMilIncrease(r,provs) * (float)(rnd.NextDouble()); //Add military strength to rebels
-                        if(r.rebelStrength >= x.maxMil) { r.rebelStrength = x.maxMil; } //TODO add random element to max mil
-                        Debug.Log(x._id + " REBEL = " + r.rebelStrength);
+                        r.AppendRebelStrength(provs,x,ref rnd);
                     }
                 }
             }
@@ -598,6 +681,11 @@ namespace Act
             return empireMods;
         }
 
+        public static bool MagicUnrest(int provinceID, List<ProvinceObject> provs, float impactAmount)
+        {
+            provs[provinceID]._unrest += impactAmount;
+            return true;
+        }
         public static void IncreaseUnrest(string conditionType, Empire myEmpire, List<ProvinceObject> provs, List<int>? impactedIDs) //increase unrest in provinces
         {
             float multiplier = 1.0f;

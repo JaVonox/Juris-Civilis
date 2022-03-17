@@ -112,8 +112,13 @@ namespace WorldProperties
         {
             //Used for loading in save data
         }
-        public void NewOwner(Empire empireOwner) //Used to set the new owner empire if applicable
+        public void NewOwner(Empire empireOwner, List<Empire> empires) //Used to set the new owner empire if applicable
         {
+            if(_ownerEmpire != null)
+            {
+                _ownerEmpire._componentProvinceIDs.Remove(_id);
+            }
+
             _ownerEmpire = empireOwner;
         }
         public void GenerateFinalValues(ref System.Random rnd, bool isCoastal)

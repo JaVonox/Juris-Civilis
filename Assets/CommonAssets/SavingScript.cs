@@ -673,7 +673,7 @@ namespace SaveLoad
                 {
                     Rebellion newReb = new Rebellion();
                     newReb._type = (RebelType)Enum.Parse(typeof(RebelType), rebellion.Attributes["Type"].Value.ToString());
-                    newReb.targetType = rebellion.Attributes["TargetType"].Value.ToString() == "NULL" ? null : rebellion.Attributes["targetType"].Value.ToString();
+                    newReb.targetType = rebellion.Attributes["TargetType"].Value.ToString() == "NULL" ? null : rebellion.Attributes["TargetType"].Value.ToString();
                     newReb.rebelStrength = (float)Convert.ToDouble(rebellion.Attributes["Strength"].Value.ToString());
                     newReb.pollCooldown = Convert.ToInt32(rebellion.Attributes["Cooldown"].Value.ToString());
                     newReb._provinceIDs = new List<int>();

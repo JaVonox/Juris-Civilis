@@ -172,9 +172,11 @@ public class SimulatorMainHandler : MonoBehaviour
 
             SpreadReligionNaturally(); //Spread religions if they exist
 
-            foreach (Empire tEmp in empires) //attempts to get an action for each empire 
+            int empID = 0;
+            while(empID < empires.Count()) //attempts to get an action for each empire 
             {
-                tEmp.PollForAction(ref _date, ref cultures, ref empires, ref provinces, ref religions, ref rnd);
+                empires[empID].PollForAction(ref _date, ref cultures, ref empires, ref provinces, ref religions, ref rnd);
+                empID++;
             }
 
             processing = false;
@@ -296,7 +298,6 @@ public class SimulatorMainHandler : MonoBehaviour
                                     if (rnd.Next(0, 2) == 1) //Last random chance
                                     {
                                         aProv._localReligion = rel; //Set new religion
-                                        aProv.updateText = aProv._localReligion._name + " adopted";
                                     }
                                 }
                                 applicableProvs.Remove(tProv);

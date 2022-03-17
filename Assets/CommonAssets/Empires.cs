@@ -48,13 +48,23 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         
         public bool updateComponents; //bool for changing empire data
         public string lastCapital; //stores name of last capital 
-        public Empire(int id, string name, ProvinceObject startingProvince, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref System.Random rnd) //Constructor for an empire - used when a new empire is spawned
+        public Empire(string name, ProvinceObject startingProvince, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref System.Random rnd) //Constructor for an empire - used when a new empire is spawned
         {
-            _id = id;
+            //Setting up a new empire
+
+            int nextID = empires.FirstOrDefault(x => x._exists == false) != null ? empires.FirstOrDefault(x => x._exists == false)._id : empires.Count(); //Find first ID that is not in use
+            _id = nextID;
+
+            Empire[] removedEmpireOpinions = empires.Where(x => x.opinions.Keys.Contains(_id)).ToArray(); //Get opinions of previous empires if applicable
+            foreach(Empire x in removedEmpireOpinions)
+            {
+                x.opinions.Remove(_id); //Remove the opinion from the other empire
+            }
+
             _exists = true;
             _empireName = name;
             _componentProvinceIDs.Add(startingProvince._id);
-            startingProvince.NewOwner(this); //Append self to set of owner
+            startingProvince.NewOwner(this, empires); //Append self to set of owner
             _componentProvinceIDs.ListChanged += CheckEmpireExists;
             _empireCol = startingProvince._provCol;
 
@@ -291,6 +301,30 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             }
         }
 
+        public float ReturnWarValueCoefficient(bool isAll, bool isGreater, List<ProvinceObject> provs, ProvinceObject? provTaken, Empire target)
+        {
+            float t1 = 0.1f;
+            float t2 = 0.1f;
+            if(isAll)
+            {
+                t1 = ReturnAllPersonalVal(provs) / target.ReturnAllPersonalVal(provs);
+                t2 = target.ReturnAllPersonalVal(provs) / ReturnAllPersonalVal(provs);
+            }
+            else
+            {
+                t1 = ReturnProvPersonalVal(provTaken, provs, false) / (target.ReturnProvPersonalVal(provTaken, provs, false)+ReturnProvPersonalVal(provTaken,provs,false));
+                t2 = target.ReturnProvPersonalVal(provTaken, provs, false) / (ReturnProvPersonalVal(provTaken, provs, false)+ target.ReturnProvPersonalVal(provTaken, provs, false));
+            }
+
+            if(isGreater)
+            {
+                return t1 > t2 ? t1 : t2;
+            }
+            else
+            {
+                return t1 < t2 ? t1 : t2;
+            }
+        }
         public void TakeLoss(float losses, bool isWinner, bool isAttacker, Empire? enemy, ProvinceObject provTaken, ref List<ProvinceObject> provinces)
         {
             int intLoss = Convert.ToInt32(Math.Floor(losses));
@@ -311,8 +345,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
             if (IsInWar() && enemy != null) //Take war exhaustion proportional to losses
             {
-                warExhaustion += losses; //Add losses as war exhaustion
-                float multiplier = isWinner ? 0.75f : 1.5f;
+                float multiplier = isWinner ? 0.75f : 1.25f;
                 
                 if(isWinner && isAttacker)
                 {
@@ -322,7 +355,9 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 {
                     opinions[enemy._id]._capturedProvinces -= 1;
                 }
-                warExhaustion += ReturnProvPersonalVal(provTaken, provinces,false) * (multiplier); //Add exhaustion based on the value of the province
+
+                warExhaustion += losses * (multiplier + ReturnWarValueCoefficient(false,true, provinces, provTaken,enemy)); //Add exhaustion based on the value of the province and lost power
+
             }
         }
         public void PollForAction(ref Date currentDate, ref List<Culture> cultures, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd)
@@ -413,26 +448,30 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
             RebelType rType = thisRebel._type;
 
-            Debug.Log("REBEL POLL");
-
             switch(rType) //Increase unrest in constituients
             {
                 case RebelType.Culture:
                     {
                         List<int> impacted = _componentProvinceIDs.Where(x => provs[x]._cultureID == Convert.ToInt32(thisRebel.targetType) && provs[x]._unrest >= (GetUnrestCap() / 3.0f)).ToList();
-                        if (impacted.Count > 0) { Actions.IncreaseUnrest("spreading", this, provs, impacted); }
+                        if (impacted.Count > 0) { Debug.Log(_id + " REBELS SPREAD"); Actions.IncreaseUnrest("spreading", this, provs, impacted); }
                     }
                     break;
                 case RebelType.Religion:
                     {
-                        List<int> impacted = _componentProvinceIDs.Where(x => provs[x]._localReligion._id == Convert.ToInt32(thisRebel.targetType) && provs[x]._unrest >= (GetUnrestCap() / 3.0f)).ToList();
-                        if (impacted.Count > 0) { Actions.IncreaseUnrest("spreading", this, provs, impacted); }
+                        List<int> impacted = _componentProvinceIDs.Where(x => provs[x]._localReligion != null && provs[x]._localReligion._id == Convert.ToInt32(thisRebel.targetType) && provs[x]._unrest >= (GetUnrestCap() / 3.0f)).ToList();
+                        if (impacted.Count > 0) { Debug.Log(_id + " REBELS SPREAD"); Actions.IncreaseUnrest("spreading", this, provs, impacted); }
                     }
                     break;
                 case RebelType.Revolution:
                     {
                         List<int> impacted = _componentProvinceIDs.Where(x=> provs[x]._unrest >= (GetUnrestCap() / 3.0f)).ToList();
-                        if (impacted.Count > 0) { Actions.IncreaseUnrest("spreading", this, provs, impacted); }
+                        if (impacted.Count > 0) { Debug.Log(_id + " REBELS SPREAD"); Actions.IncreaseUnrest("spreading", this, provs, impacted); }
+                    }
+                    break;
+                case RebelType.Separatist: //Seperatists can only spread to adjacent same culture provinces - but adjacent provinces of any culture can join them manually.
+                    {
+                        List<int> impacted = _componentProvinceIDs.Where(x => provs[x]._unrest >= (GetUnrestCap() / 3.0f) && provs[x]._cultureID == Convert.ToInt32(thisRebel.targetType) && !_componentProvinceIDs.Contains(x)).ToList();
+                        if (impacted.Count > 0) { Debug.Log(_id + " REBELS SPREAD"); Actions.IncreaseUnrest("spreading", this, provs, impacted); }
                     }
                     break;
                 default:
@@ -450,12 +489,34 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 switch (rType) //Increase unrest in constituients
                 {
                     case RebelType.Culture:
+                        {
+                            if (thisRebel.rebelStrength >= curMil * 0.7f)
+                            {
+                                Debug.Log("Culture RebelsSSSSSSSSSSSSSSSSSSSSSSSSSCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+                                MakeRebelCountry(thisRebel, ref cultures, empires, provs, ref religions, ref rnd, ref date);
+                            }
+                            else
+                            {
+                                thisRebel.pollCooldown--;
+                            }
+                        }
                         break;
                     case RebelType.Religion:
-                        break;
-                    case RebelType.Revolution:
                         {
-                            if (thisRebel.rebelStrength >= curMil * 0.9f)
+                            if (thisRebel.rebelStrength >= curMil * 0.7f)
+                            {
+                                Debug.Log("RELLLLLLLLLLLLLLLLLLLLLREBELSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSRRRRRRRRRRRRRRRRRR");
+                                MakeRebelCountry(thisRebel, ref cultures, empires, provs, ref religions, ref rnd, ref date);
+                            }
+                            else
+                            {
+                                thisRebel.pollCooldown--;
+                            }
+                        }
+                        break;
+                    case RebelType.Revolution: //Revolutionaries just want to depose the ruler
+                        {
+                            if (thisRebel.rebelStrength >= curMil * 0.6f)
                             {
                                 //REBELS ATTACK HERE
                                 if (Actions.RevolutionaryRebelsAttack(this, thisRebel, ref provs, ref rnd)) //If successful revolt
@@ -463,7 +524,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                     Debug.Log("REBELS WIN");
                                     foreach (int provID in thisRebel._provinceIDs)
                                     {
-                                        provs[provID]._unrest = Math.Min(GetUnrestCap() / 4.0f, (provs[provID]._unrest / 2.0f));
+                                        provs[provID]._unrest *= 0.6f;
                                     }
                                     rebels.Remove(thisRebel); //Delete rebellion
                                     curRuler = new Ruler(curRuler, this, ref cultures, ref empires, ref provs, ref rnd); //New ruler is added to replace old ruler.
@@ -474,11 +535,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                     Debug.Log("REBELS LOSE");
                                     foreach (int provID in thisRebel._provinceIDs)
                                     {
-                                        provs[provID]._unrest = Math.Min(GetUnrestCap() / 4.0f, (provs[provID]._unrest / 2.0f));
+                                        provs[provID]._unrest *= 0.4f;
                                     }
                                     foreach (int id in _componentProvinceIDs) //Winning the fight reduces unrest everywhere
                                     {
-                                        provs[id]._unrest /= 2.0f;
+                                        provs[id]._unrest *= 0.6f;
                                     }
                                     rebels.Remove(thisRebel); //Delete rebellion
                                     provs[_componentProvinceIDs[0]].updateText = "Rebels are Defeated";
@@ -491,11 +552,68 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             }
                         }
                         break;
+                    case RebelType.Separatist: //Seperatists make a new country
+                        {
+                            if (thisRebel.rebelStrength >= curMil * 0.7f)
+                            {
+                                Debug.Log("SEPERATISTSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSD");
+                                MakeRebelCountry(thisRebel, ref cultures, empires, provs, ref religions, ref rnd, ref date);
+                            }
+                            else
+                            {
+                                thisRebel.pollCooldown--;
+                            }
+                        }
+                        break;
                     default:
                         break;
                 }
             }
         }
+
+        public void MakeRebelCountry(Rebellion thisRebel, ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date) //Used for spawning rebel countries (starting at war)
+        {
+            List<int> grantedProvs = thisRebel._provinceIDs;
+            ProvinceObject capital = provs[grantedProvs[0]];
+            Empire newEmpire = new Empire(capital._cityName, capital, ref cultures, ref empires, ref provs, ref rnd);
+
+            foreach (int x in grantedProvs.ToArray())
+            {
+                if (!newEmpire._componentProvinceIDs.Contains(x))
+                {
+                    newEmpire._componentProvinceIDs.Add(x);
+                    provs[x].NewOwner(newEmpire, empires);
+                    provs[x]._unrest = 0; //Reset unrest
+                }
+            }
+
+            if (empires.Count - 1 < newEmpire._id)
+            {
+                empires.Add(newEmpire);
+            }
+            else
+            {
+                empires[newEmpire._id] = newEmpire;
+            }
+
+            empires[newEmpire._id].milTech = milTech;
+            empires[newEmpire._id].ecoTech = ecoTech;
+            empires[newEmpire._id].dipTech = dipTech;
+            empires[newEmpire._id].logTech = logTech;
+            empires[newEmpire._id].culTech = culTech;
+            empires[newEmpire._id].RecalculateMilMax(provs);
+            empires[newEmpire._id].curMil = Math.Min(empires[newEmpire._id].maxMil, thisRebel.rebelStrength);
+
+            //Start war between the two countries
+            empires[newEmpire._id].opinions.Add(_id, new Opinion(newEmpire, this));
+            opinions.Add(newEmpire._id, new Opinion(this, newEmpire));
+            empires[newEmpire._id].opinions[_id].StartWarMetrics(ref empires, empires[newEmpire._id], ref provs);
+            opinions[newEmpire._id].StartWarMetrics(ref empires, this, ref provs);  
+
+            rebels.Remove(thisRebel); //Delete seperatist from set
+        }
+
+
         public void WarAI(ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date)
         {
             List<Empire> warredEmpires = opinions.Where(x => x.Value._isWar).Select(y => empires[y.Key]).ToList();
@@ -505,77 +623,80 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
             foreach (Empire target in warredEmpires)
             {
-                
-                if (!opinions[target._id].PollEndWar(ref empires, this, ref provs, ref date)) //Attempt to end war
+                if (!target.opinions.ContainsKey(_id)) { if (opinions.ContainsKey(target._id)) { opinions[target._id]._isWar = false; } } //Remove from set if the target has no longer got an opinion of this nation
+                else
                 {
-                    if (!target._exists || _exists == false || !target.ReturnAdjacentIDs(ref provs, true).Any(x => _componentProvinceIDs.Contains(x)) || !ReturnAdjacentIDs(ref provs, true).Any(x => target._componentProvinceIDs.Contains(x)))
+                    if (!opinions[target._id].PollEndWar(ref empires, this, ref provs, ref date)) //Attempt to end war
                     {
-                        if (target.opinions.ContainsKey(_id)) { target.opinions[_id]._isWar = false; }
-                        if (opinions.ContainsKey(target._id)) { opinions[target._id]._isWar = false; }
-                    }
-                    else
-                    {
-                        if(warExhaustion > opinions[target._id]._maxWarExhaustion) //If over the limit for war exhaustion and unable to surrender
+                        if (!target._exists || _exists == false || !target.ReturnAdjacentIDs(ref provs, true).Any(x => _componentProvinceIDs.Contains(x)) || !ReturnAdjacentIDs(ref provs, true).Any(x => target._componentProvinceIDs.Contains(x)))
                         {
-                            Actions.IncreaseUnrest("warWeary", this, provs, null);
+                            if (target.opinions.ContainsKey(_id)) { target.opinions[_id]._isWar = false; }
+                            if (opinions.ContainsKey(target._id)) { opinions[target._id]._isWar = false; }
                         }
-
-                        if (rnd.NextDouble() < Math.Min(0.7f, Math.Max(0.2f, curRuler.rulerPersona["per_Attack"] / 2.0f)))
+                        else
                         {
-
-                            (ProvinceObject thisTarget, float riskRewardVal, bool belowChance, bool aboveRisk)[] targetables = ReturnAdjacentIDs(ref provs, true).Where(x => target._componentProvinceIDs.Contains(x) && Actions.CanConquer(provs[x], this, ref provs)).Select(y => (provs[y], 0.0f, false, false)).ToArray();
-
-                            int tCount = targetables.Count();
-
-                            if (targetables.Count() != 0)
+                            if (warExhaustion > opinions[target._id]._maxWarExhaustion) //If over the limit for war exhaustion and unable to surrender
                             {
-                                for (int i = 0; i < tCount; i++) //Append targetables values
-                                {
-                                    (int attackerMaxCost, int defenderMaxCost, float attackerVicChance) predictedBattleResults = Actions.BattleStats(targetables[i].thisTarget, this, provs);
-                                    if (curRuler.GetRulerMilitaryRisk(this) > predictedBattleResults.attackerMaxCost) { targetables[i].aboveRisk = true; }
-                                    if (predictedBattleResults.attackerVicChance < (1.0f - curRuler.rulerPersona["per_Risk"])) { targetables[i].belowChance = true; }
-                                    targetables[i].riskRewardVal = curRuler.ValueRiskRatio(ReturnProvPersonalVal(targetables[i].thisTarget, provs,false), predictedBattleResults.attackerMaxCost);
-                                }
-
-
-                                //If it doesnt encompass the entire set, remove all where chance is too low
-                                if (targetables.Where(x => x.belowChance == true).Count() < targetables.Count()) { targetables = targetables.Where(x => x.belowChance != true).ToArray(); }
-
-                                //If this doesnt encompass the entire set, remove all where the risk is more than the ruler wants to afford
-                                if (targetables.Where(x => x.aboveRisk == true).Count() < targetables.Count()) { targetables = targetables.Where(x => x.aboveRisk != true).ToArray(); }
-
-                                if (targetables.Count() > 0)
-                                {
-                                    targetables.OrderByDescending(x => x.riskRewardVal);
-
-                                    //TODO maybe add some randomisation here based on ruler personality?
-
-                                    //Set a cooldown for each nation relating to their time for the transfer of power
-                                    occupationCooldown = Math.Max(occupationCooldown, Convert.ToInt32(Math.Ceiling(200.0f * ReturnPopScore(targetables[0].thisTarget, provs))));
-                                    targetables[0].thisTarget._ownerEmpire.occupationCooldown = Math.Max(targetables[0].thisTarget._ownerEmpire.occupationCooldown, Convert.ToInt32(Math.Ceiling(200.0f * ReturnPopScore(targetables[0].thisTarget, provs))));
-
-                                    if (Actions.ConquerLand(targetables[0].thisTarget, this, ref provs)) //Evaluate battle
-                                    {
-                                        if(target.ReturnTechTotal() >= ReturnTechTotal()) //If the loser has any tech to learn from
-                                        {
-                                            techPoints += rnd.Next(1, 10);
-                                        }
-                                        targetables[0].thisTarget.updateText = "Occupied by " + _empireName;
-                                    }
-                                    else
-                                    {
-                                        if (ReturnTechTotal() >= target.ReturnTechTotal()) //If the loser has any tech to learn from
-                                        {
-                                            target.techPoints += rnd.Next(1, 10);
-                                        }
-                                        targetables[0].thisTarget.updateText = "Defended by " + targetables[0].thisTarget._ownerEmpire._empireName;
-                                    }
-
-                                }
+                                Actions.IncreaseUnrest("warWeary", this, provs, null);
                             }
-                            else
+
+                            if (rnd.NextDouble() < Math.Min(0.7f, Math.Max(0.2f, curRuler.rulerPersona["per_Attack"] / 2.0f)))
                             {
-                                warExhaustion += 10;
+
+                                (ProvinceObject thisTarget, float riskRewardVal, bool belowChance, bool aboveRisk)[] targetables = ReturnAdjacentIDs(ref provs, true).Where(x => target._componentProvinceIDs.Contains(x) && Actions.CanConquer(provs[x], this, ref provs)).Select(y => (provs[y], 0.0f, false, false)).ToArray();
+
+                                int tCount = targetables.Count();
+
+                                if (targetables.Count() != 0)
+                                {
+                                    for (int i = 0; i < tCount; i++) //Append targetables values
+                                    {
+                                        (int attackerMaxCost, int defenderMaxCost, float attackerVicChance) predictedBattleResults = Actions.BattleStats(targetables[i].thisTarget, this, provs);
+                                        if (curRuler.GetRulerMilitaryRisk(this) > predictedBattleResults.attackerMaxCost) { targetables[i].aboveRisk = true; }
+                                        if (predictedBattleResults.attackerVicChance < (1.0f - curRuler.rulerPersona["per_Risk"])) { targetables[i].belowChance = true; }
+                                        targetables[i].riskRewardVal = curRuler.ValueRiskRatio(ReturnProvPersonalVal(targetables[i].thisTarget, provs, false), predictedBattleResults.attackerMaxCost);
+                                    }
+
+
+                                    //If it doesnt encompass the entire set, remove all where chance is too low
+                                    if (targetables.Where(x => x.belowChance == true).Count() < targetables.Count()) { targetables = targetables.Where(x => x.belowChance != true).ToArray(); }
+
+                                    //If this doesnt encompass the entire set, remove all where the risk is more than the ruler wants to afford
+                                    if (targetables.Where(x => x.aboveRisk == true).Count() < targetables.Count()) { targetables = targetables.Where(x => x.aboveRisk != true).ToArray(); }
+
+                                    if (targetables.Count() > 0)
+                                    {
+                                        targetables.OrderByDescending(x => x.riskRewardVal);
+
+                                        //TODO maybe add some randomisation here based on ruler personality?
+
+                                        //Set a cooldown for each nation relating to their time for the transfer of power
+                                        occupationCooldown = Math.Max(occupationCooldown, Convert.ToInt32(Math.Ceiling(200.0f * ReturnPopScore(targetables[0].thisTarget, provs))));
+                                        targetables[0].thisTarget._ownerEmpire.occupationCooldown = Math.Max(targetables[0].thisTarget._ownerEmpire.occupationCooldown, Convert.ToInt32(Math.Ceiling(200.0f * ReturnPopScore(targetables[0].thisTarget, provs))));
+
+                                        if (Actions.ConquerLand(targetables[0].thisTarget, this, ref provs)) //Evaluate battle
+                                        {
+                                            if (target.ReturnTechTotal() >= ReturnTechTotal()) //If the loser has any tech to learn from
+                                            {
+                                                techPoints += rnd.Next(1, 10);
+                                            }
+                                            targetables[0].thisTarget.updateText = "Occupied by " + _empireName;
+                                        }
+                                        else
+                                        {
+                                            if (ReturnTechTotal() >= target.ReturnTechTotal()) //If the loser has any tech to learn from
+                                            {
+                                                target.techPoints += rnd.Next(1, 10);
+                                            }
+                                            targetables[0].thisTarget.updateText = "Defended by " + targetables[0].thisTarget._ownerEmpire._empireName;
+                                        }
+
+                                    }
+                                }
+                                else
+                                {
+                                    warExhaustion += 10;
+                                }
                             }
                         }
                     }
@@ -583,7 +704,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             }
 
         }
-        private void AI(List<string> actBuffer, ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date)
+        public void AI(List<string> actBuffer, ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date)
         {
             techPoints++; //Increment techpoints every time a new action occurs.
 
@@ -813,6 +934,54 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             }
                         }
                         break;
+                    case "per_Attack": //Quash Rebellions - See war for attacking nations
+                        {
+                            if (rebels.Count <= 0) { break; }
+                            if (IsInWar()) { break; } //There isnt time for rebel supression in war
+                            Debug.Log("ATTACKING REBELS");
+                            //SupressRebels();
+
+                            foreach(Rebellion x in rebels.ToArray()) //DECENT CHANCE OF THIS CAUSING AN ERROR
+                            {
+                                if (AttemptFinishRebels(x)) { Debug.Log("REBELSDEAD"); }
+                            }
+
+                            if (rebels.Count <= 0) { break; }
+                            List<(Rebellion rebel, float ecoScore, float valueRisk)> rebelGroups = rebels.Select(x => (x, ReturnEcoScoreFromSet(provs, provs.Where(y=>x._provinceIDs.Contains(y._id)).ToList(), false),0.0f)).ToList();
+                            rebelGroups.ForEach(x => x.valueRisk = curRuler.ValueRiskRatio(Math.Max(0.01f, x.ecoScore), Math.Max(0.01f, x.rebel.rebelStrength)));
+                            rebelGroups.OrderByDescending(x => x.valueRisk);
+
+                            //Military risk does not matter. rulers will always try and stop rebels.
+
+                            //Select highest value/risk rebel
+
+                            Rebellion tRebel = rebelGroups[0].rebel;
+
+                            (ProvinceObject thisTarget, float riskRewardVal)[] targetables = tRebel._provinceIDs.Select(x => (provs[x],ReturnProvPersonalVal(provs[x],provs,false))).ToArray();
+
+                            int tCount = targetables.Count();
+
+                            if (targetables.Count() != 0)
+                            {
+                                targetables.OrderByDescending(x => x.riskRewardVal);
+
+                                Debug.Log(_id + " ATTEMPTED TO FIGHT REBELS");
+                                if (Actions.SupressRebels(this,tRebel,provs,ref rnd,targetables[0].thisTarget._id)) //Evaluate battle
+                                {
+                                    targetables[0].thisTarget.updateText = "Rebels Suppressed";
+                                }
+                                else
+                                {
+                                    targetables[0].thisTarget.updateText = "Rebels held ground";
+                                }
+                            }
+                            else
+                            {
+                                break;
+                            }
+                            return;
+
+                        }
                     case "per_SpawnRebellion":
                         {
                             //Random number of component provinces to insult
@@ -837,7 +1006,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             if (_componentProvinceIDs.Count >= 5)
                             {
                                 float unrestCap = GetUnrestCap();
-                                List<int> restlessProvs = _componentProvinceIDs.Where(x => provs[x]._unrest >= unrestCap && !rebels.Any(y=>y.IsContained(x))).ToList(); //All non-rebel provinces with high unrest
+                                List<int> restlessProvs = _componentProvinceIDs.Where(x => provs[x]._unrest >= unrestCap && !rebels.Any(y=>y.IsContained(x)) && x != _componentProvinceIDs[0]).ToList(); //All non-rebel provinces with high unrest
 
                                 if (restlessProvs.Count > 0)
                                 {
@@ -845,7 +1014,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                     bool hasAppend = false; //If the province has been added to an existing rebellion
                                     foreach (Rebellion r in rebels)
                                     {
-                                        if (r.IsMember(targetProv, provs))
+                                        if (r.IsMember(targetProv, provs,this))
                                         {
                                             r.AddProvince(targetProv, provs);
                                             hasAppend = true;
@@ -884,11 +1053,14 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             List<int> insultedComponents = new List<int>() { };
                             for (int i = 0; i < provTargets; i++)
                             {
-                                int id = target._componentProvinceIDs[rnd.Next(0, target._componentProvinceIDs.Count)];
-
-                                if (!insultedComponents.Contains(id))
+                                if (target._componentProvinceIDs.Count > 0)
                                 {
-                                    insultedComponents.Add(id);
+                                    int id = target._componentProvinceIDs[rnd.Next(0, target._componentProvinceIDs.Count)];
+
+                                    if (!insultedComponents.Contains(id))
+                                    {
+                                        insultedComponents.Add(id);
+                                    }
                                 }
 
                             }
@@ -1089,7 +1261,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             //Remove based on diplomatic concerns
             foreach (Empire emp in targetEmpires.Keys.ToArray())
             {
-                if (!DiplomaticConsiderations((Func<Dictionary<Empire, (int value, int time, string type)>>)delegate { return Act.Actions.WarOpinionMods(provs[emp._componentProvinceIDs[0]], this, provs, empires); }, 5))
+                if(!opinions.ContainsKey(emp._id) || !emp.opinions.ContainsKey(_id)) { targetEmpires.Remove(emp); }
+                else if (!DiplomaticConsiderations((Func<Dictionary<Empire, (int value, int time, string type)>>)delegate { return Act.Actions.WarOpinionMods(provs[emp._componentProvinceIDs[0]], this, provs, empires); }, 5))
                 {
                     Debug.Log("DIPLO STOPPED WAR");
                     targetEmpires.Remove(emp);
@@ -1139,6 +1312,12 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             }
 
             return pVals;
+        }
+
+        public bool AttemptFinishRebels(Rebellion rebelGroup)
+        {
+            if (rebelGroup._provinceIDs.Count == 0) { rebels.Remove(rebelGroup); return true; }
+            else { return false; }
         }
 
         public void PollOpinions(ref Date curDate, ref List<Empire> empires, ref List<ProvinceObject> provs, ref List<Culture> cultures)
@@ -1300,7 +1479,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
                     foreach (string personality in rulerPersona.Keys.ToArray()) //Entirely random stats
                     {
-                        rulerPersona[personality] = ((float)(rnd.Next(0, 101))) / 100.0f;
+                        rulerPersona[personality] = ((float)(rnd.Next(10, 91))) / 100.0f;
                     }
 
                     techFocus[0] = rnd.Next(0, 5);
@@ -1320,10 +1499,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
                     foreach (string personality in previousRuler.rulerPersona.Keys.ToArray()) //Stats based on variance from previous ruler
                     {
-                        float orient = (rnd.Next(0, 2) == 0 ? -1 : 1);
-                        float offset = 1 - rnd.Next(0, (int)((0.001f + previousRuler.rulerPersona["per_Teach"]) * 100));
-                        offset = Math.Max(1 - Math.Abs(Math.Min(Math.Abs(previousRuler.rulerPersona[personality] - 1), offset)), offset);
-                        rulerPersona[personality] = Math.Min(Math.Max(0, (previousRuler.rulerPersona[personality] + (orient * offset))), 1);
+                        float orient = (rnd.Next(0, 2) == 0 ? -1.0f : 1.0f);
+                        float curVal = previousRuler.rulerPersona["per_Teach"];
+                        float potentialSpread = (1.0f - Math.Min(0.2f,Math.Min(0.8f,previousRuler.rulerPersona["per_Teach"]))); //Potential offset from last ruler value
+                        float newValue = (float)Math.Round(orient * (float)(rnd.NextDouble()) * potentialSpread,2); //Range from 0 to spread value. then times by 1 or -1 to get direction
+                        rulerPersona[personality] = Math.Min(Math.Max(0.1f, (previousRuler.rulerPersona[personality] + (newValue))), 0.9f); //Add or minus the new change to the set, limit to range 0.1f to 0.9f
                     }
 
                     techFocus[0] = previousRuler.techFocus[rnd.Next(0, 2)];
@@ -1626,8 +1806,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             Empire enemy = empires[targetEmpireID];
             _capturedProvinces = 0; //reset captured provinces.
             _maxWarExhaustion = 25.0f;
-            _maxWarExhaustion += (myEmpire.maxMil + Math.Min(myEmpire.ReturnAllPersonalVal(provs) / 3.0f, enemy.ReturnAllPersonalVal(provs) / 3.0f)) / 2.0f; //Add the average of the military score and the provs value
-            if(myEmpire.warExhaustion > 0) { _maxWarExhaustion += myEmpire.warExhaustion; } 
+            _maxWarExhaustion += myEmpire.maxMil * (1 + (myEmpire.ReturnAllPersonalVal(provs) / (myEmpire.ReturnAllPersonalVal(provs)+enemy.ReturnAllPersonalVal(provs)))); //Max mil by provincial value
+            if (myEmpire.warExhaustion > 0) { _maxWarExhaustion += myEmpire.warExhaustion; } 
 
             _isWar = true;
         }
@@ -1842,6 +2022,49 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             _provinceIDs.Add(provID);
         }
 
+        public void AppendRebelStrength(List<ProvinceObject> provs, Empire myEmpire, ref System.Random rnd) //Add to rebel strength
+        {
+            rebelStrength += Math.Max(1,myEmpire.RebelMilIncrease(this, provs) * (float)(rnd.NextDouble())); //Add military strength to rebels
+            float rebelMaxArmy = Math.Max(10,GetRebelMaxArmy(provs, myEmpire)); //Get rebel maximum size
+            if (rebelStrength >= rebelMaxArmy) { rebelStrength = rebelMaxArmy; } 
+        }
+        public float GetRebelMaxArmy(List<ProvinceObject> provs, Empire myEmpire)
+        {
+            //Rebel max army = milincrease * (highest unrest + mean unrest)
+            float milIncrease = myEmpire.RebelMilIncrease(this, provs);
+            float maxUnrest = _provinceIDs.Max(x => provs[x]._unrest);
+            float meanUnrest = _provinceIDs.Average(x => provs[x]._unrest);
+
+            return milIncrease * (maxUnrest + meanUnrest);
+        }
+
+        public void TakeRebelLoss(List<ProvinceObject> provs, float losses, float enemyVicChance, int provCaptured, bool won, Empire myEmpire)
+        {
+            if(_provinceIDs.Count == 0) { myEmpire.AttemptFinishRebels(this); return; }
+            rebelStrength -= losses; //Remove military strength from rebels. This can go negative.
+            if (won) //If won
+            {
+                foreach(int prov in _provinceIDs) //Add unrest proportional to the chance of the empire winning - showing weakness
+                {
+                    provs[prov]._unrest += (1.0f - enemyVicChance);
+                }
+
+                foreach(int prov in myEmpire._componentProvinceIDs)
+                {
+                    provs[prov]._unrest += 0.2f;
+                }
+            }
+            else
+            {
+                _provinceIDs.Remove(provCaptured);
+                provs[provCaptured]._unrest = Math.Min(provs[provCaptured]._unrest * (1.0f - enemyVicChance), myEmpire.GetUnrestCap() / 4.0f); //A captured province loses a lot of unrest
+
+                foreach (int prov in myEmpire._componentProvinceIDs)
+                {
+                    provs[prov]._unrest -= 0.2f;
+                }
+            }
+        }
         public void DetermineType(List<ProvinceObject> provs, Empire myEmpire) //Determine which type of rebellion this will be + target type
         {
             if(myEmpire._cultureID != provs[_provinceIDs[0]]._cultureID) //If non-primary culture
@@ -1850,28 +2073,47 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 float thisCultValue = myEmpire._componentProvinceIDs.Where(x => provs[x]._cultureID == cultureID).Sum(y=>myEmpire.ReturnIndProvVal(provs[y],provs));
                 float primaryCultValue = myEmpire._componentProvinceIDs.Where(x => provs[x]._cultureID == myEmpire._cultureID).Sum(y => myEmpire.ReturnIndProvVal(provs[y], provs));
 
-                if (thisCultValue > primaryCultValue * 0.75f) //If the culture is worth more than 75% of the primary culture value
+                if (thisCultValue > primaryCultValue * 0.30f) //If the culture is worth more than 30% of the primary culture value
                 {
                     _type = RebelType.Culture;
                     targetType = cultureID.ToString();
+                    return;
                 }
             }
-            else if(myEmpire.stateReligion != null && provs[_provinceIDs[0]]._localReligion != null && provs[_provinceIDs[0]]._localReligion != myEmpire.stateReligion)
+             
+            if(myEmpire.stateReligion != null && provs[_provinceIDs[0]]._localReligion != null && provs[_provinceIDs[0]]._localReligion != myEmpire.stateReligion)
             {
                 int relID = provs[_provinceIDs[0]]._localReligion._id;
-                float thisRelVal = myEmpire._componentProvinceIDs.Where(x => provs[x]._localReligion._id == relID).Sum(y => myEmpire.ReturnIndProvVal(provs[y], provs));
-                float primaryRelVal = myEmpire._componentProvinceIDs.Where(x => provs[x]._localReligion._id == myEmpire.stateReligion._id).Sum(y => myEmpire.ReturnIndProvVal(provs[y], provs));
+                float thisRelVal = myEmpire._componentProvinceIDs.Where(x => provs[x]._localReligion != null && provs[x]._localReligion._id == relID).Sum(y => myEmpire.ReturnIndProvVal(provs[y], provs));
+                float primaryRelVal = myEmpire._componentProvinceIDs.Where(x => provs[x]._localReligion != null && provs[x]._localReligion._id == myEmpire.stateReligion._id).Sum(y => myEmpire.ReturnIndProvVal(provs[y], provs));
 
-                if (thisRelVal > primaryRelVal * 0.75f) //If the religion is worth more than 75% of the primary culture value
+                if (thisRelVal > primaryRelVal * 0.30f) //If the religion is worth more than 30% of the primary religion value
                 {
                     _type = RebelType.Religion;
                     targetType = relID.ToString();
+                    return;
                 }
             }
-            else
+            
+            if(provs[_provinceIDs[0]]._population == Property.High && provs[_provinceIDs[0]]._id != myEmpire._componentProvinceIDs[0]) //Seperatists
             {
-                _type = RebelType.Revolution;
+                //TODO maybe add more conditions?
+
+                bool anyAdjacentUnrest = _provinceIDs.Any(x => provs[x]._adjacentProvIDs.Any(y=>provs[y]._unrest >= (myEmpire.GetUnrestCap() / 2.0f)));
+                int cultureID = provs[_provinceIDs[0]]._cultureID;
+
+                if (anyAdjacentUnrest)
+                {
+                    Debug.Log("SEPERATIST MOVEMENT");
+                    _type = RebelType.Separatist;
+                    targetType = cultureID.ToString();
+                    return;
+                }
             }
+
+            //Fallthrough - default
+            
+            _type = RebelType.Revolution;
         }
 
         public void AddAnyAppropriate(List<ProvinceObject> provs, Empire myEmpire, ref List<Rebellion> rebels, float baseUnrest) //And any relevant provinces to set
@@ -1880,20 +2122,23 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             
             foreach(int id in myEmpire._componentProvinceIDs)
             {
-                bool isFree = true;
-                if (rebels.Count > 0)
+                if (id != myEmpire._componentProvinceIDs[0])
                 {
-                    if (rebels.Any(x => x.IsContained(id)))
+                    bool isFree = true;
+                    if (rebels.Count > 0)
                     {
-                        isFree = false;
+                        if (rebels.Any(x => x.IsContained(id)))
+                        {
+                            isFree = false;
+                        }
                     }
-                }
 
-                if(isFree)
-                {
-                    if(IsMember(id,provs) && provs[id]._unrest >= minUnrest) //If appropriate unrest level and fits condition, add to set.
+                    if (isFree)
                     {
-                        _provinceIDs.Add(id);
+                        if (IsMember(id, provs, myEmpire) && provs[id]._unrest >= minUnrest) //If appropriate unrest level and fits condition, add to set.
+                        {
+                            _provinceIDs.Add(id);
+                        }
                     }
                 }
             }   
@@ -1911,11 +2156,13 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             }
             return true;
         }
-        public bool IsMember(int provinceID, List<ProvinceObject> provs) //Checks if this province can become a member of this group
+        public bool IsMember(int provinceID, List<ProvinceObject> provs, Empire empire) //Checks if this province can become a member of this group
         {
+            if(provs[provinceID]._id == empire._componentProvinceIDs[0]) { return false; }
             if(_type == RebelType.Culture && provs[provinceID]._cultureID == Convert.ToInt32(targetType)) { return true; }
             else if (_type == RebelType.Religion && provs[provinceID]._localReligion != null && provs[provinceID]._localReligion._id == Convert.ToInt32(targetType)) { return true; }
-            else if(_type == RebelType.Revolution && _provinceIDs.Any(x => provs[x]._adjacentProvIDs.Contains(provinceID))){ return true; }
+            else if (_type == RebelType.Separatist && _provinceIDs.Any(x => provs[x]._adjacentProvIDs.Contains(provinceID))) { return true; }
+            else if(_type == RebelType.Revolution && _provinceIDs.Any(x => provs[x]._adjacentProvIDs.Contains(provinceID)) && ((float)_provinceIDs.Count() < (float)(empire._componentProvinceIDs.Count()) / 2.0f)){ return true; }
             return false;
         }
     }

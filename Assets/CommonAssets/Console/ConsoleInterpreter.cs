@@ -181,6 +181,31 @@ namespace ConsoleInterpret
                                 " --- " +
                                 commandSplit[2] + "->" + commandSplit[1] + "=" + empires[empTwoID].opinions[empOneID].lastOpinion + "/" + 150.0f;
                         }
+                    case "ADDUNREST": //ADDUNREST (PROVINCEID) (AMOUNT)
+                        {
+                            if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                            int provID = Convert.ToInt32(commandSplit[1]);
+                            float unrestIncrement = (float)Convert.ToDouble(commandSplit[2]);
+                            if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (provs[provID]._ownerEmpire == null) { return "Unowned Province"; }
+
+                            if (Actions.MagicUnrest(provID, provs, unrestIncrement)) { return "Incremented unrest in province"; }
+                            return "Unknown error occured";
+                        }
+                    case "FORCEACTION": //FORCEACTION (EMPIRE) (PERTYPE)
+                        {
+                            //Attempt to force an empire to undertake a certain action
+                            if (commandSplit.Count < 3) { return "Insufficient parameters"; }
+                            int empOneID = Convert.ToInt32(commandSplit[1]);
+                            string perType = commandSplit[2];
+                            if (!ValueLimiter(commandSplit[1], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
+                            if (empires[empOneID]._exists == false) { return "Empire is dead"; }
+                            if (!empires[empOneID].curRuler.rulerPersona.ContainsKey(perType)) { return "Unknown personality action"; }
+                            float chance = empires[empOneID].curRuler.rulerPersona[perType];
+
+                            empires[empOneID].AI(new List<string>() { perType }, ref cultures, empires, provs, ref religions, ref rnd, ref currentDate);
+                            return "Attempted action " + perType + " (initial chance = " + chance + ")";
+                        }
                     default:
                         return "Invalid command";
                 }
