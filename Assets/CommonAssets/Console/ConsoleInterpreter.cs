@@ -39,7 +39,7 @@ namespace ConsoleInterpret
                             if (provs.Count < Convert.ToInt32(commandSplit[1])) { return "Unrecognised integer ID supplied"; }
                             if (!ValueLimiter(commandSplit[1], 0, provs.Count() - 1)) { return "Invalid ID parameters"; }
 
-                            if (Act.Actions.SpawnEmpire(ref provs, Convert.ToInt32(commandSplit[1]), ref empires, ref cultures, ref rnd)) { ForceUpdate(ref loadedMap); return "Spawned new empire"; }
+                            if (Act.Actions.SpawnEmpire(ref provs, Convert.ToInt32(commandSplit[1]), ref empires, ref cultures, ref rnd, ref currentDate)) { ForceUpdate(ref loadedMap); return "Spawned new empire"; }
                             else { return "Could not spawn an empire"; }
                         }
                     case "ADD": //ADD (PROVID) (EMPIREID) - adds to empire without cost or restrictions
@@ -63,7 +63,7 @@ namespace ConsoleInterpret
                             if (commandSplit.Count < 3) { return "Insufficient parameters"; }
                             if (!ValueLimiter(commandSplit[1], 0, empires.Count() - 1)) { return "Invalid ID parameters"; }
                             if (empires[Convert.ToInt32(commandSplit[1])]._exists == false) { return "The target empire is dead"; }
-                            if (Act.Actions.UpdateTech(ref empires, Convert.ToInt32(commandSplit[1]), commandSplit[2])) { return "Updated Tech"; }
+                            if (Act.Actions.UpdateTech(ref empires, Convert.ToInt32(commandSplit[1]), commandSplit[2],1)) { return "Updated Tech"; }
                             else { return "Failed to update tech"; }
                         }
                     case "SPAWNMIL": //SPAWNMIL - spawn military units

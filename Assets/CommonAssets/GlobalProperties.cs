@@ -167,6 +167,8 @@ namespace WorldProperties
         public string _name;
         public float _economyScore; //total of eco scores of all empires inside = economy score
         public string _nameType; //Asian, Colonial, European, Indian, Muslim
+
+        public List<int> _empireRanking; //Temporary storage of the ranks of all empires within the culture economically. This is not saved because it is recalculated
         public Culture(string id, ref System.Random rnd)
         {
             _id = id;
@@ -249,6 +251,14 @@ namespace WorldProperties
                 e.percentageEco = e.ReturnEcoScore(provinces,true) / _economyScore;
             }
 
+            RankEconomy(ref empires);
+
+        }
+
+        public void RankEconomy(ref List<Empire> empires) //Set new rank values for all empires within the set
+        {
+            int myID = Convert.ToInt32(_id);
+            _empireRanking = empires.Where(x => x._cultureID == myID).OrderBy(y => y.percentageEco).Select(z=>z._id).ToList();
         }
 
         public (int milTech, int ecoTech, int dipTech, int logTech, int culTech) CalculateMinTech(ref List<Empire> empires) //Returns the minimum technology for this culture

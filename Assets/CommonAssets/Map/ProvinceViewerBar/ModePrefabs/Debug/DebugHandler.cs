@@ -12,8 +12,16 @@ public class DebugHandler : MonoBehaviour
     public Text cultureID;
     public Text ownerEmpireID;
     public Text religionID;
+
+    private ProvinceObject newSelec;
+    private List<Culture> cultSet;
+    public float updateCounter;
     public void DebugInfo(ProvinceObject newSelection, List<Culture> culturesSet)
     {
+        newSelec = newSelection;
+        cultSet = culturesSet;
+        updateCounter = 0;
+
         provinceID.text = "ID: " + newSelection._id.ToString();
         cultureID.text = "Cult ID: " + newSelection._cultureID.ToString();
 
@@ -33,6 +41,17 @@ public class DebugHandler : MonoBehaviour
         else
         {
             religionID.text = "Religion : No Faith";
+        }
+    }
+
+    void Update()
+    {
+        updateCounter += Time.deltaTime;
+
+        if (updateCounter >= 0.5f)
+        {
+            DebugInfo(newSelec, cultSet);
+            updateCounter = 0;
         }
     }
 }

@@ -160,17 +160,17 @@ public class MapObject
                 float myCultCount = (float)(from cultC in provCultures where cultC.cultID == tProv._cultureID select cultC.counter).FirstOrDefault();
                 float normalisedValue = (myCultCount - cMin) / (cMax - cMin); //Gets value from 0 to 1
 
-                //y = (((-sec(T) / 2) + 1) + (-(E / (x+1)) + (1 / 4)) + (6xcos(F - 1))+(R / (x + 1) - 1) / 10
+                //y = (((T/2)*0.5) + (-(E / (x+1)) + (1 / 4)) + (6xcos(F - 1))+(R / (x + 1) - 1) / 10
                 float elScore = ((int)tProv._elProp - 1);
                 float teScore = ((int)tProv._tmpProp - 1);
                 float rnScore = tProv._rainProp == Property.Low ? 0 : 1;
                 float flScore = tProv._floraProp == Property.Low ? 0 : 1;
 
                 float popScore =
-                    (((-(1 / (float)Math.Cos(teScore)) / 2) + 1) +
-                    (-(elScore / (normalisedValue + 1)) + (1 / 4)) +
-                    ((6 * normalisedValue) * (float)Math.Cos(flScore - 1)) +
-                    ((rnScore / (normalisedValue + 1)) - 1)) / 10;
+                    ((((float)teScore / 2.0f) *0.5f) +
+                    (-(elScore / (normalisedValue + 1.0f)) + (1.0f / 4.0f)) +
+                    ((6 * normalisedValue) * (float)Math.Cos(flScore - 1.0f)) +
+                    ((rnScore / (normalisedValue + 1.0f)) - 1.0f)) / 10.0f;
 
                 if(popScore < -2) { popScore = -2; }
                 if(popScore > 2) { popScore = 2; }

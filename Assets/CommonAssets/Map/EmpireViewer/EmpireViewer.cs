@@ -64,6 +64,7 @@ public class EmpireViewer : MonoBehaviour
     }
     public void UpdateData(Empire target, ref List<Culture> cults, ref List<ProvinceObject> provs, List<Empire> empires)
     {
+        if(target._exists == false) { KillViewer(); Destroy(this.gameObject); return; } //If empire ceases to exist, kill this gameobject
         updateCounter = 0;
         lastEmpire = target;
         lastCults = cults;

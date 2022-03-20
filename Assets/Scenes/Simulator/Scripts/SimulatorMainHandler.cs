@@ -121,7 +121,7 @@ public class SimulatorMainHandler : MonoBehaviour
 
             foreach (Empire tEmp in empires) //Reset opinions
             {
-                tEmp.PollOpinions(ref _date, ref empires, ref provinces, ref cultures);
+                tEmp.UpdateOpinion(ref provinces, ref cultures, ref empires, ref _date);
             }
 
         }
@@ -150,17 +150,17 @@ public class SimulatorMainHandler : MonoBehaviour
                 bool isYearStart = _date.month == 1;
                 foreach(Empire tEmp in empires)
                 {
-                    tEmp.PollOpinions(ref _date, ref empires, ref provinces, ref cultures);
+                    tEmp.AppendTechPoints(provinces, ref cultures, empires, ref _date);
+                    tEmp.UpdateOpinion(ref provinces, ref cultures, ref empires, ref _date);
                     if (isYearStart && tEmp._exists) { tEmp.ReduceUnrest(provinces, ref rnd); } //Reduce the unrest of the nation
                 }
 
             }
             else if (_date.day == 2)
             {
-                Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
-
                 if (_date.month % 3 == 0)
                 {
+                    Act.Actions.UpdateCultures(ref cultures, ref provinces, ref empires);
                     Act.Actions.UpdateMilitary(ref cultures, ref empires, ref provinces, ref rnd);
                 }
             }
@@ -289,7 +289,6 @@ public class SimulatorMainHandler : MonoBehaviour
 
                             for (int i = 0; i < spreadCount; i++)
                             {
-                                Debug.Log("SPREADING " + rel._id + ":" + rel._name);
                                 ProvinceObject tProv = applicableProvs[rnd.Next(0, applicableProvs.Count())];
                                 List<ProvinceObject> adjProvs = tProv._adjacentProvIDs.Where(y => provinces[y]._biome != 0 && provinces[y]._localReligion != rel).Select(x => provinces[x]).ToList();
 
@@ -322,7 +321,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd, ref _date);
                     }
                     else
                     {
@@ -344,7 +343,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd, ref _date);
                     }
                     else
                     {
@@ -367,7 +366,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd, ref _date);
                     }
                     else
                     {
@@ -393,7 +392,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd, ref _date);
                     }
                     else
                     {
@@ -416,7 +415,7 @@ public class SimulatorMainHandler : MonoBehaviour
                     if (applicableProvs.Count > 0)
                     {
                         int tID = applicableProvs[rnd.Next(0, applicableProvs.Count)]._id;
-                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd);
+                        Act.Actions.SpawnEmpire(ref provinces, tID, ref empires, ref cultures, ref rnd, ref _date);
                     }
                     else
                     { } //Since is the default, if there are no possibilities, then it must do nothing

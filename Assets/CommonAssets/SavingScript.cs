@@ -505,6 +505,7 @@ namespace SaveLoad
                     empData.WriteAttributeString("Rival", opin._rival.ToString());
                     empData.WriteAttributeString("Ally", opin._ally.ToString());
                     empData.WriteAttributeString("War", opin._isWar.ToString());
+                    empData.WriteAttributeString("IsRebels", opin.isRebels == null ? "NULL" : opin.isRebels.ToString());
 
                     empData.WriteAttributeString("ExhaustCap", opin._maxWarExhaustion.ToString());
                     empData.WriteAttributeString("Disputes", opin._capturedProvinces.ToString());
@@ -654,6 +655,7 @@ namespace SaveLoad
                     newOp._rival = (Convert.ToBoolean(opinions.Attributes["Rival"].Value.ToString()));
                     newOp._ally = (Convert.ToBoolean(opinions.Attributes["Ally"].Value.ToString()));
                     newOp._isWar = (Convert.ToBoolean(opinions.Attributes["War"].Value.ToString()));
+                    newOp.isRebels = opinions.Attributes["IsRebels"].Value.ToString() == "NULL" ? null : (RebelType?)Enum.Parse(typeof(RebelType), opinions.Attributes["IsRebels"].Value.ToString());
 
                     newOp._maxWarExhaustion = (float)(Convert.ToDouble(opinions.Attributes["ExhaustCap"].Value.ToString()));
                     newOp._capturedProvinces = (float)(Convert.ToDouble(opinions.Attributes["Disputes"].Value.ToString()));

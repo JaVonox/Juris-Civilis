@@ -18,12 +18,12 @@ namespace Act
             debugRef.SetActive(!debugRef.activeSelf);
         }
 
-        public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires, ref List<Culture> cultures, ref System.Random rnd)
+        public static bool SpawnEmpire(ref List<ProvinceObject> provs, int provID, ref List<Empire> empires, ref List<Culture> cultures, ref System.Random rnd, ref Date curDate)
         {
             if(provs[provID]._biome == 0) { return false; } //Prevent ocean takeover
             if (provs[provID]._ownerEmpire == null)
             {
-                Empire newEmp = new Empire(provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs, ref rnd);
+                Empire newEmp = new Empire(provs[provID]._cityName, provs[provID], ref cultures, ref empires, ref provs, ref rnd, ref curDate);
 
                 if(empires.Count() - 1 < newEmp._id)
                 {
@@ -117,12 +117,11 @@ namespace Act
 
             foreach (Empire x in impactedEmpires)
             {
-                int valueMod = -5;
-                if(x.opinions[aggressorEmpire._id]._rival || x.ReturnProvPersonalVal(targetProv,provs,true) >= aggressorEmpire.ReturnProvPersonalVal(targetProv,provs,true))
+                if(x.opinions[aggressorEmpire._id]._rival && x.ReturnAdjacentIDs(ref provs,true).Contains(targetProv._id))
                 {
-                    valueMod -= 10; //Increased negative modifier if rival or the impacted empire has a greater personal value on the province than the aggressor
+                    int valueMod = -10; //Increased negative modifier if rival nation is adjacent
+                    empireMods.Add(x, (valueMod, 1825, "COLONY")); //Making new colonies gives a (-10) 5 year penalty. This can stack per colony.
                 }
-                empireMods.Add(x, (valueMod, 1825,"COLONY")); //Making new colonies gives a (-5 to -15) 5 year penalty. This can stack per colony.
             }
 
             return empireMods;
@@ -150,18 +149,32 @@ namespace Act
 
             if(modifier < 1) { modifier = Math.Max(0.1f,Math.Min(1,1-(Math.Abs(modifier) / 10.0f))); } //If modifier is less than 1, set it to become reduction modifiers.
             int cost = Math.Max(Convert.ToInt32(Math.Min(Math.Ceiling((aggressorEmpire.ExpectedMilIncrease(ref provs) * 12.0f) * modifier), Math.Max(1, aggressorEmpire.maxMil))), Convert.ToInt32(Math.Floor(BaseCost * (modifier))));
+            cost = Convert.ToInt32(Math.Floor((float)(cost) * 0.5f)); //Half the cost 
+
+            if(targetProv._vertices.Count == 3)
+            {
+                cost = Convert.ToInt32(Math.Floor((float)(cost) * 0.5f)); //Half the cost for small provinces. stacks with
+            }
+
+            cost = Math.Max(1, cost);
 
             {
                 List<int> adjacentProvIds = provs.First(x => x._id == targetProv._id)._adjacentProvIDs;
                 List<ProvinceObject> adjacentProvs = provs.Where(x=>adjacentProvIds.Contains(x._id) && x._biome != 0).ToList();
-                //Reduced cost if all provinces adjacent are owned by the aggressor
+                //Reduced cost if all provinces adjacent are owned
                 if(adjacentProvs.Count > 0) 
                 {
-                    if(adjacentProvs.All(x=>x._ownerEmpire == aggressorEmpire || x._biome == 0))
+                    if(adjacentProvs.All(x=>x._ownerEmpire == aggressorEmpire || x._biome == 0)) //If all adjacents are the empire in question
                     {
                         int reducedCost = Math.Max(1,Convert.ToInt32(Math.Floor(aggressorEmpire.ExpectedMilIncrease(ref provs))));
                         return (reducedCost < cost ? reducedCost : cost);
                     }
+                    else if(adjacentProvs.All(x => x._ownerEmpire != null || x._biome == 0)) //If all adjacents are occupied, but not by the empire
+                    {
+                        int reducedCost = Math.Max(1, Convert.ToInt32(Math.Floor(aggressorEmpire.ExpectedMilIncrease(ref provs)*1.5f)));
+                        return (reducedCost < cost ? reducedCost : cost);
+                    }
+
                 }
             }
             return cost;
@@ -217,7 +230,7 @@ namespace Act
             int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.maxMil / (float)Math.Min(6, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) > aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.maxMil / (float)Math.Min(6,Math.Max(2,aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size 
             int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + defenderEmpire.maxMil / (float)Math.Min(6, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())) > defenderEmpire.maxMil ? defenderEmpire.curMil : 10.0f + defenderEmpire.maxMil / (float)Math.Min(6, Math.Max(2, defenderEmpire._componentProvinceIDs.Count())))); //Defender army size
 
-            float defenderModifier = 1.2f;
+            float defenderModifier = 1.1f;
             {
                 if(targetProv._elProp == Property.High || targetProv._elProp == Property.Medium) { defenderModifier+=1.5f; } //Height advantage
                 if(targetProv._isCoastal == true) { defenderModifier += 0.5f; } //Seige immunity
@@ -225,6 +238,12 @@ namespace Act
                 else if(targetProv._tmpProp == Property.High && ((float)(aggressorEmpire._componentProvinceIDs.Count(x=>provs[x]._tmpProp == Property.High)) / 2.0f) < aggressorEmpire._componentProvinceIDs.Count())
                 {
                     defenderModifier+=0.5f; //If the attacker is not prepared for high temperature wars
+                }
+
+                if(defenderEmpire.milTech > aggressorEmpire.milTech) //Mil tech increases chance
+                {
+                    float dif = ((float)(defenderEmpire.milTech) - (float)(aggressorEmpire.milTech)) / 10.0f;
+                    defenderModifier += dif;
                 }
             }
             //Max mod = 4
@@ -241,6 +260,12 @@ namespace Act
                     }
                 }
                 if(targetProv._localReligion == null || aggressorEmpire.stateReligion == null || targetProv._localReligion != aggressorEmpire.stateReligion) { attackerModifier += 0.5f; } //Religious war bonus
+
+                if (aggressorEmpire.milTech > defenderEmpire.milTech)//Mil tech increases chance
+                {
+                    float dif = ((float)(aggressorEmpire.milTech) - (float)(defenderEmpire.milTech)) / 10.0f;
+                    attackerModifier += dif;
+                }
             }
             //Max mod = 3.3 
 
@@ -271,6 +296,7 @@ namespace Act
         {
             int fieldedAttacker = Convert.ToInt32(Math.Floor(rebelGroup.rebelStrength));
             int fieldedDefender = Convert.ToInt32(Math.Floor(defenderEmpire.curMil));
+            if(defenderEmpire._componentProvinceIDs.Count == 0) { return false; }
             ProvinceObject targetProv = provs[defenderEmpire._componentProvinceIDs[0]];
 
 
@@ -390,8 +416,8 @@ namespace Act
             attRed = 1.0f - Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f)) + (3 * attOffset)); //attacker loss reduction multiplier
             defRed = 1.0f - Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f)) + (3 * defOffset)); //defender loss reduction multiplie
 
-            float attackExactLosses = Math.Min((float)Math.Max(1.0f, attRed * (float)(fieldedAttacker)), (float)(fieldedAttacker));
-            float defExactLosses = Math.Min((float)Math.Max(1.0f, defRed * (float)(fieldedDefender)), (float)(fieldedDefender));
+            float attackExactLosses = Math.Min((float)Math.Max(1.0f, attRed * (float)(fieldedAttacker)), (float)(fieldedAttacker)) * 0.3f;
+            float defExactLosses = Math.Min((float)Math.Max(1.0f, defRed * (float)(fieldedDefender)), (float)(fieldedDefender)) * 0.6f;
 
             aggressorEmpire.TakeLoss(attackExactLosses, won, true, null, targetProv, ref provs);
             rebelGroup.TakeRebelLoss(provs, defExactLosses, rebelSupressChance, targetProvID, !won,aggressorEmpire);
@@ -424,8 +450,8 @@ namespace Act
             attRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(aggressorEmpire.logTech)) / 50.0f) - 1.0f))+(3*attOffset)); //attacker loss reduction multiplier
             defRed = 1.0f-Math.Min(0.85f, Math.Max(0.3f, 0.3f + (Math.Min(85.0f, ((float)(defenderEmpire.logTech)) / 50.0f) - 1.0f))+(3*defOffset)); //defender loss reduction multiplie
 
-            float attackExactLosses = Math.Min((float)Math.Max(1.0f,attRed * stats.attField),stats.attField);
-            float defExactLosses = Math.Min((float)Math.Max(1.0f,defRed * stats.defField),stats.defField);
+            float attackExactLosses = Math.Min((float)Math.Max(1.0f,attRed * stats.attField),stats.attField) * 0.5f;
+            float defExactLosses = Math.Min((float)Math.Max(1.0f,defRed * stats.defField),stats.defField) * 0.5f;
 
             aggressorEmpire.TakeLoss(attackExactLosses,attackerWon,true, defenderEmpire,targetProv, ref provs);
             defenderEmpire.TakeLoss(defExactLosses,!attackerWon,false, aggressorEmpire, targetProv, ref provs);
@@ -510,7 +536,7 @@ namespace Act
             return true;
         }
 
-        public static bool UpdateTech(ref List<Empire> empires, int id, string type)
+        public static bool UpdateTech(ref List<Empire> empires, int id, string type, int amount)
         { 
             if(empires[id]._exists == false)
             {
@@ -520,19 +546,19 @@ namespace Act
             switch(type)
             {
                 case "Military":
-                    empires[id].milTech += 1;
+                    empires[id].milTech += amount;
                     return true;
                 case "Economic":
-                    empires[id].ecoTech += 1;
+                    empires[id].ecoTech += amount;
                     return true;
                 case "Diplomacy":
-                    empires[id].dipTech += 1;
+                    empires[id].dipTech += amount;
                     return true;
                 case "Logistics":
-                    empires[id].logTech += 1;
+                    empires[id].logTech += amount;
                     return true;
                 case "Culture":
-                    empires[id].culTech += 1;
+                    empires[id].culTech += amount;
                     return true;
                 default:
                     return false;
@@ -630,7 +656,6 @@ namespace Act
         public static bool DiplomaticEnvoy(Empire recvEmpire, Empire sendEmpire, (int day, int month, int year) curDate, ref System.Random rnd, ref List<Empire> empires)
         {
             if (!recvEmpire.opinions.ContainsKey(sendEmpire._id)) { return false; }
-            Opinion tOp = recvEmpire.opinions[sendEmpire._id];
 
             Date tmpDate = new Date();
             tmpDate.day = curDate.day;
@@ -753,6 +778,14 @@ namespace Act
                         foreach (int provID in myEmpire._componentProvinceIDs)
                         {
                             provs[provID]._unrest += 0.5f * multiplier;
+                        }
+                        return;
+                    }
+                case "lostRebelBattle": //When lost more provinces in a war than taken
+                    {
+                        foreach (int provID in myEmpire._componentProvinceIDs)
+                        {
+                            provs[provID]._unrest += 0.1f * multiplier;
                         }
                         return;
                     }

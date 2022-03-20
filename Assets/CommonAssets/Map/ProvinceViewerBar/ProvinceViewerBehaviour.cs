@@ -31,6 +31,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
     private ProvinceObject lastSelection;
     private List<Culture> culturesSet;
     private List<ProvinceObject> provsSet;
+    private List<Religion> relSet;
     private List<Empire> empSet;
     public void Start()
     {
@@ -91,7 +92,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
         activeInfoScreen = null;
         activeInfoScreen = Instantiate(basicsPrefab, container.transform, false);
-        activeInfoScreen.GetComponent<BasicsHandler>().BasicsInfo(newSelection, culturesSet);
+        activeInfoScreen.GetComponent<BasicsHandler>().BasicsInfo(newSelection, culturesSet, relSet,empSet,provsSet);
         container.SetActive(true);
     }
     public void LoadDebug(ProvinceObject newSelection)
@@ -114,12 +115,13 @@ public class ProvinceViewerBehaviour : MonoBehaviour
     {
         actionRef[(int)activeInfoMode](lastSelection);
     }
-    public void DisplayProvince(ProvinceObject newSelection, ref List<Culture> cultures, ref List<ProvinceObject> provs, ref List<Empire> empires) //Updates the selection based on the provincial data provided
+    public void DisplayProvince(ProvinceObject newSelection, ref List<Culture> cultures, ref List<ProvinceObject> provs, ref List<Empire> empires, ref List<Religion> religions) //Updates the selection based on the provincial data provided
     {
         lastSelection = newSelection;
         if(culturesSet == null) { culturesSet = cultures; }
         if(provsSet == null) { provsSet = provs; }
         if(empSet == null) { empSet = empires; }
+        if(relSet == null) { relSet = religions; }
 
         actionRef[(int)activeInfoMode](newSelection);
     }
