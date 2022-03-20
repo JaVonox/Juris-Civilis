@@ -473,7 +473,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     newTechPoints *= techMultiplier;
                 }
 
-                if(ReturnTechTotal() > Convert.ToInt32(Math.Ceiling((float)(curDate.year) / 10.0f))) { newTechPoints *= 0.25f; } //If ahead of time, slow speed.
+                if(ReturnTechTotal() > Convert.ToInt32(Math.Ceiling((float)(curDate.year) / 2.0f))) { newTechPoints *= 0.25f; } //If ahead of time, slow speed.
 
                 techPoints += Convert.ToInt32(Math.Ceiling(newTechPoints));
             }
