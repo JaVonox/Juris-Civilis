@@ -350,8 +350,10 @@ namespace Act
 
         public static bool SupressRebels(Empire aggressorEmpire, Rebellion rebelGroup, List<ProvinceObject> provs, ref System.Random rnd, int targetProvID)
         {
-            int fieldedDefender = Convert.ToInt32(Math.Floor(10.0f + rebelGroup.GetRebelMaxArmy(provs,aggressorEmpire) / (float)Math.Min(6, Math.Max(2, rebelGroup._provinceIDs.Count())) > rebelGroup.rebelStrength ? rebelGroup.rebelStrength : 10.0f + rebelGroup.GetRebelMaxArmy(provs, aggressorEmpire) / (float)Math.Min(6, Math.Max(2, rebelGroup._provinceIDs.Count())))); //Attacker army size
-            int fieldedAttacker = Convert.ToInt32(Math.Floor(10.0f + aggressorEmpire.maxMil / (float)Math.Min(6, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())) > aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())))); //Attacker army size
+            int fieldedDefender = Convert.ToInt32(Math.Min(100000,Math.Max(1,
+                Math.Floor(10.0f + rebelGroup.GetRebelMaxArmy(provs,aggressorEmpire) / (float)(Math.Min(6, Math.Max(2, rebelGroup._provinceIDs.Count()))) > rebelGroup.rebelStrength ? rebelGroup.rebelStrength : 10.0f + rebelGroup.GetRebelMaxArmy(provs, aggressorEmpire) / (float)Math.Min(6, Math.Max(2, rebelGroup._provinceIDs.Count())))))); //Defender army size
+            int fieldedAttacker = Convert.ToInt32(Math.Min(100000, Math.Max(1, 
+                Math.Floor(10.0f + aggressorEmpire.maxMil / (float)(Math.Min(6, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count()))) > aggressorEmpire.curMil ? aggressorEmpire.curMil : 10.0f + aggressorEmpire.curMil / (float)Math.Min(4, Math.Max(2, aggressorEmpire._componentProvinceIDs.Count())))))); //Attacker army size
             fieldedAttacker = Convert.ToInt32(Math.Floor(Math.Min(fieldedDefender * 1.5f, fieldedAttacker))); 
             ProvinceObject targetProv = provs[targetProvID];
 
@@ -716,9 +718,9 @@ namespace Act
             float multiplier = 1.0f;
 
             //Multipliers for various negative impacts
-            if (myEmpire._componentProvinceIDs.Count > Math.Max(5, myEmpire.culTech)) { multiplier += .25f; }
-            if(myEmpire._componentProvinceIDs.Any(x=>provs[x]._unrest > myEmpire.GetUnrestCap() && (myEmpire.rebels.Count == 0 || !myEmpire.rebels.Any(y => y.IsContained(x))))){ multiplier += .25f; }
-            if(myEmpire.rebels.Count > 0) { multiplier += .1f; }
+            if (myEmpire._componentProvinceIDs.Count > Math.Max(5, myEmpire.culTech)) { multiplier += 0.25f; }
+            if(myEmpire._componentProvinceIDs.Any(x=>provs[x]._unrest > myEmpire.GetUnrestCap() && (myEmpire.rebels.Count == 0 || !myEmpire.rebels.Any(y => y.IsContained(x))))){ multiplier += 0.25f; }
+            if(myEmpire.rebels.Count > 0) { multiplier += 0.1f; }
             //TODO add for increasing unrest when declaring war on empire of non-primary culture
 
             if (!myEmpire._exists) { return; }

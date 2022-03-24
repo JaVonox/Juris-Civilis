@@ -79,7 +79,17 @@ namespace WorldProperties
         public Religion _localReligion;
         public int _cultureID;
         public string updateText = ""; //Text to display for province updates
-        public float _unrest; //How likely a province is to rebel
+        private float unrest;//How likely a province is to rebel
+        public float _unrest //Accessor for unrest value
+        { 
+            //Accessor rules to check for NaN
+            get { return unrest; }
+            set
+            {
+                if(value == float.NaN) { unrest = 0; Debug.Log("UNREST BECOMES NAN"); return; }
+                else { unrest = value; return; }
+            }
+        }
 
         //Simulation variables
         public Empire _ownerEmpire;
@@ -107,6 +117,11 @@ namespace WorldProperties
                     _vertices.Add(new Vector3(compChunk.vertices[v].x, compChunk.vertices[v].y, 0));
                 }
             }
+        }
+
+        private void UnrestChecker()
+        {
+
         }
         public ProvinceObject()
         {

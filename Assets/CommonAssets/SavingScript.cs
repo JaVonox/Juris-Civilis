@@ -242,7 +242,7 @@ namespace SaveLoad
                 xmlWriter.WriteEndElement();
 
                 xmlWriter.WriteStartElement("Unrest");
-                xmlWriter.WriteString(tProv._unrest.ToString());
+                xmlWriter.WriteString((tProv._unrest == float.NaN ? "0" : tProv._unrest.ToString()));
                 xmlWriter.WriteEndElement();
 
                 xmlWriter.WriteStartElement("Owner");
@@ -304,7 +304,7 @@ namespace SaveLoad
                 loadedProv._tmpProp = (Property)Enum.Parse(typeof(Property), provNode["Temperature"].InnerText);
                 loadedProv._rainProp = (Property)Enum.Parse(typeof(Property), provNode["Rainfall"].InnerText);
                 loadedProv._floraProp = (Property)Enum.Parse(typeof(Property), provNode["Flora"].InnerText);
-                loadedProv._unrest = (float)Convert.ToDouble(provNode["Unrest"].InnerText);
+                loadedProv._unrest = (float)Convert.ToDouble(provNode["Unrest"].InnerText == "NaN" ? "0" : provNode["Unrest"].InnerText);
 
                 if (provNode["Owner"].InnerText != "")
                 {
@@ -593,7 +593,7 @@ namespace SaveLoad
             {
                 XmlNode provNode = provFile.SelectSingleNode("/Provinces/Province[@ID='" + tProv._id.ToString() + "']"); //Get the node with the appropriate ID
                 provNode["Owner"].InnerText = tProv._ownerEmpire == null ? "" : tProv._ownerEmpire._id.ToString();
-                provNode["Unrest"].InnerText = tProv._ownerEmpire == null ? "0" : tProv._unrest.ToString();
+                provNode["Unrest"].InnerText = tProv._ownerEmpire == null ? "0" : (tProv._unrest == float.NaN ? "0" : tProv._unrest.ToString());
                 provNode.Attributes["ReligionID"].Value = tProv._localReligion == null ? "NULL" : tProv._localReligion._id.ToString();
             }
 
