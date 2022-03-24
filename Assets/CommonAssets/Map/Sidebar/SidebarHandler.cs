@@ -42,6 +42,7 @@ public class SidebarHandler : MonoBehaviour
     private bool panelOut; //Stores if the panel is expanded or not
     private bool animating;
 
+    private float myWidth;
     private float movementLeft;
     private Vector3 initPos;
     void Start()
@@ -49,6 +50,7 @@ public class SidebarHandler : MonoBehaviour
         panelOut = false;
         animating = false;
         activeMapMode = (mapModesEnum)0; //set to geographic mode
+        myWidth = ((RectTransform)(panel.transform)).rect.width;
     }
     void Update()
     {
@@ -108,11 +110,12 @@ public class SidebarHandler : MonoBehaviour
     private void GetMovement(int dir) //Moves the panel dynamically
     {
         const float expectedSeconds = 0.5f; 
-        float step = (150 / expectedSeconds) * Time.deltaTime;
+        float step = (myWidth / expectedSeconds) * Time.deltaTime;
         
         if(step > movementLeft)
         {
-            panel.transform.position = new Vector3(initPos.x + (dir * 150), initPos.y,initPos.z);
+
+            panel.transform.position = new Vector3(initPos.x + (dir * myWidth), initPos.y,initPos.z);
 
             //End of animation sequence
             animating = false;
@@ -145,7 +148,7 @@ public class SidebarHandler : MonoBehaviour
             resetCamera.enabled = false;
 
             initPos = new Vector3(panel.transform.position.x, panel.transform.position.y, panel.transform.position.z);
-            movementLeft = 150;
+            movementLeft = myWidth;
             if (!panelOut)
             {
                 animating = true;

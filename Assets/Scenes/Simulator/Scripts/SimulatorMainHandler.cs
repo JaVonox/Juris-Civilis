@@ -19,7 +19,7 @@ public class SimulatorMainHandler : MonoBehaviour
     private GameObject provinceDetailsScreen;
     private GameObject startScreen;
     private GameObject consoleObject;
-    public GameObject Camera;
+    public GameObject CameraObj;
 
     int mapWidth = 6000;
     int mapHeight = 4000;
@@ -59,11 +59,11 @@ public class SimulatorMainHandler : MonoBehaviour
         religions = new List<Religion>();
 
         exitButton.GetComponent<Button>().onClick.AddListener(ExitScene);
-        Camera.GetComponent<CameraScript>().enabled = false; //Allows camera movement
+        CameraObj.GetComponent<CameraScript>().enabled = false; //Allows camera movement
 
-        startScreen = Instantiate(startPrefab, Camera.transform, false); //Create new start screen instance
+        startScreen = Instantiate(startPrefab, CameraObj.transform, false); //Create new start screen instance
         startScreen.GetComponent<FileBrowserBehaviour>().startBtn.onClick.AddListener(delegate { StartLoad(); });
-
+        startScreen.GetComponentInChildren<Canvas>().worldCamera = Camera.main;
         pause.interactable = false;
         normal.interactable = false;
         fast.interactable = false;
@@ -102,14 +102,17 @@ public class SimulatorMainHandler : MonoBehaviour
             loadMap = Instantiate(loadMapPrefab, null); //Create new map instance
             loadMap.name = "Map";
 
-            panelScreen = Instantiate(panelPrefab, Camera.transform, false); //Add control panel
-            provinceDetailsScreen = Instantiate(provinceDetailsPrefab, Camera.transform, false); //Add provViewer
-            consoleObject = Instantiate(consolePrefab, Camera.transform, false); //Add console
+            panelScreen = Instantiate(panelPrefab, CameraObj.transform, false); //Add control panel
+            provinceDetailsScreen = Instantiate(provinceDetailsPrefab, CameraObj.transform, false); //Add provViewer
+            consoleObject = Instantiate(consolePrefab, CameraObj.transform, false); //Add console
             consoleObject.GetComponent<ConsoleScript>().LoadConsole(ref provinceDetailsScreen, ref provinces, ref cultures, ref empires, ref loadMap, ref religions, ref _date, ref rnd);
             ToggleConsole();
 
+            //Setting world view data
+            provinceDetailsPrefab.GetComponentInChildren<Canvas>().worldCamera = Camera.main;
+
             loadMap.GetComponent<LoadMap>().ApplyProperties(mapWidth, mapHeight, ref provinces, ref cultures, ref panelScreen, ref provinceDetailsScreen, ref mapTexture, ref maskTexture, ref religions, ref empires);
-            loadMap.GetComponent<LoadMap>().StartMap(ref Camera);
+            loadMap.GetComponent<LoadMap>().StartMap(ref CameraObj);
 
             pause.onClick.AddListener(delegate { Calendar.Calendar.PauseTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
             normal.onClick.AddListener(delegate { Calendar.Calendar.NormalTime(ref simSpeed, ref pause, ref normal, ref fast, ref veryFast); });
@@ -430,7 +433,7 @@ public class SimulatorMainHandler : MonoBehaviour
         //Toggle camera mode and console mode with tilde
 
         consoleObject.gameObject.SetActive(consoleIsActive);
-        Camera.GetComponent<CameraScript>().enabled = !consoleIsActive;
+        CameraObj.GetComponent<CameraScript>().enabled = !consoleIsActive;
 
         if(consoleIsActive)
         {

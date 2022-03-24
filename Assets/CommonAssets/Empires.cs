@@ -475,6 +475,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 }
 
                 techPoints += Convert.ToInt32(Math.Max(2,Math.Ceiling(newTechPoints))); //Tech points from 2 to 16
+                techPoints = Math.Min(techPoints, 1200);
             }
         }
         public void RebelAI(Rebellion thisRebel, ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date)
@@ -777,7 +778,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         {
                             if (techPoints >= 1000)
                             {
-                                techPoints = techPoints-1000; //Reset tech score
+                                techPoints = 0; //Reset tech score
 
                                 string devTech = curRuler.ReturnNextTech(this, ref rnd);
                                 ref int techVar = ref TechStringToVar(devTech);
