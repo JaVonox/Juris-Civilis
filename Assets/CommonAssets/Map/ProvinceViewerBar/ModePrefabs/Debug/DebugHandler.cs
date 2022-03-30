@@ -5,21 +5,24 @@ using UnityEngine;
 using UnityEngine.UI;
 using WorldProperties;
 using ProvViewEnums;
-
+using Empires;
 public class DebugHandler : MonoBehaviour
 {
     public Text provinceID;
     public Text cultureID;
     public Text ownerEmpireID;
     public Text religionID;
+    public Text techPoints;
 
     private ProvinceObject newSelec;
     private List<Culture> cultSet;
+    private List<Empire> empSet;
     public float updateCounter;
-    public void DebugInfo(ProvinceObject newSelection, List<Culture> culturesSet)
+    public void DebugInfo(ProvinceObject newSelection, List<Culture> culturesSet, List<Empire> emps)
     {
         newSelec = newSelection;
         cultSet = culturesSet;
+        empSet = emps;
         updateCounter = 0;
 
         provinceID.text = "ID: " + newSelection._id.ToString();
@@ -28,10 +31,12 @@ public class DebugHandler : MonoBehaviour
         if(newSelection._ownerEmpire != null)
         {
             ownerEmpireID.text = "OwnerID : " + newSelection._ownerEmpire._id.ToString();
+            techPoints.text = "Tech: " + emps[newSelection._ownerEmpire._id].techPoints + "/250";
         }
         else
         {
             ownerEmpireID.text = "Owner : No Owner";
+            techPoints.text = "";
         }
 
         if (newSelection._localReligion != null)
@@ -50,7 +55,7 @@ public class DebugHandler : MonoBehaviour
 
         if (updateCounter >= 0.5f)
         {
-            DebugInfo(newSelec, cultSet);
+            DebugInfo(newSelec, cultSet,empSet);
             updateCounter = 0;
         }
     }

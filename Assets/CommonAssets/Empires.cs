@@ -62,11 +62,21 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             }
 
             _exists = true;
-            _empireName = name;
+
             _componentProvinceIDs.Add(startingProvince._id);
             startingProvince.NewOwner(this, empires); //Append self to set of owner
             _componentProvinceIDs.ListChanged += CheckEmpireExists;
-            _empireCol = startingProvince._provCol;
+
+            if (empires.Any(x => x._empireName == name && x._exists))
+            {
+                _empireName = "New " + name;
+                _empireCol = new Color(((float)rnd.Next(0, 100)) / 100.0f, ((float)rnd.Next(0, 100)) / 100.0f, ((float)rnd.Next(0, 100)) / 100.0f);
+            }
+            else
+            {
+                _empireName = name;
+                _empireCol = startingProvince._provCol;
+            }
 
             _cultureID = startingProvince._cultureID;
             stateReligion = startingProvince._localReligion != null ? startingProvince._localReligion : null;
@@ -151,6 +161,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
         private void UpdateNation(List<ProvinceObject> provs) //Updates capital if needed
         {
+            if(_componentProvinceIDs.Count == 0)
+            {
+                _exists = false;
+            }
+
             if (_exists)
             {
                 
@@ -162,9 +177,13 @@ namespace Empires //Handles empires and their existance. Actions they may take a
 
                 if(provs[_componentProvinceIDs[0]]._cityName != _empireName && _componentProvinceIDs.Any(x=>provs[x]._cityName == _empireName)) //Make the original capital the capital again
                 {
-                    int capitalIndex = _componentProvinceIDs.IndexOf(provs.First(x => x._cityName == _empireName)._id);
-                    _componentProvinceIDs[capitalIndex] = _componentProvinceIDs[0];
-                    _componentProvinceIDs[0] = provs.First(x => x._cityName == _empireName)._id;
+                    int capitalIndex = _componentProvinceIDs.IndexOf(_componentProvinceIDs.First(x => provs[x]._cityName == _empireName));
+
+                    int zeroID = _componentProvinceIDs[0];
+                    int capID = _componentProvinceIDs[capitalIndex];
+
+                    _componentProvinceIDs[capitalIndex] = zeroID;
+                    _componentProvinceIDs[0] = capID;
 
                     if (provs[_componentProvinceIDs[0]]._cultureID != _cultureID) //Update the culture if the capital is no longer the correct culture
                     {
@@ -260,14 +279,12 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         public void RecalculateMilMax(List<ProvinceObject> provinces) //Finds the appropriate max military. Redone every time mil is recruited
         {
             maxMil = Convert.ToInt32(Math.Floor(Math.Min(100000000,
-                (20.0f) + ((float)(milTech) * 40.0f) + (ReturnProvsVal(provinces) * 10.0f))));
+                (20.0f) + ((float)(milTech) * 70.0f) + (ReturnProvsVal(provinces) * 20.0f))));
         }
         public float ExpectedMilIncrease(ref List<ProvinceObject> provinces)
         {
             float milInc = ((float)Math.Round(1.0f+(float)Math.Min(100000000,
-                ReturnEcoScore(provinces,true)/2.0f),2));
-
-            if (occupationCooldown > 0) { milInc /= 2.0f; } //During war, military recruitment is slowed to provide reinforcements
+                ReturnEcoScore(provinces,true)),2));
 
             return milInc;
         }
@@ -389,7 +406,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 {
 
                     //Chance of ruler making an action
-                    double actChance = Math.Min(0.85f, ((float)(dipTech) / 300.0f));
+                    double actChance = Math.Min(0.15f, ((float)(dipTech) / 600.0f));
                     if (rnd.NextDouble() <= actChance)
                     {
                         AI(curRuler.CalculateRandomActsOrder(ref rnd), ref cultures, empires, provs, ref religions, ref rnd, ref currentDate);
@@ -398,7 +415,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     {
                         foreach (Rebellion r in rebels.ToArray())
                         {
-                            actChance = Math.Min(0.85f, ((float)(dipTech) / 300.0f));
+                            actChance = Math.Min(0.15f, ((float)(dipTech) / 300.0f));
                             if (rnd.NextDouble() <= actChance)
                             {
                                 RebelAI(r,ref cultures, empires, provs, ref religions, ref rnd, ref currentDate);
@@ -436,26 +453,45 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         }
         public void ReduceUnrest(List<ProvinceObject> provs, ref System.Random rnd)
         {
-            if (rnd.NextDouble() < curRuler.rulerPersona["per_Calm"])
+            if (_exists)
             {
-                List<ProvinceObject> unrestToReduce = _componentProvinceIDs.Where(x => provs[x]._unrest > 1.0f && (rebels.Count == 0 || !rebels.Any(y=>y.IsContained(x)))).Select(y => provs[y]).ToList();
-
-                if(unrestToReduce.Count() > 0)
+                if (rnd.NextDouble() < curRuler.rulerPersona["per_Calm"])
                 {
-                    float unrestReduction = curRuler.rulerPersona["per_Calm"] + (0.03f * (float)(culTech));
-                    float multiplier = (float)((float)(rnd.NextDouble()) / 2.0f);
+                    List<ProvinceObject> unrestToReduce = _componentProvinceIDs.Where(x => provs[x]._unrest > 1.0f && (rebels.Count == 0 || !rebels.Any(y => y.IsContained(x)))).Select(y => provs[y]).ToList();
 
-                    unrestReduction = unrestReduction * multiplier;
-                    int reduceTargets = rnd.Next(1, unrestToReduce.Count+1);
-                    foreach(ProvinceObject redProv in unrestToReduce)
+                    if (unrestToReduce.Count() > 0)
                     {
-                        if(reduceTargets <= 0) { break; }
-                        redProv._unrest -= unrestReduction;
-                        if(redProv._unrest < -2) { redProv._unrest = -2; }
-                        reduceTargets--;
+                        float unrestReduction = curRuler.rulerPersona["per_Calm"] + (0.03f * (float)(culTech));
+                        float multiplier = (float)((float)(rnd.NextDouble()) / 2.0f);
+
+                        unrestReduction = unrestReduction * multiplier;
+                        int reduceTargets = rnd.Next(1, unrestToReduce.Count + 1);
+                        foreach (ProvinceObject redProv in unrestToReduce)
+                        {
+                            if (reduceTargets <= 0) { break; }
+                            redProv._unrest -= unrestReduction;
+                            if (redProv._unrest < -2) { redProv._unrest = -2; }
+                            reduceTargets--;
+                        }
+                    }
+                }
+
+                List<ProvinceObject>? disconnectedProvs = new List<ProvinceObject>();
+                disconnectedProvs = ReturnDisconnectedLand(provs);
+
+                if (disconnectedProvs != null)
+                {
+
+                    foreach (ProvinceObject leftProv in disconnectedProvs)
+                    {
+                        if (leftProv._unrest < GetUnrestCap())
+                        {
+                            leftProv._unrest += 0.2f; //Raise unrest per year if the province is not in connected land
+                        }
                     }
                 }
             }
+
         }
         public void AppendTechPoints(List<ProvinceObject> provs, ref List<Culture> cultures, List<Empire> empires, ref Date curDate) //Add tech points per month
         {
@@ -466,16 +502,8 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                 float newTechPoints = 1.0f + curRuler.rulerPersona["per_DevelopTech"] + curRuler.rulerPersona["per_LearnTech"]; //Sum of learning stats (1 to 3)
                 newTechPoints += Math.Min(5.0f, _componentProvinceIDs.Sum(x => ReturnPopScore(provs[x], provs))); //Add total of popscore 
 
-                {
-                    float cultMax = cultures.Max(x => x._economyScore);
-                    float cultMin = cultures.Min(x => x._economyScore);
-
-                    float techMultiplier = 0.5f + (1.5f * (((cultures[_cultureID]._economyScore) - cultMin) / 0.01f + (cultMax - cultMin))); //times 0.5 through 2 based on the eco score of the culture
-                    newTechPoints *= techMultiplier;
-                }
-
-                techPoints += Convert.ToInt32(Math.Max(2,Math.Ceiling(newTechPoints))); //Tech points from 2 to 16
-                techPoints = Math.Min(techPoints, 1200);
+                techPoints += Convert.ToInt32(Math.Max(2,Math.Ceiling(newTechPoints))); 
+                techPoints = Math.Min(techPoints, 500);
             }
         }
         public void RebelAI(Rebellion thisRebel, ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date)
@@ -649,7 +677,28 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             rebels.Remove(thisRebel); //Delete seperatist from set
         }
 
+        public List<ProvinceObject> ReturnDisconnectedLand(List<ProvinceObject> provs) //Find set of land which is not connected to the capital
+        {
+            if (!_exists || _componentProvinceIDs.Count <= 1) { return null; }
+            List<ProvinceObject> connectionProvs = new List<ProvinceObject>() { provs[_componentProvinceIDs[0]] };
+            List<ProvinceObject> bankedProvs = new List<ProvinceObject>() { };
 
+            while (connectionProvs.Count > 0) //Append each connection in the set
+            {
+                List<ProvinceObject> newConnects = connectionProvs[0]._adjacentProvIDs.Select(x => provs[x]).Where(y => y._ownerEmpire == this && !connectionProvs.Contains(y) && !bankedProvs.Contains(y)).ToList(); //Get all provinces not in set
+                bankedProvs.Add(connectionProvs[0]);
+                connectionProvs.RemoveAt(0);
+                if (newConnects.Count > 0)
+                {
+                    connectionProvs.AddRange(newConnects);
+                }
+            }
+
+            if(_componentProvinceIDs.Count == bankedProvs.Count) { return null; } //Return null if all provinces are connected
+
+            return _componentProvinceIDs.Where(x => !bankedProvs.Contains(provs[x])).Select(y => provs[y]).ToList();
+
+        }
         public void WarAI(ref List<Culture> cultures, List<Empire> empires, List<ProvinceObject> provs, ref List<Religion> religions, ref System.Random rnd, ref Date date)
         {
             List<Empire> warredEmpires = opinions.Where(x => x.Value._isWar).Select(y => empires[y.Key]).ToList();
@@ -776,9 +825,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                         }
                     case "per_DevelopTech":
                         {
-                            if (techPoints >= 1000)
+                            if (techPoints >= 250)
                             {
-                                techPoints = 0; //Reset tech score
+                                int techProgress = Convert.ToInt32(1 + Math.Floor(((float)(ReturnTechTotal())) / 10.0f));
+
+                                techPoints = -1 * (ReturnTechTotal()*techProgress); //Reset tech score
 
                                 string devTech = curRuler.ReturnNextTech(this, ref rnd);
                                 ref int techVar = ref TechStringToVar(devTech);
@@ -815,16 +866,17 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                                     break;
                                 }
                             }
-                            else //If cannot learn new tech, attempt to learn tech from others
+                            else
                             {
-                                int ind = actBuffer.IndexOf(newAct);
-                                List<string> newActBuffer = new List<string>();
-                                newActBuffer = actBuffer.TakeWhile(x => actBuffer.IndexOf(x) > ind).ToList(); //Get all actions after this action
-                                newActBuffer.Insert(0,"per_LearnTech" );
-                                //Add learn tech call to the act buffer at first position
+                                //int ind = actBuffer.IndexOf(newAct);
+                                //List<string> newActBuffer = new List<string>();
+                                //newActBuffer = actBuffer.TakeWhile(x => actBuffer.IndexOf(x) > ind).ToList(); //Get all actions after this action
+                                //newActBuffer.Insert(0,"per_LearnTech" );
+                                ////Add learn tech call to the act buffer at first position
 
-                                AI(newActBuffer, ref cultures, empires, provs, ref religions, ref rnd, ref date); //Rerun actions
-                                return; 
+                                //AI(newActBuffer, ref cultures, empires, provs, ref religions, ref rnd, ref date); //Rerun actions
+                                //return; 
+                                break;
                             }
                         }
                     case "per_LearnTech":
@@ -844,6 +896,11 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                             int increment = rnd.Next(0, Math.Min(2, max)) + 1; //Increment tech by up to 3 at a time.
                             if (Actions.UpdateTech(ref empires, _id, techWithDif.biggestDif, increment)) //Attempt update (add 1 to tech)
                             {
+                                if (techPoints > 0)
+                                {
+                                    techPoints = Convert.ToInt32(Math.Ceiling(((float)techPoints) * 0.75f));
+                                }
+
                                 provs[_componentProvinceIDs[0]].updateText = "Learned " + techWithDif.biggestDif + " level " + TechStringToVar(techWithDif.biggestDif);
 
                                 if(maxVals.hTech != null)
@@ -1124,7 +1181,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
         }
         public float GetUnrestCap()
         {
-            return  5.0f + ((float)(culTech) / 10.0f);
+            return  5.0f + ((float)(culTech) / 5.0f);
         }
         public bool IsInWar()
         {
@@ -1190,7 +1247,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
             {
 
                 if(opinions.ContainsKey(imp.Key._id))
-                {
+                {   
                     Opinion op = opinions[imp.Key._id];
 
                     int weightVal = Math.Abs(imp.Value.value);
@@ -1199,7 +1256,7 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     {
                         if (op._fear) { isHit = true; negOpinion += (weightVal * (1-curRuler.rulerPersona["per_Risk"])); }
                         else if (op._rival) { isHit = true; posOpinion += (weightVal * curRuler.rulerPersona["per_Insult"]); }
-                        else if (op._ally) { isHit = true; posOpinion += (weightVal * 0.2f); } //Stepping on allies toes has a minimal impact
+                        else if (op._ally) { isHit = true; negOpinion += (weightVal * 0.2f); } //Stepping on allies toes has a minimal impact
                     }
                     else if(imp.Value.value > 0)
                     {
@@ -1912,9 +1969,13 @@ namespace Empires //Handles empires and their existance. Actions they may take a
                     provs[myEmpire._componentProvinceIDs[0]].updateText = "Made peace with " + enemy._empireName;
                     provs[enemy._componentProvinceIDs[0]].updateText = "Made peace with " + myEmpire._empireName;
 
+                    int peaceDays = 3650; //10 Years + Diplomacy lower
+                    int diploItem = Math.Min(50,myEmpire.dipTech > enemy.dipTech ? enemy.dipTech : myEmpire.dipTech);
+                    peaceDays += (365 * diploItem);
+
                     //Peace treaties
-                    Actions.AddNewModifier(enemy, myEmpire, 7300, -20, (curDate.day, curDate.month, curDate.year), "TREATY");
-                    Actions.AddNewModifier(myEmpire, enemy, 7300, -20, (curDate.day, curDate.month, curDate.year), "TREATY");
+                    Actions.AddNewModifier(enemy, myEmpire, peaceDays, -20, (curDate.day, curDate.month, curDate.year), "TREATY");
+                    Actions.AddNewModifier(myEmpire, enemy, peaceDays, -20, (curDate.day, curDate.month, curDate.year), "TREATY");
                 }
 
                 return true;

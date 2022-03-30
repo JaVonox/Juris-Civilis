@@ -100,7 +100,7 @@ public class ProvinceViewerBehaviour : MonoBehaviour
         if (activeInfoScreen != null) { Destroy(activeInfoScreen.gameObject); }
         activeInfoScreen = null;
         activeInfoScreen = Instantiate(debugPrefab, container.transform, false);
-        activeInfoScreen.GetComponent<DebugHandler>().DebugInfo(newSelection, culturesSet);
+        activeInfoScreen.GetComponent<DebugHandler>().DebugInfo(newSelection, culturesSet,empSet);
         container.SetActive(true);
     }
     public void LoadNational(ProvinceObject newSelection)

@@ -188,10 +188,10 @@ public class SimulatorMainHandler : MonoBehaviour
     }
     private bool SpawnEmpire()
     {
-        int mMax = 200 + Math.Min(_date.year, 500); //Spawning slows down over time
+        int mMax = 3650 - Convert.ToInt32(Math.Max(1,Math.Ceiling(Math.Min((float)(_date.year)*1.5f, 2000.0f)))); //Spawning speeds up over time
         int rnTick = rnd.Next(0, mMax);
 
-        if (rnTick == rnd.Next(0,mMax))  //1/((100+y)*2) chance
+        if (rnTick == rnd.Next(0,mMax) || empires.Count == 0)  //low chance or guarenteed when no empires have been spawned yet
         {
             int empCount = empires.Count(x => x._exists); //Number of empires in existance
 
@@ -200,7 +200,7 @@ public class SimulatorMainHandler : MonoBehaviour
                 SpawnCase("ANYHIGHPOP"); //Spawn on a highpop location
                 return true;
             }
-            else if(rnd.Next(0,4) == 1)
+            else
             {
                 if (rnTick < (int)Math.Floor((float)(mMax) / 7)) //1/7 chance
                 {
